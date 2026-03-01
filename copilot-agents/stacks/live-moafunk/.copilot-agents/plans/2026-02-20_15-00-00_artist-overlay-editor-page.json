@@ -1,0 +1,594 @@
+{
+  "schema_version": "1.1",
+  "plan_id": "2026-02-20_15-00-00_artist-overlay-editor-page",
+  "stack": "live-moafunk",
+  "description": "Add admin subpage 'Overlay Editor' to regenerate artist images with configurable overlay (UN/HEARD/logo/name), image filters, presets, R2 gallery, and explicit active-overlay selection",
+  "created_at": "2026-02-20T15:00:00Z",
+  "updated_at": "2026-02-20T18:00:00Z",
+  "overall_status": "completed",
+  "active_context": "main",
+  "related_plans": [],
+  "steps": [
+    {
+      "id": "1",
+      "agent": "@axum-backend",
+      "task": "Add R2 list-objects function and overlay API endpoints",
+      "dependencies": [],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/storage.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        },
+        {
+          "type": "file",
+          "path": "source/backend/src/handlers/api.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "completed",
+      "sub_plan": {
+        "description": "Backend R2 listing + overlay CRUD endpoints",
+        "steps": [
+          {
+            "id": "1.1",
+            "agent": "@s3-storage",
+            "task": "Add list_objects(state, prefix) function to storage.rs using aws_sdk_s3 list_objects_v2 with given prefix. Return Vec<StorageObject> with key, last_modified, size fields",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {
+              "notes": "Codebase currently has no list operation. Uses aws_sdk_s3::Client already initialized in AppState"
+            }
+          },
+          {
+            "id": "1.2",
+            "agent": "@axum-backend",
+            "task": "Add GET /api/artists/:id/overlays endpoint in api.rs. Calls list_objects with prefix artists/{id}/pic_overlay/, returns JSON array of { key, url (presigned 1h), last_modified }",
+            "dependencies": ["1.1"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "1.3",
+            "agent": "@axum-backend",
+            "task": "Add POST /api/artists/:id/overlays endpoint in api.rs. Accepts multipart form with single 'image' blob (JPEG). Uploads to R2 as artists/{id}/pic_overlay/{timestamp}-{uuid}.jpg. Does NOT update pic_overlay_key in DB. Returns { key, url }",
+            "dependencies": ["1.1"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {
+              "notes": "Older images must not be replaced. Each save creates a new file with timestamp prefix for chronological ordering"
+            }
+          },
+          {
+            "id": "1.4",
+            "agent": "@axum-backend",
+            "task": "Add PUT /api/artists/:id/overlays/active endpoint in api.rs. Accepts JSON { key: string }. Updates artist.pic_overlay_key in DB to the given key. Returns 200 OK",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {
+              "notes": "This is the explicit 'Set as active' action. Only this endpoint changes the publicly visible overlay"
+            }
+          }
+        ]
+      },
+      "knowledge": {
+        "decisions": [
+          "Use R2 prefix listing (not a new DB table) to discover saved overlays — simpler, avoids migration for overlay history",
+          "Each overlay save creates a new R2 object with timestamp prefix for chronological ordering",
+          "Only PUT /active explicitly updates pic_overlay_key — save alone does not change active overlay"
+        ],
+        "references": [
+          "source/backend/src/storage.rs — existing upload_file, get_presigned_url patterns",
+          "source/backend/src/handlers/api.rs L878-992 — existing api_update_artist_picture handler as reference"
+        ]
+      }
+    },
+    {
+      "id": "2",
+      "agent": "@axum-backend",
+      "task": "Expose original image URL separately in artist detail endpoint",
+      "dependencies": [],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/handlers/api.rs",
+          "verification": "none",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "notes": "Currently GET /api/artists/:id returns file_urls.pic which resolves to pic_overlay_key > pic_cropped_key > pic_key. Need to also expose file_urls.pic_original pointing to pic_key so the overlay editor always starts from the untouched source image",
+        "references": [
+          "source/backend/src/handlers/api.rs L356-360 — current pic_key priority chain"
+        ]
+      }
+    },
+    {
+      "id": "3",
+      "agent": "@axum-backend",
+      "task": "Create overlay_presets DB table and CRUD API endpoints",
+      "dependencies": [],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/db.rs",
+          "verification": "none",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "completed",
+      "sub_plan": {
+        "description": "Server-side overlay parameter presets shared across all admin users",
+        "steps": [
+          {
+            "id": "3.1",
+            "agent": "@axum-backend",
+            "task": "Add overlay_presets table migration in db.rs init: CREATE TABLE IF NOT EXISTS overlay_presets (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, params TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP). params stores full JSON of overlay settings",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "3.2",
+            "agent": "@axum-backend",
+            "task": "Add OverlayPreset struct in models.rs with id, name, params (serde_json::Value), created_at, updated_at. Add DB query functions: list_presets, create_preset, update_preset, delete_preset in db.rs",
+            "dependencies": ["3.1"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "3.3",
+            "agent": "@axum-backend",
+            "task": "Add REST endpoints: GET /api/overlay-presets (list), POST /api/overlay-presets (create {name, params}), PUT /api/overlay-presets/:id (update {name, params}), DELETE /api/overlay-presets/:id (delete). All require admin role",
+            "dependencies": ["3.2"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          }
+        ]
+      },
+      "knowledge": {
+        "decisions": [
+          "Server-side presets (not localStorage) so all admins share the same presets",
+          "params stored as JSON text blob — flexible schema for overlay settings without rigid columns"
+        ]
+      }
+    },
+    {
+      "id": "4",
+      "agent": "@axum-backend",
+      "task": "Register all new routes in main.rs under authenticated admin router group",
+      "dependencies": ["1", "2", "3"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/main.rs",
+          "verification": "none",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "notes": "Add routes: GET/POST /api/artists/:id/overlays, PUT /api/artists/:id/overlays/active, GET/POST /api/overlay-presets, PUT/DELETE /api/overlay-presets/:id. Follow existing route registration pattern in main.rs L280-500"
+      }
+    },
+    {
+      "id": "5",
+      "agent": "@axum-backend",
+      "task": "Verify backend compiles: cargo build and cargo clippy",
+      "dependencies": ["4"],
+      "artifacts": [
+        {
+          "type": "test",
+          "path": "cargo build && cargo clippy",
+          "verification": "passes",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "completed",
+      "knowledge": {}
+    },
+    {
+      "id": "6",
+      "agent": "@vue-frontend",
+      "task": "Add frontend API methods for overlay and preset endpoints",
+      "dependencies": [],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/api/index.ts",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "completed",
+      "sub_plan": {
+        "description": "API client methods matching new backend endpoints",
+        "steps": [
+          {
+            "id": "6.1",
+            "agent": "@vue-frontend",
+            "task": "Add to artistsApi: listOverlays(id) → GET /api/artists/:id/overlays, saveOverlay(id, blob: Blob) → POST /api/artists/:id/overlays (multipart), setActiveOverlay(id, key: string) → PUT /api/artists/:id/overlays/active",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "6.2",
+            "agent": "@vue-frontend",
+            "task": "Add new presetsApi object: list() → GET /api/overlay-presets, create(name, params) → POST, update(id, name, params) → PUT, delete(id) → DELETE. Add OverlayPreset interface { id: number, name: string, params: OverlayParams, created_at: string, updated_at: string }",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "6.3",
+            "agent": "@vue-frontend",
+            "task": "Define OverlayParams TypeScript interface: per-element settings (un, heard, logo, artistName) each with { visible: boolean, x: number, y: number, size: number, color: string, fontWeight?: string, fontStyle?: string }, plus filter settings { brightness: number, contrast: number, saturate: number, hueRotate: number, grayscale: number }",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          }
+        ]
+      },
+      "knowledge": {
+        "references": [
+          "source/frontend/src/admin/api/index.ts L133-216 — existing artistsApi pattern",
+          "source/frontend/src/admin/api/index.ts L193-211 — existing updatePicture multipart pattern"
+        ]
+      }
+    },
+    {
+      "id": "7",
+      "agent": "@vue-frontend",
+      "task": "Extract overlay rendering into reusable composable useOverlayRenderer.ts",
+      "dependencies": [],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/composables/useOverlayRenderer.ts",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "completed",
+      "sub_plan": {
+        "description": "Extract drawOverlayOnCanvas and font loading from ImageCropper.vue into a shared composable",
+        "steps": [
+          {
+            "id": "7.1",
+            "agent": "@vue-frontend",
+            "task": "Create useOverlayRenderer.ts composable. Extract shoikaFontsPromise (loads Shoika Bold Italic 600, Regular Italic 400, Bold 700) and moafunkLogoPromise from ImageCropper.vue L42-60",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "7.2",
+            "agent": "@vue-frontend",
+            "task": "Add configurable drawOverlayOnCanvas(canvas, params: OverlayParams) function. Instead of reading DOM element positions, compute positions from params.un.x/y/size, params.heard.x/y/size, params.logo.x/y/size, params.artistName.x/y/size. Apply filter from params.filter. Render text/logo onto canvas at the specified positions",
+            "dependencies": ["7.1"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {
+              "references": [
+                "source/frontend/src/admin/components/ImageCropper.vue L142-231 — existing drawOverlayOnCanvas function",
+                "source/frontend/src/admin/components/ImageCropper.vue L237-253 — filter application"
+              ]
+            }
+          },
+          {
+            "id": "7.3",
+            "agent": "@vue-frontend",
+            "task": "Add renderPreview(cropperInstance, params: OverlayParams, artistName: string) function that: gets 1024x1024 canvas from CropperJS, applies CSS filter from params, draws overlay via drawOverlayOnCanvas, returns { croppedBlob, brandedBlob } as JPEG 0.92 quality",
+            "dependencies": ["7.2"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "7.4",
+            "agent": "@vue-frontend",
+            "task": "Add getDefaultOverlayParams() function returning the current hardcoded values as default OverlayParams: UN at {x:15, y:80, size:44, color:'#ffec44', visible:true}, HEARD at {x:15, y:88, size:19, color:'#ffffff', visible:true}, logo at {x:50, y:80, size:15, visible:true}, artistName at {x:62, y:80, size:22, color:'#ffffff', visible:true}, filter {brightness:1, contrast:1.08, saturate:0.85, hueRotate:0, grayscale:0}",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          }
+        ]
+      },
+      "knowledge": {
+        "decisions": [
+          "Composable computes positions from numeric params instead of reading DOM getBoundingClientRect — enables parameter-driven rendering",
+          "Default params match the current hardcoded overlay layout from ImageCropper.vue for backward compatibility"
+        ]
+      }
+    },
+    {
+      "id": "8",
+      "agent": "@vue-frontend",
+      "task": "Refactor existing ImageCropper.vue to use the new useOverlayRenderer composable",
+      "dependencies": ["7"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/components/ImageCropper.vue",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "notes": "Replace inline drawOverlayOnCanvas, font loading, and moafunkLogoPromise in ImageCropper.vue with imports from useOverlayRenderer. Use getDefaultOverlayParams() for the fixed overlay layout. Ensure existing behavior is preserved — no visual change to the existing artist form"
+      }
+    },
+    {
+      "id": "9",
+      "agent": "@vue-frontend",
+      "task": "Create OverlayControls.vue component — parameter console for overlay elements and image filters",
+      "dependencies": ["6"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/components/OverlayControls.vue",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "completed",
+      "sub_plan": {
+        "description": "Individual controls per overlay element + filter sliders + preset management",
+        "steps": [
+          {
+            "id": "9.1",
+            "agent": "@vue-frontend",
+            "task": "Create OverlayControls.vue with <script setup lang='ts'>. Props: modelValue: OverlayParams, artistName: string. Emits: update:modelValue. Structure: collapsible section per overlay element (UN, HEARD, Logo, Artist Name)",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "9.2",
+            "agent": "@vue-frontend",
+            "task": "Per-element controls: visibility toggle (checkbox), X position slider (0-100%), Y position slider (0-100%), size slider (8-80px for text, 5-40% for logo), color picker input (for text elements), font weight dropdown (400/600/700), font style dropdown (normal/italic). All two-way bound to OverlayParams via v-model",
+            "dependencies": ["9.1"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "9.3",
+            "agent": "@vue-frontend",
+            "task": "Image filter section: sliders for brightness (0-2, step 0.01), contrast (0-2, step 0.01), saturate (0-2, step 0.01), hue-rotate (0-360, step 1), grayscale (0-1, step 0.01). Each with numeric input + slider. Reset button per filter to default value",
+            "dependencies": ["9.1"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "9.4",
+            "agent": "@vue-frontend",
+            "task": "Preset management section at top: dropdown to select from saved presets (fetched via presetsApi.list), 'Load' button to apply selected preset params to modelValue, 'Save as new' button (prompts for name, calls presetsApi.create), 'Update current' button (calls presetsApi.update), 'Delete' button with confirm (calls presetsApi.delete)",
+            "dependencies": ["9.1"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          }
+        ]
+      },
+      "knowledge": {
+        "decisions": [
+          "Individual controls per element (not grouped bottom-bar layout) for maximum flexibility",
+          "Presets store full OverlayParams JSON — loading a preset restores all positions, sizes, colors, and filter values"
+        ]
+      }
+    },
+    {
+      "id": "10",
+      "agent": "@vue-frontend",
+      "task": "Create OverlayGallery.vue component — grid of previously saved overlay images",
+      "dependencies": ["6"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/components/OverlayGallery.vue",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "notes": "Props: artistId: number, activeKey: string | null. Emits: set-active(key). Fetches overlay list via artistsApi.listOverlays(artistId) on mount and when artistId changes. Displays thumbnail grid. Each item shows: image (presigned URL), created date, 'Preview' button (opens full-size modal/new tab), 'Set as active' button (emits set-active with key), visual highlight if key matches activeKey. Auto-refreshes after parent saves a new overlay"
+      }
+    },
+    {
+      "id": "11",
+      "agent": "@vue-frontend",
+      "task": "Create OverlayEditorPage.vue — main admin page assembling all components",
+      "dependencies": ["7", "8", "9", "10"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/pages/OverlayEditorPage.vue",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "completed",
+      "sub_plan": {
+        "description": "Main page: artist selector, CropperJS canvas with live overlay, parameter console, action buttons, gallery",
+        "steps": [
+          {
+            "id": "11.1",
+            "agent": "@vue-frontend",
+            "task": "Create OverlayEditorPage.vue with <script setup lang='ts'>. Layout: top section with searchable artist dropdown (fetches artistsApi.list). When artist selected or route param :id present, load artist detail via artistsApi.get(id). Set cropper source to file_urls.pic_original (untouched original)",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "11.2",
+            "agent": "@vue-frontend",
+            "task": "Add CropperJS integration: square aspect ratio (1:1), viewMode 1, dragMode 'move', background false. Load original artist image. Apply CSS filter from OverlayParams to the cropper preview img elements (same pattern as ImageCropper.vue L791-793). Render live DOM overlay on top of the crop area matching current OverlayParams (position/size/color/visibility)",
+            "dependencies": ["11.1"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {
+              "references": [
+                "source/frontend/src/admin/components/ImageCropper.vue — CropperJS setup pattern, overlay DOM attachment to .cropper-view-box"
+              ]
+            }
+          },
+          {
+            "id": "11.3",
+            "agent": "@vue-frontend",
+            "task": "Add OverlayControls component in right panel, two-way bound to reactive OverlayParams ref. Initialize with getDefaultOverlayParams(). Changes update the live DOM overlay and CSS filter in real-time",
+            "dependencies": ["11.2"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "11.4",
+            "agent": "@vue-frontend",
+            "task": "Add 'Preview' button: calls useOverlayRenderer.renderPreview() with current cropper + params, opens result in a modal showing the full 1024x1024 rendered image",
+            "dependencies": ["11.3"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "11.5",
+            "agent": "@vue-frontend",
+            "task": "Add 'Save to R2' button: calls renderPreview() to get brandedBlob, then artistsApi.saveOverlay(artistId, brandedBlob). Show success flash. Trigger OverlayGallery refresh. Original image in R2 is never modified",
+            "dependencies": ["11.4"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "11.6",
+            "agent": "@vue-frontend",
+            "task": "Add OverlayGallery component in bottom section. On 'set-active' event, call artistsApi.setActiveOverlay(artistId, key), show success flash, refresh gallery to update active indicator",
+            "dependencies": ["11.5"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          }
+        ]
+      },
+      "knowledge": {
+        "decisions": [
+          "Two-panel layout: left = canvas with live overlay, right = parameter console",
+          "Gallery in bottom section below the editor",
+          "Original image always loaded from file_urls.pic_original — never from overlay or cropped variant"
+        ]
+      }
+    },
+    {
+      "id": "12",
+      "agent": "@vue-frontend",
+      "task": "Add route and navigation for Overlay Editor page",
+      "dependencies": ["11"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/router.ts",
+          "verification": "none",
+          "verified_at": null,
+          "auto_verified": false
+        },
+        {
+          "type": "file",
+          "path": "source/frontend/src/shared/components/NavBar.vue",
+          "verification": "none",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "completed",
+      "sub_plan": {
+        "description": "Register route, add nav item, add link from artist detail page",
+        "steps": [
+          {
+            "id": "12.1",
+            "agent": "@vue-frontend",
+            "task": "Add route in router.ts: { path: '/overlay-editor/:id?', name: 'OverlayEditor', component: () => import('./pages/OverlayEditorPage.vue'), meta: { requiresAuth: true, roles: ['admin', 'superadmin'] } }. Optional :id param for artist pre-selection",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "12.2",
+            "agent": "@vue-frontend",
+            "task": "Add nav item in NavBar.vue navItems array: { label: 'Overlay', path: '/overlay-editor', roles: ['admin', 'superadmin'], category: 'UNHEARD' }",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "12.3",
+            "agent": "@vue-frontend",
+            "task": "Add 'Edit Overlay' button/link in ArtistDetailPage.vue that navigates to /overlay-editor/{artist.id} for quick access from artist detail",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {
+              "references": [
+                "source/frontend/src/admin/pages/ArtistDetailPage.vue — add near the existing image section"
+              ]
+            }
+          }
+        ]
+      },
+      "knowledge": {}
+    },
+    {
+      "id": "13",
+      "agent": "@vue-frontend",
+      "task": "Verify frontend builds and existing tests pass: npx vitest run",
+      "dependencies": ["8", "12"],
+      "artifacts": [
+        {
+          "type": "test",
+          "path": "npx vitest run",
+          "verification": "passes",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "notes": "Ensure ImageCropper refactor (step 8) does not break existing tests. Verify build succeeds with all new components"
+      }
+    }
+  ]
+}

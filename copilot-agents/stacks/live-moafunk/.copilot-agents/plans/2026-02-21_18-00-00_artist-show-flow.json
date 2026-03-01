@@ -1,0 +1,899 @@
+{
+  "schema_version": "1.1",
+  "plan_id": "2026-02-21_18-00-00_artist-show-flow",
+  "stack": "live-moafunk",
+  "description": "Implement a guided multi-step artist show flow replacing the /stream page. Any authenticated user linked to an artist profile assigned to an external show sees: show info → mode selection → upload → confirm → live stream. Includes backend schema changes (user_id on artists, start_time on shows, prerecorded upload fields) and new artist-facing API endpoints.",
+  "created_at": "2026-02-21T18:00:00Z",
+  "updated_at": "2026-02-21T19:00:00Z",
+  "overall_status": "active",
+  "active_context": "main",
+  "related_plans": [],
+  "steps": [
+    {
+      "id": "1",
+      "agent": "@axum-backend",
+      "task": "Add database migrations: user_id column on artists table, start_time column on shows table, prerecorded upload fields on shows table (prerecorded_key, prerecorded_filename, prerecorded_confirmed_at). Add unique index on artists.user_id.",
+      "dependencies": [],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/db.rs",
+          "verification": "exists",
+          "verified_at": "2026-02-21T19:00:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "sub_plan": {
+        "description": "Three ALTER TABLE migrations plus index creation",
+        "steps": [
+          {
+            "id": "1.1",
+            "agent": "@axum-backend",
+            "task": "Add migration in ensure_tables(): ALTER TABLE artists ADD COLUMN user_id INTEGER REFERENCES users(id). Add unique index idx_artist_user_id on artists(user_id) WHERE user_id IS NOT NULL.",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "1.2",
+            "agent": "@axum-backend",
+            "task": "Add migration: ALTER TABLE shows ADD COLUMN start_time TEXT (stores HH:MM format, nullable).",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "1.3",
+            "agent": "@axum-backend",
+            "task": "Add migration: ALTER TABLE shows ADD COLUMN prerecorded_key TEXT, ALTER TABLE shows ADD COLUMN prerecorded_filename TEXT, ALTER TABLE shows ADD COLUMN prerecorded_confirmed_at TEXT.",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          }
+        ]
+      },
+      "knowledge": {
+        "decisions": [
+          "user_id on artists (not artist_id on users) — keeps user table clean, artist profile owns the link",
+          "start_time as separate TEXT HH:MM (not modifying existing date column) — minimal migration impact",
+          "Separate prerecorded_key fields (not reusing recording_key) — prevents artist uploads from overwriting admin recordings"
+        ],
+        "learnings": [
+          "Existing migration pattern uses run_migration() helper with IF NOT EXISTS checks in db.rs ensure_tables()"
+        ],
+        "references": [
+          "source/backend/src/db.rs"
+        ],
+        "blockers_encountered": [],
+        "notes": "Follow existing migration pattern: check column existence before ALTER TABLE to make migrations idempotent.",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "2",
+      "agent": "@axum-backend",
+      "task": "Update Show and Artist model structs in models.rs to include new fields. Update User model and UserRole to allow artist password changes (can_change_password should return true for artist).",
+      "dependencies": ["1"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/models.rs",
+          "verification": "exists",
+          "verified_at": "2026-02-21T19:00:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "sub_plan": {
+        "description": "Update Rust structs to match new DB schema",
+        "steps": [
+          {
+            "id": "2.1",
+            "agent": "@axum-backend",
+            "task": "Add start_time: Option<String>, prerecorded_key: Option<String>, prerecorded_filename: Option<String>, prerecorded_confirmed_at: Option<String> to Show struct.",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "2.2",
+            "agent": "@axum-backend",
+            "task": "Add user_id: Option<i64> to Artist struct (from sqlx SELECT).",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          }
+        ]
+      },
+      "knowledge": {
+        "decisions": [],
+        "learnings": [],
+        "references": [
+          "source/backend/src/models.rs"
+        ],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "3",
+      "agent": "@axum-backend",
+      "task": "Update user management endpoints: api_create_user and api_update_user accept optional artist_id field. When provided, set artists.user_id for the specified artist (validate artist exists, not already linked to another user). Update UserListItem response with linked_artist info (id, name).",
+      "dependencies": ["1", "2"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/handlers/api.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "completed",
+      "sub_plan": {
+        "description": "Extend user CRUD with artist linking",
+        "steps": [
+          {
+            "id": "3.1",
+            "agent": "@axum-backend",
+            "task": "Add artist_id: Option<i64> to CreateUserRequest. After user INSERT, if artist_id provided: validate artist exists, validate artist.user_id IS NULL, UPDATE artists SET user_id = new_user_id WHERE id = artist_id.",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "3.2",
+            "agent": "@axum-backend",
+            "task": "Add artist_id: Option<i64> to UpdateUserRequest. On update: clear old artist.user_id if changing link, then set new artist.user_id. Handle unlinking (set artist_id to null to clear link).",
+            "dependencies": ["3.1"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "3.3",
+            "agent": "@axum-backend",
+            "task": "Update UserListItem and UserResponse structs to include linked_artist: Option<LinkedArtistInfo> where LinkedArtistInfo = { id: i64, name: String }. Join artists table in user list/detail queries.",
+            "dependencies": ["3.1"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          }
+        ]
+      },
+      "knowledge": {
+        "decisions": [
+          "Artist linking is managed from the user side (admin creates user, optionally links to unlinked artist)",
+          "Unlinking clears artists.user_id — artist profile still exists but is detached from login",
+          "Used serde_json::Value for artist_id in UpdateUserRequest to distinguish between null (unlink) and number (link)",
+          "Flattened linked_artist into linked_artist_id + linked_artist_name on UserListItem via LEFT JOIN (simpler than nested struct for sqlx::FromRow)"
+        ],
+        "learnings": [],
+        "references": [
+          "source/backend/src/handlers/api.rs"
+        ],
+        "blockers_encountered": [],
+        "notes": "User creation already generates random password for artist accounts. The artist_id link is an addition on top of the existing flow.",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "4",
+      "agent": "@axum-backend",
+      "task": "Update api_me endpoint to return additional artist context: has_show (bool), artist_name (Option<String>), artist_id (Option<i64>). Join users → artists (via user_id) → artist_show_assignments → shows to determine if user has an assigned show.",
+      "dependencies": ["1", "2"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/handlers/api.rs",
+          "verification": "exists",
+          "verified_at": "2026-02-21T19:30:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [
+          "Enrich /api/auth/me rather than requiring a separate /api/my-show call for initial routing",
+          "Also enriched api_login response with the same fields for immediate post-login context"
+        ],
+        "learnings": [
+          "Used sqlx::query_as for tuple (i64, String) to fetch artist info, then sqlx::query_scalar for COUNT"
+        ],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "UserResponse struct now has: id, username, role, artist_id, artist_name, has_show. Both api_me and api_login return these.",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "5",
+      "agent": "@axum-backend",
+      "task": "Create GET /api/my-show endpoint: requires any authenticated user, joins users → artists (via user_id) → artist_show_assignments → shows. Returns MyShowResponse with show info (id, title, date, start_time, description, show_type, artists list, prerecorded_key, prerecorded_filename, prerecorded_confirmed_at) or { assigned: false } if not linked/assigned.",
+      "dependencies": ["1", "2"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/handlers/api.rs",
+          "verification": "exists",
+          "verified_at": "2026-02-21T20:00:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [
+          "Single endpoint drives entire flow state — frontend checks assigned vs not-assigned, has prerecorded upload vs not, confirmed vs not",
+          "Created resolve_user_show() helper for reuse in upload/confirm endpoints",
+          "Response includes prerecorded_url (presigned) alongside prerecorded_key for frontend playback"
+        ],
+        "learnings": [
+          "sqlx::FromRow derive needed on any struct used with query_as"
+        ],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Auth: use get_current_user() (not require_admin). Any role can access this endpoint. Response includes all artists assigned to the same show (for co-host display).",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "6",
+      "agent": "@axum-backend",
+      "task": "Create prerecorded upload endpoints under /api/my-show/upload: init, chunk, finalize (chunked path) and direct POST (small file path). Mirror existing upload_recording_chunked.rs pattern but store to prerecorded/ R2 prefix and update shows.prerecorded_key/prerecorded_filename. Add POST /api/my-show/confirm and DELETE /api/my-show/upload.",
+      "dependencies": ["1", "2", "5"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/handlers/api.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "completed",
+      "sub_plan": {
+        "description": "Implement upload and confirm endpoints for artist prerecorded flow",
+        "steps": [
+          {
+            "id": "6.1",
+            "agent": "@axum-backend",
+            "task": "Create POST /api/my-show/upload/init: auth as any user, resolve user → artist → show, create pending upload session (reuse pending_recording_uploads table with upload_type='prerecorded'). Return session_id.",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "6.2",
+            "agent": "@axum-backend",
+            "task": "Create POST /api/my-show/upload/chunk/:session_id: validate session belongs to user's show, store chunk in R2 at pending-prerecorded/{session_id}/chunk-{index}.",
+            "dependencies": ["6.1"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "6.3",
+            "agent": "@axum-backend",
+            "task": "Create POST /api/my-show/upload/finalize/:session_id: assemble chunks, upload to prerecorded/{show_id}/{filename} in R2, update shows.prerecorded_key and prerecorded_filename, cleanup pending data.",
+            "dependencies": ["6.2"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "6.4",
+            "agent": "@axum-backend",
+            "task": "Create POST /api/my-show/upload (small file ≤50MB): direct multipart upload to prerecorded/ prefix, update show fields.",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "6.5",
+            "agent": "@axum-backend",
+            "task": "Create POST /api/my-show/confirm: set shows.prerecorded_confirmed_at = now(). Only if prerecorded_key is set. Create DELETE /api/my-show/upload: clear prerecorded_key, prerecorded_filename, prerecorded_confirmed_at, delete R2 object.",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          }
+        ]
+      },
+      "knowledge": {
+        "decisions": [
+          "Mirror existing chunked upload pattern from upload_recording_chunked.rs for consistency",
+          "Store under prerecorded/ R2 prefix to separate from admin recordings",
+          "Auth uses get_current_user() — any authenticated user — but verifies user is linked to an artist with an assigned show"
+        ],
+        "learnings": [
+          "Existing chunked upload uses pending_recording_uploads and pending_recording_chunks tables with 2-hour expiry"
+        ],
+        "references": [
+          "source/backend/src/handlers/upload_recording_chunked.rs"
+        ],
+        "blockers_encountered": [],
+        "notes": "May add upload_type column to pending_recording_uploads to distinguish admin vs artist uploads, OR create separate pending_prerecorded_uploads table. TBD during implementation.",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "7",
+      "agent": "@axum-backend",
+      "task": "Update show create/update endpoints to accept start_time field. Add start_time to CreateShowRequest, UpdateShowRequest, ShowDetailResponse, and ShowListItem.",
+      "dependencies": ["1", "2"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/handlers/api.rs",
+          "verification": "exists",
+          "verified_at": "2026-02-21T20:00:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [
+          "start_time is optional TEXT in HH:MM format, validated if provided"
+        ],
+        "learnings": [
+          "Added start_time to CreateShowRequest and UpdateShowRequest with full INSERT/UPDATE support"
+        ],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Validate format: regex ^[0-2][0-9]:[0-5][0-9]$ if provided.",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "8",
+      "agent": "@axum-backend",
+      "task": "Register all new routes in main.rs router: GET /api/my-show, POST /api/my-show/upload (small), POST /api/my-show/upload/init, POST /api/my-show/upload/chunk/:session_id, POST /api/my-show/upload/finalize/:session_id, POST /api/my-show/confirm, DELETE /api/my-show/upload.",
+      "dependencies": ["5", "6"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/main.rs",
+          "verification": "exists",
+          "verified_at": "2026-02-21T20:00:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [],
+        "learnings": [
+          "All 7 routes registered under /api/my-show/* prefix, using post/delete methods"
+        ],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Follow existing route grouping pattern. These are NOT admin-guarded routes — they use get_current_user() (any role).",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "9",
+      "agent": "@vue-frontend",
+      "task": "Add artist flow API methods to api/index.ts and update existing types. Add artistFlowApi section with getMyShow(), uploadInit(), uploadChunk(), uploadFinalize(), uploadSmall(), confirm(), deleteUpload(). Update User interface with has_show, artist_name, artist_id. Update Show/ShowDetail with start_time. Add MyShow interface. Update usersApi create/update to accept artist_id. Update UserListItem with linked_artist.",
+      "dependencies": ["4", "5", "6", "7"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/api/index.ts",
+          "verification": "exists",
+          "verified_at": "2026-02-21T20:30:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "sub_plan": {
+        "description": "Extend API client with new types and methods",
+        "steps": [
+          {
+            "id": "9.1",
+            "agent": "@vue-frontend",
+            "task": "Add MyShow interface: { assigned: boolean, show?: { id, title, date, start_time?, description?, show_type, artists: [{id, name}], prerecorded_key?, prerecorded_filename?, prerecorded_confirmed_at? } }. Add artistFlowApi with getMyShow(), confirm(), deleteUpload() methods.",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "9.2",
+            "agent": "@vue-frontend",
+            "task": "Add upload methods to artistFlowApi: uploadInit(filename, totalSize, totalChunks), uploadChunk(sessionId, index, chunk), uploadFinalize(sessionId), uploadSmall(file). Mirror existing showsApi.uploadRecordingChunked pattern.",
+            "dependencies": ["9.1"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "9.3",
+            "agent": "@vue-frontend",
+            "task": "Update User interface with has_show?: boolean, artist_name?: string, artist_id?: number. Update Show/ShowDetail interfaces with start_time?: string. Update AdminUser with linked_artist?: { id: number, name: string }. Update usersApi.create/update to accept optional artist_id.",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          }
+        ]
+      },
+      "knowledge": {
+        "decisions": [
+          "Combined uploadSmall + chunked into one uploadFile() method with internal size check and progress callback",
+          "AdminUser uses linked_artist_id/linked_artist_name (flat fields, not nested) matching backend"
+        ],
+        "learnings": [
+          "showsApi.uploadRecording pattern: init→chunk→finalize with FormData for chunks, JSON for init/finalize",
+          "tsc --noEmit shows .vue module errors globally but TS-only files compile clean"
+        ],
+        "references": [
+          "source/frontend/src/admin/api/index.ts"
+        ],
+        "blockers_encountered": [],
+        "notes": "Follow existing API client patterns: fetch with credentials include, error handling via response.ok check.",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "10",
+      "agent": "@vue-frontend",
+      "task": "Create useArtistFlow composable: fetches /api/my-show, manages flow state (currentStep, myShow, isAssigned, uploadState, canProceed). Handles navigation guards — can't skip to upload without seeing info, can't confirm without upload. Caches show data.",
+      "dependencies": ["9"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/composables/useArtistFlow.ts",
+          "verification": "exists",
+          "verified_at": "2026-02-21T21:00:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [
+          "Composable (not Pinia store) — follows existing project pattern where only auth uses Pinia",
+          "Flow steps: info → mode → upload → confirm → live. Each step validates prerequisites before allowing navigation.",
+          "Singleton state pattern (module-level refs) — shared across all components like useFlash"
+        ],
+        "learnings": [
+          "All state refs are readonly in the return to prevent direct mutation outside actions",
+          "fetchMyShow auto-determines initial step based on show state (confirmed → confirm, has upload → confirm, else → info)",
+          "uploadFile wraps artistFlowApi.uploadFile with local state management + progress tracking"
+        ],
+        "references": [
+          "source/frontend/src/admin/composables/useStreamSocket.ts",
+          "source/frontend/src/admin/composables/useAudioCapture.ts"
+        ],
+        "blockers_encountered": [],
+        "notes": "Export step enum/type: 'info' | 'mode' | 'upload' | 'confirm' | 'live' | 'not-assigned'. Provide uploadFile(file) method that handles chunked vs single upload internally.",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "11",
+      "agent": "@vue-frontend",
+      "task": "Create FlowLayout.vue wrapper component: progress indicator (step dots/bar showing steps 1-4), current step content via <router-view>, minimal header (logo + user dropdown with logout). Distinct from admin NavBar — artist-facing design.",
+      "dependencies": ["10"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/pages/flow/FlowLayout.vue",
+          "verification": "exists",
+          "verified_at": "2026-02-21T21:15:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [
+          "Separate layout from admin NavBar — artists see a cleaner, guided experience",
+          "Progress indicator shows: Info → Mode → Upload → Confirm with current step highlighted",
+          "Progress bar hidden for not-assigned and live steps"
+        ],
+        "learnings": [
+          "Uses numbered dots with checkmarks for completed steps, connecting line with fill animation",
+          "Auto-fetches show data on mount if not yet loaded"
+        ],
+        "references": [
+          "source/frontend/src/shared/styles/tokens.css"
+        ],
+        "blockers_encountered": [],
+        "notes": "Use design tokens from tokens.css for consistent typography and colors.",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "12",
+      "agent": "@vue-frontend",
+      "task": "Create FlowShowInfo.vue page (/stream/info): displays show date, start_time, title, description, list of assigned artists. 'Next' button to proceed to mode selection. Uses useArtistFlow composable for data. Redirects to /stream/not-assigned if no show.",
+      "dependencies": ["10", "11"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/pages/flow/FlowShowInfo.vue",
+          "verification": "exists",
+          "verified_at": "2026-02-21T21:30:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Format date nicely (e.g. 'Saturday, February 28, 2026'). Show start_time if set. List artist names as pills/badges.",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "13",
+      "agent": "@vue-frontend",
+      "task": "Create FlowSelectMode.vue page (/stream/mode): two cards — 'Pre-recorded (Upload Show)' and 'Live' (disabled with 'coming soon' badge). Selecting pre-recorded navigates to /stream/upload.",
+      "dependencies": ["10", "11"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/pages/flow/FlowSelectMode.vue",
+          "verification": "exists",
+          "verified_at": "2026-02-21T21:30:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [
+          "Live mode is shown but disabled — placeholder for future implementation"
+        ],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Cards should be visually distinct. Pre-recorded card has upload icon, Live card has microphone/broadcast icon with 'coming soon' overlay.",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "14",
+      "agent": "@vue-frontend",
+      "task": "Create FlowUpload.vue page (/stream/upload): file drop zone / file picker for audio upload (accept audio/*). Uses useArtistFlow.uploadFile() which handles chunked vs single upload. Shows upload progress bar. 'Next' button enabled on completion. 'Re-upload' option to delete and start over.",
+      "dependencies": ["10", "11"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/pages/flow/FlowUpload.vue",
+          "verification": "exists",
+          "verified_at": "2026-02-21T21:30:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [
+          "Reuse chunked upload pattern from existing recording upload in api/index.ts",
+          "Accept audio/* MIME types for the file picker"
+        ],
+        "learnings": [],
+        "references": [
+          "source/frontend/src/admin/api/index.ts"
+        ],
+        "blockers_encountered": [],
+        "notes": "Drag-and-drop zone with fallback file input. Show file name, size, and upload percentage. If show already has prerecorded_key, show existing file with option to re-upload.",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "15",
+      "agent": "@vue-frontend",
+      "task": "Create FlowConfirm.vue page (/stream/confirm): shows uploaded filename and show info summary. 'Confirm' button calls POST /api/my-show/confirm. On success, transitions to confirmed state showing 'Your show will stream at [date] [time]'. Pre-listen placeholder text ('Pre-listen coming soon').",
+      "dependencies": ["10", "11"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/pages/flow/FlowConfirm.vue",
+          "verification": "exists",
+          "verified_at": "2026-02-21T21:30:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [
+          "Pre-listen is a placeholder for now — show 'coming soon' text where the audio player would go"
+        ],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "After confirmation, show a success state with checkmark and scheduled time. User can still navigate back to re-upload if needed (DELETE then re-upload).",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "16",
+      "agent": "@vue-frontend",
+      "task": "Create FlowLive.vue page (/stream/live): placeholder page for live streaming room (coming soon). Shows show context (title, date, time). Embeds existing streaming composables (useStreamSocket, useAudioCapture, useAudioMeter) for future use. For now just a 'Streaming room coming soon' placeholder with show info.",
+      "dependencies": ["10", "11"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/pages/flow/FlowLive.vue",
+          "verification": "exists",
+          "verified_at": "2026-02-21T21:30:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [
+          "Keep as placeholder — the existing StreamPage.vue streaming logic will be extracted and embedded here in a future iteration"
+        ],
+        "learnings": [],
+        "references": [
+          "source/frontend/src/admin/pages/StreamPage.vue"
+        ],
+        "blockers_encountered": [],
+        "notes": "The streaming composables (useStreamSocket, useAudioCapture, useAudioMeter) are already decoupled from the page — they can be embedded here later.",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "17",
+      "agent": "@vue-frontend",
+      "task": "Create FlowNotAssigned.vue page (/stream/not-assigned): simple placeholder — 'You are not currently assigned to a show. Please wait for your assignment.' with branding/logo.",
+      "dependencies": ["11"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/pages/flow/FlowNotAssigned.vue",
+          "verification": "exists",
+          "verified_at": "2026-02-21T21:30:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Clean, minimal page. Show the moafunk logo and a friendly message. No navigation needed beyond logout.",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "18",
+      "agent": "@vue-frontend",
+      "task": "Update router.ts: replace single /stream route with parent FlowLayout route and nested children. /stream → smart redirect (to /stream/not-assigned or /stream/info based on useArtistFlow state). Add /stream/info, /stream/mode, /stream/upload, /stream/confirm, /stream/live, /stream/not-assigned routes. All require auth, all roles allowed. Remove old StreamPage import.",
+      "dependencies": ["11", "12", "13", "14", "15", "16", "17"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/router.ts",
+          "verification": "exists",
+          "verified_at": "2026-02-21T21:35:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [
+          "Smart redirect at /stream: uses per-route beforeEnter guard to check assignment state",
+          "All roles (artist, admin, superadmin) can access all flow routes — no role restriction on the flow"
+        ],
+        "learnings": [
+          "Existing router uses createWebHashHistory and meta.requiresAuth / meta.roles for guards"
+        ],
+        "references": [
+          "source/frontend/src/admin/router.ts"
+        ],
+        "blockers_encountered": [],
+        "notes": "Keep existing admin routes intact. Only /stream changes. Login redirect for artists stays /stream (now triggers smart redirect).",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "19",
+      "agent": "@vue-frontend",
+      "task": "Update NavBar.vue: rename 'Stream' to 'My Show' for all roles in the Radio category. Update link to /stream (smart redirect handles the rest). Admin/superadmin users keep all other nav items (Artists, Shows, Calendar, etc.).",
+      "dependencies": ["18"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/frontend/src/shared/components/NavBar.vue",
+          "verification": "exists",
+          "verified_at": "2026-02-21T21:35:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [
+          "Single 'My Show' link for all roles — smart redirect handles what they see"
+        ],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "20",
+      "agent": "@vue-frontend",
+      "task": "Update login redirect logic: in router.ts and LoginPage.vue, all roles redirect to /stream after login (which smart-redirects based on assignment state). Update auth store User type to include new fields (has_show, artist_name, artist_id).",
+      "dependencies": ["9", "18"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/pages/LoginPage.vue",
+          "verification": "exists",
+          "verified_at": "2026-02-21T21:40:00Z",
+          "auto_verified": true
+        },
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/stores/auth.ts",
+          "verification": "exists",
+          "verified_at": "2026-02-21T21:40:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [
+          "All roles start at /stream after login — admin can navigate to admin pages via NavBar"
+        ],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Current default redirect after login is '/artists' for admins. Change to '/stream' for all, or keep '/calendar' for admin and '/stream' for artist. TBD during implementation.",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "21",
+      "agent": "@vue-frontend",
+      "task": "Update UsersPage.vue and UserEditPage.vue: when role is 'artist', show optional 'Link to Artist' dropdown populated from a new API call to get unlinked artists. On user create/edit, pass artist_id to the API. Show linked artist name on user list and edit pages.",
+      "dependencies": ["3", "9"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/pages/UsersPage.vue",
+          "verification": "exists",
+          "verified_at": "2026-02-21T21:45:00Z",
+          "auto_verified": true
+        },
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/pages/UserEditPage.vue",
+          "verification": "exists",
+          "verified_at": "2026-02-21T21:45:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Need a way to fetch unlinked artists. Options: add query param to existing GET /api/artists?unlinked=true, or dedicated endpoint. Prefer query param on existing endpoint.",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "22",
+      "agent": "@vue-frontend",
+      "task": "Update CalendarPage.vue and ShowDetailPage.vue: add start_time input field (time picker or HH:MM text input) to show create modal and show edit form. Display start_time alongside date in show detail and calendar views.",
+      "dependencies": ["7", "9"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/pages/CalendarPage.vue",
+          "verification": "exists",
+          "verified_at": "2026-02-21T21:45:00Z",
+          "auto_verified": true
+        },
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/pages/ShowDetailPage.vue",
+          "verification": "exists",
+          "verified_at": "2026-02-21T21:45:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Use <input type='time'> for native time picker. Format display as 'HH:MM' or localized.",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "23",
+      "agent": "@axum-backend",
+      "task": "Add GET /api/artists?unlinked=true support: when unlinked query param is set, filter to artists WHERE user_id IS NULL. Used by user management UI to populate the 'Link to Artist' dropdown.",
+      "dependencies": ["1"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/handlers/api.rs",
+          "verification": "exists",
+          "verified_at": "2026-02-21T21:45:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [
+          "Extend existing artists list endpoint with query param rather than new endpoint"
+        ],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "24",
+      "agent": "@vue-frontend",
+      "task": "End-to-end verification: create external show with start_time, assign artist, create artist user linked to that artist, login as artist → verify flow: info page → mode → upload → confirm. Verify admin linked to same show sees the same flow. Verify unlinked user sees not-assigned page.",
+      "dependencies": ["18", "19", "20", "21", "22"],
+      "artifacts": [
+        {
+          "type": "manual",
+          "path": "Manual testing of complete flow",
+          "verification": "manual",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "pending",
+      "knowledge": {
+        "decisions": [],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Test scenarios: (1) artist with assigned external show, (2) artist without assigned show, (3) admin with linked artist and assigned show, (4) admin without linked artist.",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    }
+  ]
+}

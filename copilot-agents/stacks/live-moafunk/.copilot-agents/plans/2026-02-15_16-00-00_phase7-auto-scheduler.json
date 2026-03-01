@@ -1,0 +1,134 @@
+{
+  "schema_version": "1.1",
+  "plan_id": "2026-02-15_16-00-00_phase7-auto-scheduler",
+  "stack": "live-moafunk",
+  "description": "Phase 7: Add daily auto-scheduler that sends artist Instagram previews to Telegram at 16:00 Berlin time. Day 1 after a show → first artist (by sort_order), Day 2 → second artist, etc.",
+  "created_at": "2026-02-15T16:00:00Z",
+  "updated_at": "2026-02-15T16:00:00Z",
+  "overall_status": "completed",
+  "active_context": "main",
+  "related_plans": [
+    "live-moafunk:2026-02-15_16-00-00_phase2-schema-changes",
+    "live-moafunk:2026-02-15_16-00-00_phase3-artist-preview-sending",
+    "live-moafunk:2026-02-15_16-00-00_phase6-sort-order-management"
+  ],
+  "steps": [
+    {
+      "id": "1",
+      "agent": "@axum-backend",
+      "task": "Add `check_artist_preview_schedule` function in a new file `source/backend/src/scheduler.rs`. This function takes `state: Arc<AppState>` and performs the scheduling logic: (1) Get current date in Europe/Berlin timezone via chrono-tz. (2) Query all shows where `date < today AND date >= today - 30 days` (reasonable lookback). (3) For each show: compute `days_since = (today - show.date).num_days()`. (4) Fetch artists assigned to the show ordered by `sort_order, name`. (5) If `days_since >= 1 AND days_since <= artist_count`: get the artist at index `days_since - 1`. (6) Check that artist.telegram_artist_preview_sent_at IS NULL (not already sent). (7) Check that artist.instagram_caption IS NOT NULL (caption must exist). (8) Call `telegram_notify::send_artist_instagram_preview(state, &artist)`. (9) Log success or failure.",
+      "dependencies": [],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/scheduler.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "done",
+      "knowledge": {
+        "decisions": [
+          "30-day lookback window — beyond that, no more auto-sending",
+          "Guard: telegram_artist_preview_sent_at IS NULL prevents re-sends across restarts",
+          "Guard: instagram_caption IS NOT NULL ensures we have content to preview",
+          "Index is days_since - 1 (day 1 → index 0 → first artist)"
+        ],
+        "learnings": [
+          "chrono-tz 0.10 should already be in Cargo.toml from a previous plan",
+          "Show has a 'date' field (TEXT in SQLite, parsed as NaiveDate or String)"
+        ],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Parse show.date carefully — check if it's stored as 'YYYY-MM-DD' or full ISO datetime",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "2",
+      "agent": "@axum-backend",
+      "task": "Register scheduler.rs as a module. Add `pub mod scheduler;` in main.rs alongside existing mod declarations.",
+      "dependencies": ["1"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/main.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "done",
+      "knowledge": {
+        "decisions": [],
+        "learnings": [
+          "Existing modules in main.rs: ai, audio, auth, config, db, error, image_overlay, models, storage, telegram, telegram_notify, video, etc."
+        ],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "3",
+      "agent": "@axum-backend",
+      "task": "Add the daily scheduler background task in main.rs. Following the pattern of the existing weekly expired-user-cleanup (lines 487-510): add a `tokio::spawn` block that runs a loop with `tokio::time::interval(Duration::from_secs(60))`. On each tick: get current time in Europe/Berlin. Check if the minute is :00 and the hour is 16 (i.e., exactly 16:00). If so, call `scheduler::check_artist_preview_schedule(state.clone()).await`. Use a simple `last_check_date` variable to ensure it only runs once per day (compare current date to last_check_date, only proceed if different).",
+      "dependencies": ["2"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/main.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "done",
+      "knowledge": {
+        "decisions": [
+          "60-second interval check — simple and reliable",
+          "last_check_date guard prevents multiple runs if the 60s window catches 16:00 twice",
+          "Check hour == 16 in Berlin timezone, not UTC"
+        ],
+        "learnings": [
+          "Existing pattern at lines 487-510: tokio::spawn + interval loop",
+          "Use chrono_tz::Europe::Berlin for timezone conversion"
+        ],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "For development/testing, consider adding an env var SCHEDULER_DISABLED=true to skip the scheduler, or add a Telegram command to manually trigger it",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "4",
+      "agent": "@axum-backend",
+      "task": "Run `cargo check` from source/backend/ to verify Phase 7 compiles. Fix any compilation errors.",
+      "dependencies": ["1", "2", "3"],
+      "artifacts": [
+        {
+          "type": "test",
+          "path": "cargo check output",
+          "verification": "passes",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "done",
+      "knowledge": {
+        "decisions": [],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    }
+  ]
+}

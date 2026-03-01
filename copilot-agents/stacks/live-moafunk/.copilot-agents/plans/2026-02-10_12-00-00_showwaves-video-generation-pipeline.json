@@ -1,0 +1,499 @@
+{
+  "schema_version": "1.1",
+  "plan_id": "2026-02-10_12-00-00_showwaves-video-generation-pipeline",
+  "stack": "live-moafunk",
+  "description": "Replace audiowaveform-based video generation with FFmpeg showwaves (animated waveform), auto-generate videos on artist submission, store permanently in R2/DB, and display in admin Instagram preview carousel.",
+  "created_at": "2026-02-10T12:00:00Z",
+  "updated_at": "2026-02-10T12:00:00Z",
+  "overall_status": "completed",
+  "active_context": "main",
+  "related_plans": [
+    "live-moafunk:2026-02-09_01-00-00_instagram-carousel-track-preview-videos"
+  ],
+  "steps": [
+    {
+      "id": "1",
+      "agent": "@axum-backend",
+      "task": "Add track1_video_key and track2_video_key TEXT columns to artists table via add_column_if_missing() in db.rs, after the existing artist migration block (~line 85)",
+      "dependencies": [],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/db.rs",
+          "verification": "exists",
+          "verified_at": "2026-02-10T12:00:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [
+          "Use add_column_if_missing() pattern matching existing migrations in db.rs"
+        ],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Existing pattern: add_column_if_missing(pool, \"artists\", \"column_name\", \"TEXT\").await?;",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "2",
+      "agent": "@axum-backend",
+      "task": "Add pub track1_video_key: Option<String> and pub track2_video_key: Option<String> fields to the Artist struct in models.rs",
+      "dependencies": ["1"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/models.rs",
+          "verification": "exists",
+          "verified_at": "2026-02-10T12:05:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [
+          "Place new fields after track2_original_key to group with other track-related fields"
+        ],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Artist struct derives Debug, Clone, Serialize, Deserialize, FromRow — new fields must be Option<String> to match nullable TEXT columns",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "3",
+      "agent": "@axum-backend",
+      "task": "Rewrite video.rs: replace audiowaveform-based pipeline with FFmpeg showwaves animated waveform approach",
+      "dependencies": ["2"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/video.rs",
+          "verification": "exists",
+          "verified_at": "2026-02-10T12:15:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "sub_plan": {
+        "description": "Break video.rs rewrite into atomic sub-tasks",
+        "steps": [
+          {
+            "id": "3.1",
+            "agent": "@axum-backend",
+            "task": "Remove audiowaveform-specific constants (BAR_WIDTH, BAR_GAP, WAVEFORM_COLOR_PLAYED, WAVEFORM_COLOR_UNPLAYED, CURSOR_WIDTH, CURSOR_COLOR_HEX) and the render_waveform_audiowaveform() function. Add new showwaves constants: WAVEFORM_MODE='cline', WAVEFORM_COLOR='white', WAVEFORM_SCALE='sqrt', WAVEFORM_START_SECS=0. Keep VIDEO_WIDTH, VIDEO_HEIGHT, WAVEFORM_WIDTH, WAVEFORM_HEIGHT, WAVEFORM_Y_OFFSET, VIDEO_FPS, VIDEO_DURATION_SECS.",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {
+              "decisions": [
+                "Chose showwaves cline mode over p2p — symmetric centered bars match audiogram aesthetic",
+                "Chose white waveform color — single color since animation is real-time, not played/unplayed"
+              ],
+              "learnings": [],
+              "references": [],
+              "blockers_encountered": [],
+              "notes": "",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          },
+          {
+            "id": "3.2",
+            "agent": "@axum-backend",
+            "task": "Rewrite compose_video() to use a single FFmpeg invocation with filter_complex: [1:a]showwaves=s=WxH:mode=cline:rate=30:colors=white:scale=sqrt:draw=full → colorkey=black:0.01:0.15 → overlay on scaled/cropped background image. Only 2 inputs needed (image + audio) instead of 4. Remove timecode textfile generation, drawbox cursor, drawtext timecode, split[bg1][bg2] dual-waveform overlay trick. Support -ss START -t DURATION for time range selection.",
+            "dependencies": ["3.1"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {
+              "decisions": [
+                "Chose colorkey over geq alpha approach — simpler, no risk since waveform is white on black",
+                "Removed timecode/cursor overlay for cleaner animated waveform look"
+              ],
+              "learnings": [
+                "showwaves always renders on opaque black background — colorkey=black:0.01:0.15 makes it transparent"
+              ],
+              "references": [
+                "https://ffmpeg.org/ffmpeg-filters.html#showwaves-1"
+              ],
+              "blockers_encountered": [],
+              "notes": "Filter pipeline: [1:a]showwaves → colorkey → [0:v]scale+crop → overlay → output",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          },
+          {
+            "id": "3.3",
+            "agent": "@axum-backend",
+            "task": "Add new public function generate_and_store_artist_videos(state: Arc<AppState>, artist_id: i64) that: loads artist from DB, for each track with a key calls generate_track_preview_video(), uploads result to R2 at artists/{id}/track{n}_video/preview.mp4 via storage::upload_file_named(), updates DB row with track1_video_key/track2_video_key, logs success/failure per track. Uses pic_overlay_key → pic_cropped_key → pic_key preference order for background image.",
+            "dependencies": ["3.2"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {
+              "decisions": [
+                "R2 key pattern: artists/{id}/track1_video/preview.mp4 — follows existing {type}/{name} convention",
+                "Background image preference: overlay → cropped → original (same as Instagram posting)"
+              ],
+              "learnings": [],
+              "references": [],
+              "blockers_encountered": [],
+              "notes": "This function will be called from tokio::spawn in submit handlers and synchronously from the manual regenerate endpoint",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          },
+          {
+            "id": "3.4",
+            "agent": "@axum-backend",
+            "task": "Update the test_constants_are_consistent test to reflect removed constants (BAR_WIDTH, BAR_GAP) and add a test for the showwaves filter_complex string construction",
+            "dependencies": ["3.2"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {
+              "decisions": [],
+              "learnings": [],
+              "references": [],
+              "blockers_encountered": [],
+              "notes": "",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          }
+        ]
+      },
+      "knowledge": {
+        "decisions": [
+          "Removed audiowaveform CLI dependency entirely — FFmpeg handles everything",
+          "Keep same public function signature for generate_track_preview_video() so instagram.rs callers need minimal changes"
+        ],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "4",
+      "agent": "@axum-backend",
+      "task": "Hook video generation into both artist submission flows as a background task via tokio::spawn",
+      "dependencies": ["3"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/handlers/submit.rs",
+          "verification": "exists",
+          "verified_at": "2026-02-10T12:20:00Z",
+          "auto_verified": true
+        },
+        {
+          "type": "file",
+          "path": "source/backend/src/handlers/submit_chunked.rs",
+          "verification": "exists",
+          "verified_at": "2026-02-10T12:20:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "sub_plan": {
+        "description": "Add tokio::spawn calls for video generation in both submission paths",
+        "steps": [
+          {
+            "id": "4.1",
+            "agent": "@axum-backend",
+            "task": "In submit.rs submit_form(), add tokio::spawn(video::generate_and_store_artist_videos(state.clone(), artist_id)) after the final UPDATE with file keys (~line 517), before trigger_backup_on_submission(). Fire-and-forget so it doesn't block the submission response.",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {
+              "decisions": [],
+              "learnings": [],
+              "references": [],
+              "blockers_encountered": [],
+              "notes": "Must clone Arc<AppState> before spawning",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          },
+          {
+            "id": "4.2",
+            "agent": "@axum-backend",
+            "task": "In submit_chunked.rs finalize_artist_files_background(), add tokio::spawn(video::generate_and_store_artist_videos(state.clone(), artist_id)) at the end (~line 970), after status is set to 'unassigned' and before trigger_backup_on_submission(). At this point all files (image + tracks) are in their final R2 locations.",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {
+              "decisions": [],
+              "learnings": [],
+              "references": [],
+              "blockers_encountered": [],
+              "notes": "This function already runs inside a tokio::spawn — the video generation should be a nested spawn or sequential call within the existing background task",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          }
+        ]
+      },
+      "knowledge": {
+        "decisions": [
+          "Video generation is fire-and-forget during submission so it doesn't block the user's form response"
+        ],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "5",
+      "agent": "@axum-backend",
+      "task": "In api_artist_detail handler (handlers/api.rs ~line 354-395), add presigned URL generation for track1_video_key and track2_video_key into the file_urls HashMap with keys 'track1_video' and 'track2_video', following the same pattern as existing track/pic URL generation",
+      "dependencies": ["2"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/handlers/api.rs",
+          "verification": "exists",
+          "verified_at": "2026-02-10T12:25:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Pattern: if let Some(key) = &artist.track1_video_key { if let Ok(url) = storage::get_presigned_url(&state, key, 3600).await { file_urls.insert(\"track1_video\".to_string(), url); } }",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "6",
+      "agent": "@axum-backend",
+      "task": "Add manual video regeneration endpoint POST /api/artists/:id/generate-videos",
+      "dependencies": ["3"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/handlers/api.rs",
+          "verification": "exists",
+          "verified_at": "2026-02-10T12:30:00Z",
+          "auto_verified": true
+        },
+        {
+          "type": "file",
+          "path": "source/backend/src/main.rs",
+          "verification": "exists",
+          "verified_at": "2026-02-10T12:30:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "sub_plan": {
+        "description": "Add handler and route for manual video regeneration",
+        "steps": [
+          {
+            "id": "6.1",
+            "agent": "@axum-backend",
+            "task": "Add api_generate_artist_videos handler in handlers/api.rs: requires admin auth, validates artist exists and has pic + at least one track, calls video::generate_and_store_artist_videos() synchronously (awaits completion), returns JSON with success status and new video keys. Runs synchronously so admin can confirm success before previewing.",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {
+              "decisions": [
+                "Manual regenerate runs synchronously (admin waits) vs fire-and-forget, to confirm success before previewing"
+              ],
+              "learnings": [],
+              "references": [],
+              "blockers_encountered": [],
+              "notes": "",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          },
+          {
+            "id": "6.2",
+            "agent": "@axum-backend",
+            "task": "Register route .route(\"/api/artists/:id/generate-videos\", post(handlers::api::api_generate_artist_videos)) in main.rs router, grouped with other artist endpoints (~line 308)",
+            "dependencies": ["6.1"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {
+              "decisions": [],
+              "learnings": [],
+              "references": [],
+              "blockers_encountered": [],
+              "notes": "",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          }
+        ]
+      },
+      "knowledge": {
+        "decisions": [],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "7",
+      "agent": "@axum-backend",
+      "task": "Trigger video regeneration when artist picture or tracks change: in api_update_artist_picture handler (~line 812) and wherever tracks are updated (api_update_artist_track or similar), add tokio::spawn(video::generate_and_store_artist_videos()) after the file update completes",
+      "dependencies": ["3"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/handlers/api.rs",
+          "verification": "exists",
+          "verified_at": "2026-02-10T12:35:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [
+          "Use fire-and-forget tokio::spawn for regeneration on picture/track change — same pattern as submission hooks"
+        ],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Need to identify all handlers that update pic_key, pic_cropped_key, pic_overlay_key, track1_key, track2_key",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "8",
+      "agent": "@axum-backend",
+      "task": "Update post_artist_to_instagram() in instagram.rs: check for artist.track1_video_key/track2_video_key first — if they exist, get presigned URLs directly from R2 and skip on-the-fly generate_track_preview_video(). Fall back to on-demand generation only if video keys are missing. Remove the cleanup_temp_videos step since videos are now permanent in R2.",
+      "dependencies": ["3"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/instagram.rs",
+          "verification": "exists",
+          "verified_at": "2026-02-10T12:40:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [
+          "Videos are permanent in R2 — not cleaned up after Instagram post — enables preview and re-use",
+          "Fallback to on-demand generation ensures posting still works even if pre-generation failed"
+        ],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Current flow: generate → upload temp → get presigned URL → post → delete temp. New flow: check existing key → get presigned URL → post",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "9",
+      "agent": "@vue-frontend",
+      "task": "Update Instagram preview modal in ArtistDetailPage.vue: replace the single <img> with a carousel/swiper showing slide 1 = artist profile image, slide 2 = <video> for track1_video (if exists), slide 3 = <video> for track2_video (if exists). Add prev/next navigation. Video elements should have controls and muted autoplay. Show 'Generating...' state if video keys don't exist yet. Also add a 'Regenerate Videos' button that calls POST /api/artists/:id/generate-videos.",
+      "dependencies": ["5", "6"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/pages/ArtistDetailPage.vue",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [
+          "Carousel approach with dots/arrows rather than stacked layout — matches Instagram preview UX",
+          "Videos muted autoplay by default — user can unmute via controls",
+          "Three carousel slides: slide 0 = profile image, slide 1 = track1 video, slide 2 = track2 video",
+          "Emoji dot labels (🖼️, 🎵1, 🎵2) for carousel navigation"
+        ],
+        "learnings": [
+          "file_urls is a Record<string, string> populated server-side — new track1_video/track2_video keys appear automatically",
+          "tsc --noEmit reports false positives for .vue module resolution — vite build is the reliable verification",
+          "generateVideos added to artistsApi in api/index.ts"
+        ],
+        "references": [],
+        "blockers_encountered": [
+          "vue-tsc not installed locally — used vite build for verification instead"
+        ],
+        "notes": "Added generateVideos() to api/index.ts artistsApi. ArtistDetailPage.vue updated with carousel (carouselIndex ref, regeneratingVideos ref, regenerateVideos function, 3-slide carousel template, arrow/dot navigation, Regenerate Videos button). Vite build passes cleanly.",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "10",
+      "agent": "@docker-deploy",
+      "task": "Remove the audiowaveform .deb download from Dockerfile (lines 42-46: curl + dpkg + apt-get install -f + rm). Keep ffmpeg in the apt-get install. Update the comment on line 40 to reflect that only FFmpeg is needed for video composition.",
+      "dependencies": [],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/Dockerfile",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [
+          "Removed audiowaveform CLI dependency entirely — FFmpeg handles waveform rendering via showwaves filter"
+        ],
+        "learnings": [
+          "Removing audiowaveform .deb eliminates a manually downloaded external dependency and reduces image size"
+        ],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Removed curl+dpkg+apt-get install -f+rm block for audiowaveform .deb. Kept ffmpeg, ca-certificates, curl in apt-get install. Updated comment to reference showwaves filter.",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "11",
+      "agent": "@axum-backend",
+      "task": "Verify full build: run cargo check and cargo build to ensure compilation passes with all changes. Fix any compile errors from the video.rs rewrite, new DB columns, model fields, handler additions, and instagram.rs changes.",
+      "dependencies": ["1", "2", "3", "4", "5", "6", "7", "8"],
+      "artifacts": [
+        {
+          "type": "test",
+          "path": "cargo check passes",
+          "verification": "passes",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "decisions": [],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    }
+  ]
+}

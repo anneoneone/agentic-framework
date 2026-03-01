@@ -1,0 +1,316 @@
+{
+  "schema_version": "1.1",
+  "plan_id": "2026-02-22_23-00-00_admin-dashboard-overview-page",
+  "stack": "live-moafunk",
+  "description": "Create admin dashboard overview page with moafunkbot notification toggle (persisted in DB), live stream status card, and upcoming shows list (extracted shared component from CalendarPage). Dashboard becomes default admin landing page.",
+  "created_at": "2026-02-22T23:00:00Z",
+  "updated_at": "2026-02-23T01:00:00Z",
+  "overall_status": "completed",
+  "active_context": "main",
+  "related_plans": [],
+  "steps": [
+    {
+      "id": "1",
+      "agent": "@axum-backend",
+      "task": "Add settings DB table and notification toggle API",
+      "dependencies": [],
+      "artifacts": [],
+      "status": "completed",
+      "sub_plan": {
+        "description": "Full-stack backend for app settings: DB migration, model, handler, route registration, and notification guard",
+        "steps": [
+          {
+            "id": "1.1",
+            "agent": "@axum-backend",
+            "task": "Seed notifications_enabled row in existing app_settings table via db.rs run_migrations (table already existed).",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "1.2",
+            "agent": "@axum-backend",
+            "task": "Add DB helper functions: get_setting, set_setting, is_notifications_enabled in db.rs.",
+            "dependencies": ["1.1"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "1.3",
+            "agent": "@axum-backend",
+            "task": "Create src/handlers/settings.rs with GET/PUT /api/settings/notifications. Admin-gated.",
+            "dependencies": ["1.2"],
+            "artifacts": [
+              {
+                "type": "file",
+                "path": "source/backend/src/handlers/settings.rs",
+                "verification": "exists",
+                "verified_at": "2026-02-23T00:00:00Z",
+                "auto_verified": true
+              }
+            ],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "1.4",
+            "agent": "@axum-backend",
+            "task": "Register settings routes in main.rs + mod settings in handlers/mod.rs.",
+            "dependencies": ["1.3"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "1.5",
+            "agent": "@axum-backend",
+            "task": "Guard notify, notify_html, send_show_instagram_preview, send_artist_instagram_preview, send_sort_order_prompt with is_notifications_enabled check.",
+            "dependencies": ["1.4"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          }
+        ]
+      },
+      "knowledge": {
+        "decisions": [
+          "Use SQLite settings table for persistence (survives restarts) over in-memory AppState",
+          "Default notifications_enabled to true — fail-open so notifications work even if settings table is missing"
+        ],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "2",
+      "agent": "@vue-frontend",
+      "task": "Extract ShowList shared component from CalendarPage list view",
+      "dependencies": [],
+      "artifacts": [],
+      "status": "completed",
+      "sub_plan": {
+        "description": "Extract the per-show item and grouped list rendering from CalendarPage into reusable components",
+        "steps": [
+          {
+            "id": "2.1",
+            "agent": "@vue-frontend",
+            "task": "Create ShowListItem.vue component in admin/components/. Extract per-show template from CalendarPage list view: date, title, artists, days-until badge, dot color, artist count. Props: show (Show type), isPast (boolean).",
+            "dependencies": [],
+            "artifacts": [
+              {
+                "type": "file",
+                "path": "source/frontend/src/admin/components/ShowListItem.vue",
+                "verification": "exists",
+                "verified_at": "2026-02-23T01:00:00Z",
+                "auto_verified": true
+              }
+            ],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "2.2",
+            "agent": "@vue-frontend",
+            "task": "Create ShowList.vue component in admin/components/. Props: shows (Show[]), limit (number, optional), filter ('upcoming'|'all'|'past'). Implements filtering, sort-by-date, group-by-month logic (extracted from CalendarPage). Renders month headers + ShowListItem for each show. When limit is set, truncates total items.",
+            "dependencies": ["2.1"],
+            "artifacts": [
+              {
+                "type": "file",
+                "path": "source/frontend/src/admin/components/ShowList.vue",
+                "verification": "exists",
+                "verified_at": "2026-02-23T01:00:00Z",
+                "auto_verified": true
+              }
+            ],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "2.3",
+            "agent": "@vue-frontend",
+            "task": "Refactor CalendarPage.vue list view to use <ShowList :shows=\"shows\" :filter=\"listFilter\" /> instead of inline rendering. Removed ~130 lines of inline list CSS and unused listShowsByMonth/formatDateShort.",
+            "dependencies": ["2.2"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          }
+        ]
+      },
+      "knowledge": {
+        "decisions": [
+          "Extract into two components (ShowListItem + ShowList) for granular reuse",
+          "Helper functions (getDaysUntil, getDaysClass, getDotColor, formatDateShort) move into ShowListItem or a shared util"
+        ],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "CalendarPage has three view modes (month/week/list). Only list view rendering is extracted; month/week views stay in CalendarPage.",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "3",
+      "agent": "@vue-frontend",
+      "task": "Add settings API methods to frontend API client",
+      "dependencies": ["1"],
+      "artifacts": [],
+      "status": "completed",
+      "knowledge": {},
+      "sub_plan": {
+        "description": "Add settingsApi namespace to admin/api/index.ts",
+        "steps": [
+          {
+            "id": "3.1",
+            "agent": "@vue-frontend",
+            "task": "Add NotificationSettings interface ({enabled: boolean}) and settingsApi object with getNotifications() and setNotifications(enabled: boolean) methods to admin/api/index.ts.",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          }
+        ]
+      }
+    },
+    {
+      "id": "4",
+      "agent": "@vue-frontend",
+      "task": "Create DashboardPage.vue with three card sections",
+      "dependencies": ["2", "3"],
+      "artifacts": [],
+      "status": "completed",
+      "sub_plan": {
+        "description": "Build the dashboard page with notification toggle, stream status, and upcoming shows",
+        "steps": [
+          {
+            "id": "4.1",
+            "agent": "@vue-frontend",
+            "task": "Create DashboardPage.vue in admin/pages/. Page layout: page-header with 'Dashboard' title, CSS Grid (2-col desktop, 1-col mobile) for top cards, full-width bottom section.",
+            "dependencies": [],
+            "artifacts": [
+              {
+                "type": "file",
+                "path": "source/frontend/src/admin/pages/DashboardPage.vue",
+                "verification": "exists",
+                "verified_at": "2026-02-23T01:00:00Z",
+                "auto_verified": true
+              }
+            ],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "4.2",
+            "agent": "@vue-frontend",
+            "task": "Implement Moafunkbot Notifications card: fetch GET /api/settings/notifications on mount, render CSS toggle switch (label + hidden checkbox, token-styled). On toggle, PUT new state. Show Enabled/Disabled badge.",
+            "dependencies": ["4.1"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "4.3",
+            "agent": "@vue-frontend",
+            "task": "Implement Stream Status card: call streamApi.status() on mount + poll every 10s via setInterval (clear on unmount). Display status badge (badge-success when active, badge-error when offline), current user if active.",
+            "dependencies": ["4.1"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "4.4",
+            "agent": "@vue-frontend",
+            "task": "Implement Next Shows card: fetch shows via showsApi.list() on mount, render <ShowList :shows=\"shows\" :limit=\"10\" filter=\"upcoming\" />. Add 'View all' router-link to /calendar.",
+            "dependencies": ["4.1"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          }
+        ]
+      },
+      "knowledge": {
+        "decisions": [
+          "Use CSS Grid 2-col layout for notification + stream cards, full-width for shows",
+          "Poll stream status every 10s — lightweight HEAD-like request, no WebSocket needed for dashboard",
+          "Limit shows list to 10 items on dashboard with 'View all' link"
+        ],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Follow existing .card, .badge, .page-header patterns from admin.css. Toggle switch is pure CSS (no external lib).",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "5",
+      "agent": "@vue-frontend",
+      "task": "Wire dashboard into router and navigation",
+      "dependencies": ["4"],
+      "artifacts": [],
+      "status": "completed",
+      "sub_plan": {
+        "description": "Add route, update default redirect, add nav item",
+        "steps": [
+          {
+            "id": "5.1",
+            "agent": "@vue-frontend",
+            "task": "Add /dashboard route in admin/router.ts: lazy-loaded DashboardPage, meta.roles = ['admin', 'superadmin']. Change default / redirect from /calendar to /dashboard for admin roles (3 locations: static redirect, login redirect, / guard).",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          },
+          {
+            "id": "5.2",
+            "agent": "@vue-frontend",
+            "task": "Add 'Dashboard' nav item in NavBar.vue as first item in 'Radio' category (before 'My Show'). Visible only to admin/superadmin roles.",
+            "dependencies": ["5.1"],
+            "artifacts": [],
+            "status": "completed",
+            "knowledge": {}
+          }
+        ]
+      },
+      "knowledge": {
+        "decisions": [
+          "Dashboard becomes default admin landing (/  → /dashboard for admins)",
+          "Host users still redirect to /stream — no change to host flow"
+        ],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "6",
+      "agent": "@vue-frontend",
+      "task": "Verify: vue-tsc typecheck passes with no new errors, all files created/modified correctly",
+      "dependencies": ["5"],
+      "artifacts": [
+        {
+          "type": "manual",
+          "path": "Manual browser verification of /#/dashboard",
+          "verification": "manual",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "completed",
+      "knowledge": {
+        "learnings": [
+          "vue-tsc typecheck: 0 new errors from dashboard changes. All pre-existing errors are path alias resolution (@shared/components, @admin/composables) unrelated to this plan."
+        ]
+      }
+    }
+  ]
+}

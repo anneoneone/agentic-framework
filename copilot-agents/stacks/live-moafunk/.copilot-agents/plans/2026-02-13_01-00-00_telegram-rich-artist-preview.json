@@ -1,0 +1,212 @@
+{
+  "schema_version": "1.1",
+  "plan_id": "2026-02-13_01-00-00_telegram-rich-artist-preview",
+  "stack": "live-moafunk",
+  "description": "Send a rich Telegram preview on artist submission: a photo message (artist image + all artist-provided text + profile link as caption), followed by separate audio messages for voice-mail + 2 tracks. Maximise information in the first message.",
+  "created_at": "2026-02-13T01:00:00Z",
+  "updated_at": "2026-02-13T02:00:00Z",
+  "overall_status": "completed",
+  "active_context": "main",
+  "related_plans": [
+    "live-moafunk:2026-02-13_00-30-00_telegram-submission-profile-link"
+  ],
+  "steps": [
+    {
+      "id": "1",
+      "agent": "@axum-backend",
+      "task": "Create a new async function `send_artist_preview` in telegram_notify.rs that fetches the Artist row from DB, generates presigned URLs, and sends the rich preview",
+      "dependencies": [],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/telegram_notify.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "done",
+      "sub_plan": {
+        "description": "Build the rich notification function step by step",
+        "steps": [
+          {
+            "id": "1.1",
+            "agent": "@axum-backend",
+            "task": "Add import for teloxide::types::InputFile, teloxide::requests::Requester, and crate::{models, storage}",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "done",
+            "knowledge": {
+              "decisions": [],
+              "learnings": [
+                "teloxide 0.13 — InputFile::url() accepts a reqwest::Url for sending remote files by URL.",
+                "send_photo() takes InputFile and has .caption() and .parse_mode() builders.",
+                "send_audio() takes InputFile, has .caption(), .title(), .performer() builders."
+              ],
+              "references": [],
+              "blockers_encountered": [],
+              "notes": "",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          },
+          {
+            "id": "1.2",
+            "agent": "@axum-backend",
+            "task": "Implement `async fn send_artist_preview(state, artist_id)` — fetch Artist from DB, build caption, generate presigned URLs, send photo + audio messages",
+            "dependencies": ["1.1"],
+            "artifacts": [],
+            "status": "done",
+            "knowledge": {
+              "decisions": [
+                "Query the artist row by ID — all text fields and R2 keys are in the artists table.",
+                "Use storage::get_presigned_url() for image and audio URLs (1h expiry — much more than Telegram needs to fetch).",
+                "Send photo via bot.send_photo(chat, InputFile::url(presigned_url)).caption(text).parse_mode(Html).",
+                "Send audio via bot.send_audio(chat, InputFile::url(presigned_url)).title(track_name).performer(artist_name).",
+                "Voice mail (if present) sent first as audio, then track1, then track2.",
+                "All audio messages should be reply-to the photo message to keep the thread grouped."
+              ],
+              "learnings": [
+                "Telegram photo caption limit is 1024 chars. If the caption exceeds 1024, truncate gracefully.",
+                "InputFile::url() requires a url::Url, which we can parse from the presigned URL string."
+              ],
+              "references": [
+                "source/backend/src/storage.rs (line 144 — get_presigned_url)",
+                "source/backend/src/models.rs (lines 5-48 — Artist struct)"
+              ],
+              "blockers_encountered": [],
+              "notes": "",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          },
+          {
+            "id": "1.3",
+            "agent": "@axum-backend",
+            "task": "Build the HTML caption string: 🎤 name (pronouns), track names, socials (IG/SC/BC/Spotify), mentions, upcoming events, music description, then clickable profile link. HTML-escape user text to avoid breaking Telegram's parser.",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "done",
+            "knowledge": {
+              "decisions": [
+                "Include all artist-provided text fields (not ai_bio, not instagram_caption — those are AI-generated).",
+                "Order: name+pronouns, track names, music_description, socials block, mentions, upcoming_events, then profile link at the bottom.",
+                "Use <b> for labels, plain text for values. Keep it readable.",
+                "HTML-escape &, <, > in user-provided text to avoid Telegram parse errors."
+              ],
+              "learnings": [
+                "Artist text fields from submission: name, pronouns, track1_name, track2_name, instagram, soundcloud, bandcamp, spotify, other_social, upcoming_events, mentions, music_description.",
+                "Fields that are NOT user-provided and should be excluded: ai_bio, instagram_caption, instagram_posted_at, status, created_at, updated_at, all *_key fields."
+              ],
+              "references": [],
+              "blockers_encountered": [],
+              "notes": "",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          }
+        ]
+      },
+      "knowledge": {
+        "decisions": [
+          "Telegram API constraint: photo+caption is one message (max 1024 char caption). Audio files must be separate messages. Best strategy: 1 photo message with all text, then up to 3 audio messages.",
+          "Use reply_to_message_id on audio messages to keep them visually grouped with the photo in the chat."
+        ],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "2",
+      "agent": "@axum-backend",
+      "task": "Replace the current notify_artist_submission to call send_artist_preview instead, with a fallback to the simple text notification if the artist row or presigned URLs fail",
+      "dependencies": ["1"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/telegram_notify.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "done",
+      "knowledge": {
+        "decisions": [
+          "Keep the fire-and-forget tokio::spawn pattern.",
+          "If send_artist_preview errors (DB unavailable, presigned URL fails, etc.), fall back to the current simple HTML text notification so we never lose notifications entirely."
+        ],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "3",
+      "agent": "@axum-backend",
+      "task": "Handle the chunked-upload timing issue: in submit_chunked.rs the notification fires before background processing completes (files still in pending/). Either defer sending or use the pending keys for presigned URLs.",
+      "dependencies": ["2"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/handlers/submit_chunked.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "done",
+      "knowledge": {
+        "decisions": [
+          "Best approach: move the notify call into finalize_artist_files_background() after files are moved and the DB is updated. This way all R2 keys in the artist row are final and presigned URLs work.",
+          "If finalization fails (status='processing_failed'), still send a simple text notification so the admin knows something came in.",
+          "Alternative considered (use pending keys) — rejected because pending keys are temporary and may be cleaned up."
+        ],
+        "learnings": [
+          "submit.rs (non-chunked) has final keys at notification time — no change needed there.",
+          "submit_chunked.rs inserts with status='processing', spawns background, then immediately notifies. The background task calls finalize_artist_files_background() which moves files and updates DB."
+        ],
+        "references": [
+          "source/backend/src/handlers/submit_chunked.rs (line 767 — current notify location)",
+          "source/backend/src/handlers/submit_chunked.rs (line 780 — finalize_artist_files_background)"
+        ],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "4",
+      "agent": "@axum-backend",
+      "task": "cargo check — verify compilation succeeds with no new errors",
+      "dependencies": ["3"],
+      "artifacts": [
+        {
+          "type": "test",
+          "path": "cargo check",
+          "verification": "passes",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "done",
+      "knowledge": {
+        "decisions": [],
+        "learnings": ["cargo check passes with only pre-existing warnings (dead_code in audio.rs, db.rs, models.rs)."],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    }
+  ]
+}

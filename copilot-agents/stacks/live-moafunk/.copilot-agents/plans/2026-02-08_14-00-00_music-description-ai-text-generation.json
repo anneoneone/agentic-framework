@@ -1,0 +1,617 @@
+{
+  "schema_version": "1.1",
+  "plan_id": "2026-02-08_14-00-00_music-description-ai-text-generation",
+  "stack": "live-moafunk",
+  "description": "Add 'music description' required field to artist form, store in DB, display in admin. Implement AI text generation (via OpenAI API) to create Instagram-ready bio from the music description. Store AI bio in DB and show in admin with regenerate button.",
+  "created_at": "2026-02-08T14:00:00Z",
+  "updated_at": "2026-02-08T14:00:00Z",
+  "overall_status": "completed",
+  "active_context": "main",
+  "related_plans": [
+    "live-moafunk:2026-02-08_10-00-00_connect-instagram-api-frontend-button"
+  ],
+  "steps": [
+    {
+      "id": "1",
+      "agent": "@axum-backend",
+      "task": "Add music_description and ai_bio columns to database schema and Artist model",
+      "dependencies": [],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/db.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        },
+        {
+          "type": "file",
+          "path": "source/backend/src/models.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "pending",
+      "sub_plan": {
+        "description": "Add two new columns to artists table and update the Rust model struct",
+        "steps": [
+          {
+            "id": "1.1",
+            "agent": "@axum-backend",
+            "task": "Add music_description TEXT and ai_bio TEXT fields to Artist struct in models.rs",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "pending",
+            "knowledge": {
+              "decisions": [
+                "music_description is NOT NULL (required field) - but use Option<String> in Rust since existing rows won't have it",
+                "ai_bio is Option<String> since it's generated asynchronously"
+              ],
+              "learnings": [
+                "Artist struct is at models.rs:4, fields end at line ~38"
+              ],
+              "references": [],
+              "blockers_encountered": [],
+              "notes": "Add after 'mentions' field to group with other text content",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          },
+          {
+            "id": "1.2",
+            "agent": "@axum-backend",
+            "task": "Add migration in db.rs using add_column_if_missing for both columns",
+            "dependencies": ["1.1"],
+            "artifacts": [],
+            "status": "pending",
+            "knowledge": {
+              "decisions": [],
+              "learnings": [
+                "Migration pattern: add_column_if_missing(pool, 'artists', 'column_name', 'TEXT').await?;",
+                "Existing migrations at db.rs lines 73-79"
+              ],
+              "references": [],
+              "blockers_encountered": [],
+              "notes": "",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          }
+        ]
+      },
+      "knowledge": {
+        "decisions": [],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "2",
+      "agent": "@axum-backend",
+      "task": "Add music-description field to both form submission handlers (submit.rs and submit_chunked.rs)",
+      "dependencies": ["1"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/handlers/submit.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        },
+        {
+          "type": "file",
+          "path": "source/backend/src/handlers/submit_chunked.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "pending",
+      "sub_plan": {
+        "description": "Parse music-description from multipart form, validate as required, include in INSERT query",
+        "steps": [
+          {
+            "id": "2.1",
+            "agent": "@axum-backend",
+            "task": "In submit.rs: add music_description variable, parse 'music-description' field, validate non-empty, add to INSERT query",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "pending",
+            "knowledge": {
+              "decisions": [
+                "music-description is REQUIRED - add validation like artist_name/pronouns"
+              ],
+              "learnings": [
+                "Field parsing pattern at submit.rs:130-210",
+                "Validation block at submit.rs:~315-335",
+                "INSERT query at submit.rs:~340 - needs music_description added to columns and VALUES"
+              ],
+              "references": [],
+              "blockers_encountered": [],
+              "notes": "",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          },
+          {
+            "id": "2.2",
+            "agent": "@axum-backend",
+            "task": "In submit_chunked.rs: add music_description variable, parse field, validate, add to INSERT at init and finalize handlers",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "pending",
+            "knowledge": {
+              "decisions": [],
+              "learnings": [
+                "submit_chunked.rs has parallel structure: init handler (~line 148) and finalize (~line 575)",
+                "Both have their own field parsing and INSERT queries",
+                "Also SELECT at finalize (~line 586) that reads back pending_submissions"
+              ],
+              "references": [],
+              "blockers_encountered": [],
+              "notes": "pending_submissions table also needs music_description column added in db.rs migration",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          }
+        ]
+      },
+      "knowledge": {
+        "decisions": [],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "3",
+      "agent": "@axum-backend",
+      "task": "Add music_description and ai_bio to ArtistDetailResponse, UpdateArtistDetailsRequest, and api_update_artist_details handler",
+      "dependencies": ["1"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/handlers/api.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "pending",
+      "sub_plan": {
+        "description": "Expose new fields through API response and allow admin update of both fields",
+        "steps": [
+          {
+            "id": "3.1",
+            "agent": "@axum-backend",
+            "task": "Add music_description and ai_bio to ArtistDetailResponse struct (api.rs:317) and populate in api_artist_detail (api.rs:439)",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "pending",
+            "knowledge": {
+              "decisions": [],
+              "learnings": [],
+              "references": [],
+              "blockers_encountered": [],
+              "notes": "",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          },
+          {
+            "id": "3.2",
+            "agent": "@axum-backend",
+            "task": "Add music_description to UpdateArtistDetailsRequest (api.rs:526) and UPDATE query (api.rs:547)",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "pending",
+            "knowledge": {
+              "decisions": [
+                "ai_bio is NOT included in update request - it's generated by AI only, not manually editable (except via regenerate)"
+              ],
+              "learnings": [],
+              "references": [],
+              "blockers_encountered": [],
+              "notes": "",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          }
+        ]
+      },
+      "knowledge": {
+        "decisions": [],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "4",
+      "agent": "@axum-backend",
+      "task": "Create AI text generation module (ai.rs) using OpenAI API via reqwest",
+      "dependencies": ["1"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/ai.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        },
+        {
+          "type": "file",
+          "path": "source/backend/src/config.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "pending",
+      "sub_plan": {
+        "description": "Create Rust module that calls OpenAI GPT-4o-mini API to generate an Instagram-ready artist bio from music_description",
+        "steps": [
+          {
+            "id": "4.1",
+            "agent": "@axum-backend",
+            "task": "Add OPENAI_API_KEY to config.rs and .env.example",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "pending",
+            "knowledge": {
+              "decisions": [
+                "Use OpenAI GPT-4o-mini: best cost/quality ratio for short text generation, widely supported, simple API, reqwest already in Cargo.toml",
+                "Alternative considered: Anthropic Claude - similar quality but OpenAI is simpler for single-prompt text gen and has cheaper mini models"
+              ],
+              "learnings": [
+                "reqwest 0.12 with json + rustls-tls features already in Cargo.toml - no new dependencies needed",
+                "Config pattern: pub struct Config with env vars loaded via std::env::var in config.rs"
+              ],
+              "references": [
+                "https://platform.openai.com/docs/api-reference/chat/create"
+              ],
+              "blockers_encountered": [],
+              "notes": "",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          },
+          {
+            "id": "4.2",
+            "agent": "@axum-backend",
+            "task": "Create src/ai.rs with generate_artist_bio() function: sends music_description to OpenAI chat completions endpoint, returns generated Instagram bio text",
+            "dependencies": ["4.1"],
+            "artifacts": [],
+            "status": "pending",
+            "knowledge": {
+              "decisions": [
+                "Use POST https://api.openai.com/v1/chat/completions with model gpt-4o-mini",
+                "System prompt: 'You are writing short, engaging Instagram bios for music artists featured on a radio show called UNHEARD by Moafunk Radio. Keep it 2-3 sentences, casual and music-focused.'",
+                "User prompt: the artist's music_description field value",
+                "Temperature ~0.7 for creative but consistent output"
+              ],
+              "learnings": [],
+              "references": [],
+              "blockers_encountered": [],
+              "notes": "Function signature: pub async fn generate_artist_bio(config: &Config, music_description: &str) -> Result<String>",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          },
+          {
+            "id": "4.3",
+            "agent": "@axum-backend",
+            "task": "Register ai module in main.rs (mod ai;)",
+            "dependencies": ["4.2"],
+            "artifacts": [],
+            "status": "pending",
+            "knowledge": {
+              "decisions": [],
+              "learnings": [],
+              "references": [],
+              "blockers_encountered": [],
+              "notes": "",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          }
+        ]
+      },
+      "knowledge": {
+        "decisions": [
+          "Chose OpenAI GPT-4o-mini over alternatives: (1) Claude/Anthropic - great quality but higher cost for simple short text, (2) Ollama/local - requires GPU/infra, (3) Gemini - less mature API. GPT-4o-mini is cheapest with great quality for 2-3 sentence generation."
+        ],
+        "learnings": [],
+        "references": ["https://platform.openai.com/docs/models/gpt-4o-mini"],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "5",
+      "agent": "@axum-backend",
+      "task": "Add API endpoint POST /api/artists/:id/generate-bio that triggers AI bio generation and stores result in DB",
+      "dependencies": ["3", "4"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/handlers/api.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        },
+        {
+          "type": "file",
+          "path": "source/backend/src/main.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "pending",
+      "knowledge": {
+        "decisions": [
+          "Separate endpoint for bio generation (not auto-trigger on submit) so admin can review music_description before generating, and can regenerate if needed",
+          "Returns the generated bio text in response for immediate UI update"
+        ],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Handler: read artist.music_description from DB → call ai::generate_artist_bio() → UPDATE artists SET ai_bio = ? WHERE id = ? → return JSON { success, ai_bio }",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "6",
+      "agent": "@vue-frontend",
+      "task": "Add music-description required field to public artist submission form (HTML + TS)",
+      "dependencies": [],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/frontend/src/pages/unheard-artists-form.html",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        },
+        {
+          "type": "file",
+          "path": "source/frontend/src/pages/unheard-artists-form.ts",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "pending",
+      "sub_plan": {
+        "description": "Add textarea for music description to public form and ensure it's submitted as required field",
+        "steps": [
+          {
+            "id": "6.1",
+            "agent": "@vue-frontend",
+            "task": "Add 'How would you describe your music?' required textarea to form HTML, in Basic Information section after pronouns",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "pending",
+            "knowledge": {
+              "decisions": [
+                "Place in Basic Information section (after pronouns, before artist-pic) since it's a required field about the artist",
+                "Use textarea with required attribute, id='music-description', name='music-description'"
+              ],
+              "learnings": [
+                "Form HTML at unheard-artists-form.html:47-195",
+                "Basic Information section: lines 49-77 (artist-name, pronouns, artist-pic)",
+                "Textarea pattern example: <textarea id='upcoming-events' name='upcoming-events' ...></textarea>"
+              ],
+              "references": [],
+              "blockers_encountered": [],
+              "notes": "",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          },
+          {
+            "id": "6.2",
+            "agent": "@vue-frontend",
+            "task": "In unheard-artists-form.ts: add music-description to FormData in init submission (NOT in optionalFields array since it's required)",
+            "dependencies": ["6.1"],
+            "artifacts": [],
+            "status": "pending",
+            "knowledge": {
+              "decisions": [
+                "music-description is REQUIRED, so do NOT add to optionalFields array",
+                "Instead, append to FormData alongside artist-name, pronouns, track names"
+              ],
+              "learnings": [
+                "optionalFields array at form.ts contains: instagram, soundcloud, bandcamp, spotify, other-social, upcoming-events, mentions",
+                "Required fields are appended individually to FormData before optionalFields loop"
+              ],
+              "references": [],
+              "blockers_encountered": [],
+              "notes": "",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          }
+        ]
+      },
+      "knowledge": {
+        "decisions": [],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "7",
+      "agent": "@vue-frontend",
+      "task": "Add music_description and ai_bio fields to admin frontend: ArtistDetail interface, detail page display, edit form, and generate-bio button",
+      "dependencies": ["3", "5"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/api/index.ts",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        },
+        {
+          "type": "file",
+          "path": "source/frontend/src/admin/pages/ArtistDetailPage.vue",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "pending",
+      "sub_plan": {
+        "description": "Update admin API types and artist detail page to show/edit music description and display/generate AI bio",
+        "steps": [
+          {
+            "id": "7.1",
+            "agent": "@vue-frontend",
+            "task": "Add music_description and ai_bio to ArtistDetail interface in api/index.ts. Add generateBio API method.",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "pending",
+            "knowledge": {
+              "decisions": [
+                "Add music_description?: string and ai_bio?: string to ArtistDetail interface",
+                "Add generateBio: (id: number) => api.post<{ success: boolean; ai_bio: string }>(`/api/artists/${id}/generate-bio`)"
+              ],
+              "learnings": [
+                "ArtistDetail interface at api/index.ts:106-131",
+                "artistsApi object at api/index.ts:133+"
+              ],
+              "references": [],
+              "blockers_encountered": [],
+              "notes": "",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          },
+          {
+            "id": "7.2",
+            "agent": "@vue-frontend",
+            "task": "Add music_description to edit form (detailsForm reactive object + textarea in edit mode) in ArtistDetailPage.vue",
+            "dependencies": ["7.1"],
+            "artifacts": [],
+            "status": "pending",
+            "knowledge": {
+              "decisions": [],
+              "learnings": [
+                "detailsForm reactive object initialized at ~line 30-40",
+                "Edit form template at ~line 310-370"
+              ],
+              "references": [],
+              "blockers_encountered": [],
+              "notes": "Add after mentions textarea in edit form",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          },
+          {
+            "id": "7.3",
+            "agent": "@vue-frontend",
+            "task": "Add music_description display section and ai_bio display with 'Generate Bio' / 'Regenerate Bio' button in read-only view of ArtistDetailPage.vue",
+            "dependencies": ["7.1"],
+            "artifacts": [],
+            "status": "pending",
+            "knowledge": {
+              "decisions": [
+                "Show music_description as read-only text in view mode",
+                "Show ai_bio with a styled card/block, with a 'Generate Bio' button (or 'Regenerate' if already exists)",
+                "Button calls generateBio API, shows loading state, updates ai_bio on success"
+              ],
+              "learnings": [
+                "Read-only view has sections like Mentions at ~line 373-377",
+                "Instagram button pattern (from ShowDetailPage) can be reused for Generate Bio button"
+              ],
+              "references": [],
+              "blockers_encountered": [],
+              "notes": "",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          }
+        ]
+      },
+      "knowledge": {
+        "decisions": [],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "8",
+      "agent": "@axum-backend",
+      "task": "Compile and verify backend builds successfully with all changes",
+      "dependencies": ["1", "2", "3", "4", "5"],
+      "artifacts": [
+        {
+          "type": "test",
+          "path": "cargo build",
+          "verification": "passes",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "pending",
+      "knowledge": {
+        "decisions": [],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Run cargo build in source/backend/ to verify all Rust changes compile",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "9",
+      "agent": "@vue-frontend",
+      "task": "Build and verify frontend compiles successfully with all changes",
+      "dependencies": ["6", "7"],
+      "artifacts": [
+        {
+          "type": "test",
+          "path": "npm run build",
+          "verification": "passes",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "pending",
+      "knowledge": {
+        "decisions": [],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Run npm run build in source/frontend/ to verify TypeScript and Vue compilation",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    }
+  ]
+}

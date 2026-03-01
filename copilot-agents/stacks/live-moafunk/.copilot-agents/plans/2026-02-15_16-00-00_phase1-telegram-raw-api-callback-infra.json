@@ -1,0 +1,282 @@
+{
+  "schema_version": "1.1",
+  "plan_id": "2026-02-15_16-00-00_phase1-telegram-raw-api-callback-infra",
+  "stack": "live-moafunk",
+  "description": "Phase 1: Add reply_markup support to send_photo_raw, add send_video_raw, add raw helpers for editing messages (caption, media, reply_markup), add callback query dispatcher to telegram.rs, and add in-memory edit session state to AppState.",
+  "created_at": "2026-02-15T16:00:00Z",
+  "updated_at": "2026-02-15T16:00:00Z",
+  "overall_status": "completed",
+  "active_context": "main",
+  "related_plans": [
+    "live-moafunk:2026-02-15_16-00-00_phase2-schema-changes",
+    "live-moafunk:2026-02-15_16-00-00_phase3-artist-preview-sending",
+    "live-moafunk:2026-02-15_16-00-00_phase4-callback-handlers",
+    "live-moafunk:2026-02-15_16-00-00_phase5-video-start-offset",
+    "live-moafunk:2026-02-15_16-00-00_phase6-sort-order-management",
+    "live-moafunk:2026-02-15_16-00-00_phase7-auto-scheduler",
+    "live-moafunk:2026-02-15_16-00-00_phase8-admin-dashboard-integration",
+    "live-moafunk:2026-02-15_16-00-00_phase9-catch-all-message-handler"
+  ],
+  "steps": [
+    {
+      "id": "1",
+      "agent": "@axum-backend",
+      "task": "Add `reply_markup: Option<&str>` parameter to `send_photo_raw` in telegram_notify.rs (line 52). Inside the function body, after building the multipart form, add: `if let Some(markup) = reply_markup { form = form.text(\"reply_markup\", markup.to_owned()); }`. Update both call sites to pass `None`: (1) in `notify_artist_submission` (~line 340) and (2) in `send_show_update_notification` (~line 622).",
+      "dependencies": [],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/telegram_notify.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "done",
+      "knowledge": {
+        "decisions": [
+          "Use Option<&str> not serde_json::Value — caller serializes the InlineKeyboardMarkup JSON before passing",
+          "reply_markup is passed as a text field in the multipart form, same as caption/parse_mode"
+        ],
+        "learnings": [
+          "send_photo_raw is at lines 52-100 of telegram_notify.rs (expanded with reply_markup)",
+          "Two call sites updated: notify_artist_submission (~L343) and send_show_update_notification (~L625), both pass None",
+          "Updated signature: (token, chat_id, photo_bytes, filename, caption, parse_mode, thread_id, reply_markup: Option<&str>) -> Result<i64, String>"
+        ],
+        "references": [
+          "https://core.telegram.org/bots/api#sendphoto"
+        ],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "2",
+      "agent": "@axum-backend",
+      "task": "Add `send_video_raw` function in telegram_notify.rs, modeled after `send_photo_raw`. Signature: `async fn send_video_raw(token: &str, chat_id: i64, video_bytes: Vec<u8>, filename: String, caption: &str, parse_mode: &str, thread_id: Option<i32>, reply_markup: Option<&str>) -> Result<i64, String>`. Uses reqwest::multipart with a `video` part (not `photo`). Calls Telegram `sendVideo` endpoint. Returns message_id from response.",
+      "dependencies": ["1"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/telegram_notify.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "done",
+      "knowledge": {
+        "decisions": [
+          "Same reqwest multipart pattern as send_photo_raw",
+          "Part name is 'video' for Telegram sendVideo endpoint",
+          "Return message_id for later in-place editing of video messages"
+        ],
+        "learnings": [
+          "send_audio_raw already exists at lines 99-130+ with similar pattern",
+          "TgResponse struct is already defined for parsing Telegram Bot API responses"
+        ],
+        "references": [
+          "https://core.telegram.org/bots/api#sendvideo"
+        ],
+        "blockers_encountered": [],
+        "notes": "Place after send_photo_raw and before send_audio_raw",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "3",
+      "agent": "@axum-backend",
+      "task": "Add `edit_message_caption_raw` function in telegram_notify.rs. Signature: `pub async fn edit_message_caption_raw(token: &str, chat_id: i64, message_id: i64, caption: &str, parse_mode: &str, reply_markup: Option<&str>) -> Result<(), String>`. Uses reqwest JSON POST to Telegram `editMessageCaption` endpoint. Build a serde_json::json!({}) body with chat_id, message_id, caption, parse_mode, and optionally reply_markup (parsed from string to Value).",
+      "dependencies": [],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/telegram_notify.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "done",
+      "knowledge": {
+        "decisions": [
+          "Use JSON POST (not multipart) since no file upload needed for caption edits",
+          "reply_markup string is parsed with serde_json::from_str to embed as JSON value in the body"
+        ],
+        "learnings": [],
+        "references": [
+          "https://core.telegram.org/bots/api#editmessagecaption"
+        ],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "4",
+      "agent": "@axum-backend",
+      "task": "Add `edit_message_media_raw` function in telegram_notify.rs. Signature: `pub async fn edit_message_media_raw(token: &str, chat_id: i64, message_id: i64, media_bytes: Vec<u8>, filename: String, media_type: &str, caption: &str, parse_mode: &str, reply_markup: Option<&str>) -> Result<(), String>`. Uses reqwest multipart POST to Telegram `editMessageMedia`. The `media` field is a JSON string: `{\"type\": media_type, \"media\": \"attach://file\", \"caption\": caption, \"parse_mode\": parse_mode}`. The file is attached as a multipart part named `file`.",
+      "dependencies": [],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/telegram_notify.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "done",
+      "knowledge": {
+        "decisions": [
+          "Use multipart because we're uploading a new file",
+          "media_type parameter allows reuse for both photo and video editing"
+        ],
+        "learnings": [],
+        "references": [
+          "https://core.telegram.org/bots/api#editmessagemedia",
+          "https://core.telegram.org/bots/api#inputmediaphoto"
+        ],
+        "blockers_encountered": [],
+        "notes": "The media JSON must reference 'attach://file' which corresponds to the multipart part name 'file'",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "5",
+      "agent": "@axum-backend",
+      "task": "Add `edit_message_reply_markup_raw` function in telegram_notify.rs. Signature: `pub async fn edit_message_reply_markup_raw(token: &str, chat_id: i64, message_id: i64, reply_markup: Option<&str>) -> Result<(), String>`. Uses reqwest JSON POST to Telegram `editMessageReplyMarkup`. Pass reply_markup as parsed JSON value, or omit to remove all buttons.",
+      "dependencies": [],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/telegram_notify.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "done",
+      "knowledge": {
+        "decisions": [],
+        "learnings": [],
+        "references": [
+          "https://core.telegram.org/bots/api#editmessagereplymarkup"
+        ],
+        "blockers_encountered": [],
+        "notes": "Useful for removing buttons after publish, or updating button state",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "6",
+      "agent": "@axum-backend",
+      "task": "Add callback query handler to the Telegram dispatcher in telegram.rs. Currently (lines 64-88) only `Update::filter_message()` is used. Add a second branch: `Update::filter_callback_query().endpoint(handle_callback_query)`. Add `handle_callback_query(bot: Bot, q: CallbackQuery, state: Arc<AppState>)` function that: (1) checks auth — q.message chat_id must match telegram_admin_chat_id, (2) extracts q.data string, (3) routes based on prefix: `aig_pub:`, `aig_cap:`, `aig_img:`, `aig_vid:`, `aig_sort:` to sub-handler functions (stub them as TODO for now), (4) calls `bot.answer_callback_query(q.id)` to dismiss the spinner. Import `CallbackQuery` from teloxide::types.",
+      "dependencies": [],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/telegram.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "done",
+      "knowledge": {
+        "decisions": [
+          "Callback data prefix convention: aig_ = artist instagram. Short prefixes to stay within Telegram's 64-byte callback_data limit",
+          "Stub the sub-handlers as TODO — Phase 4 will implement them",
+          "Auth check: verify q.message.chat.id matches telegram_admin_chat_id"
+        ],
+        "learnings": [
+          "Current dispatcher at lines 64-88 only has Update::filter_message()",
+          "Auth check pattern exists at lines 94-115: checks telegram_admin_chat_id and telegram_topic_id",
+          "teloxide dispatcher uses dptree branching"
+        ],
+        "references": [
+          "https://core.telegram.org/bots/api#callbackquery",
+          "https://docs.rs/teloxide/latest/teloxide/"
+        ],
+        "blockers_encountered": [],
+        "notes": "The handler tree should be: handler.branch(filter_message...).branch(filter_callback_query...). Use dptree::entry().endpoint(handle_callback_query)",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "7",
+      "agent": "@axum-backend",
+      "task": "Add in-memory edit session state to AppState in main.rs. Define `EditSession` enum in telegram.rs with variants: `AwaitingCaption { artist_id: i64, preview_msg_id: i64 }`, `AwaitingImage { artist_id: i64, preview_msg_id: i64 }`, `AwaitingTimecode { artist_id: i64, track_number: u8, preview_msg_id: i64, video_msg_id: i64 }`. Add field `pub edit_sessions: Arc<tokio::sync::Mutex<HashMap<i64, EditSession>>>` to AppState (keyed by user_id). Initialize as `Arc::new(tokio::sync::Mutex::new(HashMap::new()))` in main(). Add `use std::collections::HashMap` if not already imported.",
+      "dependencies": [],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/main.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        },
+        {
+          "type": "file",
+          "path": "source/backend/src/telegram.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "done",
+      "knowledge": {
+        "decisions": [
+          "In-memory HashMap, lost on restart — acceptable since edit sessions are short-lived interactive UI flows",
+          "Key by user_id (from callback query), not chat_id, since multiple users could theoretically edit at once",
+          "Use tokio::sync::Mutex not std::sync::Mutex since we hold the lock across await points"
+        ],
+        "learnings": [
+          "AppState is at lines 51-67 of main.rs, now has edit_sessions field",
+          "EditSession enum defined in telegram.rs with 3 variants: AwaitingCaption, AwaitingImage, AwaitingTimecode",
+          "HashMap<i64, EditSession> imported via std::collections::HashMap already in main.rs"
+        ],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "EditSession must be pub so telegram.rs handlers and the catch-all handler can access it",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "8",
+      "agent": "@axum-backend",
+      "task": "Run `cargo check` from source/backend/ to verify Phase 1 compiles. Fix any compilation errors. The stub TODO handlers in step 6 should use `tracing::warn!(\"TODO: handle callback {}\", data)` to avoid unused variable warnings.",
+      "dependencies": ["1", "2", "3", "4", "5", "6", "7"],
+      "artifacts": [
+        {
+          "type": "test",
+          "path": "cargo check output",
+          "verification": "passes",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "done",
+      "knowledge": {
+        "decisions": [],
+        "learnings": [
+          "All 7 implementation steps compile successfully with only dead-code warnings for the new unused functions (expected, will be used in later phases)",
+          "15 total warnings: 10 pre-existing + 4 dead-code for new functions + 1 unused import suggestion"
+        ],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Pre-existing warnings are acceptable, only new errors need fixing",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    }
+  ]
+}

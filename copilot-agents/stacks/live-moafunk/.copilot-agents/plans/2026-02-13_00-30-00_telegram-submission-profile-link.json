@@ -1,0 +1,243 @@
+{
+  "schema_version": "1.1",
+  "plan_id": "2026-02-13_00-30-00_telegram-submission-profile-link",
+  "stack": "live-moafunk",
+  "description": "Include a clickable artist-profile link in the Telegram submission notification. The link points to the admin SPA (hash-routed), which auto-redirects through login before landing on the artist detail page.",
+  "created_at": "2026-02-13T00:30:00Z",
+  "updated_at": "2026-02-13T00:50:00Z",
+  "overall_status": "completed",
+  "active_context": "main",
+  "related_plans": [
+    "live-moafunk:2026-02-10_18-00-00_telegram-bot-backend-control"
+  ],
+  "steps": [
+    {
+      "id": "1",
+      "agent": "@axum-backend",
+      "task": "Add optional `admin_base_url` field to Config (env var ADMIN_BASE_URL, default \"https://admin.live.moafunk.de\")",
+      "dependencies": [],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/config.rs",
+          "verification": "exists",
+          "verified_at": "2026-02-13T00:40:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "done",
+      "knowledge": {
+        "decisions": [
+          "Use a Config field with serde default so existing deployments without the env var keep working.",
+          "Default to https://admin.live.moafunk.de (production domain from nginx.conf.example)."
+        ],
+        "learnings": [],
+        "references": [
+          "source/backend/src/config.rs",
+          "source/backend/nginx.conf.example"
+        ],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "2",
+      "agent": "@axum-backend",
+      "task": "Add HTML parse-mode support to telegram_notify::notify — add a new `notify_html` helper (or a `parse_mode` parameter) that sends messages with ParseMode::Html so Telegram renders <a> links as clickable",
+      "dependencies": [],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/telegram_notify.rs",
+          "verification": "exists",
+          "verified_at": "2026-02-13T00:42:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "done",
+      "knowledge": {
+        "decisions": [
+          "Add a separate notify_html() function to avoid touching existing plain-text callers (stream start/stop).",
+          "teloxide's send_message().parse_mode(ParseMode::Html) enables <a href> links."
+        ],
+        "learnings": [
+          "Current notify() sends plain text only — no parse_mode set.",
+          "teloxide re-exports ParseMode from teloxide::types::ParseMode."
+        ],
+        "references": ["source/backend/src/telegram_notify.rs"],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "3",
+      "agent": "@axum-backend",
+      "task": "Update notify_artist_submission to build an HTML message containing a clickable link to the artist profile (https://admin.live.moafunk.de/#/artists/{id}) and send it via notify_html",
+      "dependencies": ["1", "2"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/telegram_notify.rs",
+          "verification": "exists",
+          "verified_at": "2026-02-13T00:42:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "done",
+      "sub_plan": {
+        "description": "Update the notification function signature and message format",
+        "steps": [
+          {
+            "id": "3.1",
+            "agent": "@axum-backend",
+            "task": "Change notify_artist_submission signature to accept &Config (or admin_base_url: &str) so it can build the URL",
+            "dependencies": [],
+            "artifacts": [],
+            "status": "done",
+            "knowledge": {
+              "decisions": [
+                "Pass &Config rather than just the URL string — keeps the signature flexible for future config fields.",
+                "Revisited: No signature change needed — state.config.admin_base_url is already accessible via the existing &Arc<AppState> parameter."
+              ],
+              "learnings": [],
+              "references": [],
+              "blockers_encountered": [],
+              "notes": "",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          },
+          {
+            "id": "3.2",
+            "agent": "@axum-backend",
+            "task": "Build HTML message: \"🎤 New artist submitted: {name} (ID: {id})\\n<a href=\\\"https://admin.live.moafunk.de/#/artists/{id}\\\">Open artist profile</a>\" and send via notify_html",
+            "dependencies": ["3.1"],
+            "artifacts": [],
+            "status": "done",
+            "knowledge": {
+              "decisions": [
+                "Use hash-route URL format /#/artists/{id} — the Vue SPA uses createWebHashHistory.",
+                "The router guard auto-redirects to /login?redirect=/artists/{id} for unauthenticated users; after login it pushes to the artist page. No special handling needed."
+              ],
+              "learnings": [
+                "Frontend LoginPage reads route.query.redirect and router.push()es to it after successful login, so deep-linking through the login wall works out of the box."
+              ],
+              "references": [
+                "source/frontend/src/admin/router.ts (lines 88-100 — beforeEach guard)",
+                "source/frontend/src/admin/pages/LoginPage.vue (line 18 — redirect logic)"
+              ],
+              "blockers_encountered": [],
+              "notes": "",
+              "agent_interactions": [],
+              "ignored_knowledge": []
+            }
+          }
+        ]
+      },
+      "knowledge": {
+        "decisions": [],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "4",
+      "agent": "@axum-backend",
+      "task": "Update all callers of notify_artist_submission (submit.rs and submit_chunked.rs) to pass the new Config/URL parameter",
+      "dependencies": ["3"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/handlers/submit.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        },
+        {
+          "type": "file",
+          "path": "source/backend/src/handlers/submit_chunked.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "skipped",
+      "knowledge": {
+        "decisions": [],
+        "learnings": [
+          "Two call sites exist: submit.rs:545 and submit_chunked.rs:767. Both already have access to state.config via &state.",
+          "Skipped: Function signature unchanged — admin_base_url is read from state.config inside the function, so callers need no changes."
+        ],
+        "references": [
+          "source/backend/src/handlers/submit.rs (line 545)",
+          "source/backend/src/handlers/submit_chunked.rs (line 767)"
+        ],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "5",
+      "agent": "@axum-backend",
+      "task": "cargo check — verify compilation succeeds with no new errors",
+      "dependencies": ["4"],
+      "artifacts": [
+        {
+          "type": "test",
+          "path": "cargo check",
+          "verification": "passes",
+          "verified_at": "2026-02-13T00:44:00Z",
+          "auto_verified": true
+        }
+      ],
+      "status": "done",
+      "knowledge": {
+        "decisions": [],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "6",
+      "agent": "@docker-deploy",
+      "task": "Add ADMIN_BASE_URL env var to docker-compose.prod.yml (value: https://admin.live.moafunk.de) and document in README",
+      "dependencies": ["1"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/docker-compose.prod.yml",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "skipped",
+      "knowledge": {
+        "decisions": [
+          "Optional step — the serde default already provides the production URL. Adding it explicitly to docker-compose makes the config discoverable.",
+          "Skipped: docker-compose.prod.yml loads all env vars from .env file (not inline). The serde default matches the production domain, so no .env change is needed for existing deployments."
+        ],
+        "learnings": [],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    }
+  ]
+}

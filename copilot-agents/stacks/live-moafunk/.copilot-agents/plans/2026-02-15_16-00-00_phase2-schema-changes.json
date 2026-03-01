@@ -1,0 +1,173 @@
+{
+  "schema_version": "1.1",
+  "plan_id": "2026-02-15_16-00-00_phase2-schema-changes",
+  "stack": "live-moafunk",
+  "description": "Phase 2: Add sort_order column to artist_show_assignments, add telegram_preview_message_id / telegram_video1_message_id / telegram_video2_message_id / telegram_artist_preview_sent_at columns to artists table, update Artist model struct.",
+  "created_at": "2026-02-15T16:00:00Z",
+  "updated_at": "2026-02-15T16:00:00Z",
+  "overall_status": "completed",
+  "active_context": "main",
+  "related_plans": [
+    "live-moafunk:2026-02-15_16-00-00_phase1-telegram-raw-api-callback-infra"
+  ],
+  "steps": [
+    {
+      "id": "1",
+      "agent": "@axum-backend",
+      "task": "Add `sort_order` column to `artist_show_assignments` in db.rs init_db(). Call `add_column_if_missing(pool, \"artist_show_assignments\", \"sort_order\", \"INTEGER DEFAULT 0\")` after the table creation. This column controls the order in which artists are scheduled for Instagram preview posting (day 1 → sort_order 0, day 2 → sort_order 1, etc.).",
+      "dependencies": [],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/db.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "done",
+      "knowledge": {
+        "decisions": [
+          "INTEGER DEFAULT 0 — existing assignments get sort_order=0, alphabetical name fallback preserves current behavior"
+        ],
+        "learnings": [
+          "artist_show_assignments table is at lines 155-163 of db.rs",
+          "add_column_if_missing is at lines 5-28 of db.rs"
+        ],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Inserted after .execute(pool).await? for the CREATE TABLE, before the trigger",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "2",
+      "agent": "@axum-backend",
+      "task": "Update all queries that fetch artists for a show to use `ORDER BY asa.sort_order, a.name COLLATE NOCASE` instead of just `ORDER BY a.name`. Two locations: (1) telegram.rs line 453 and (2) api.rs line 2653. Ensure the SELECT also includes `asa.sort_order` in the column list if needed.",
+      "dependencies": ["1"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/telegram.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        },
+        {
+          "type": "file",
+          "path": "source/backend/src/handlers/api.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "done",
+      "knowledge": {
+        "decisions": [
+          "Primary sort by sort_order, secondary by name — preserves alphabetical order for same sort_order values"
+        ],
+        "learnings": [
+          "telegram.rs:530 uses ORDER BY a.name (updated)",
+          "api.rs has 4 ORDER BY locations: lines 1503, 1575, 1661, 2651",
+          "Line 1661 is for available (unassigned) artists — no asa join, left as ORDER BY a.name COLLATE NOCASE",
+          "Updated 3 of 4: lines 1503, 1575, 2651"
+        ],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "3",
+      "agent": "@axum-backend",
+      "task": "Add four new columns to the `artists` table in db.rs init_db() via add_column_if_missing: (1) `telegram_preview_message_id INTEGER` — stores the Telegram message ID of the main preview photo so it can be edited in-place, (2) `telegram_video1_message_id INTEGER` — stores message ID of track 1 video reply, (3) `telegram_video2_message_id INTEGER` — stores message ID of track 2 video reply, (4) `telegram_artist_preview_sent_at TEXT` — ISO timestamp of when preview was auto-sent by scheduler.",
+      "dependencies": [],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/db.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "done",
+      "knowledge": {
+        "decisions": [
+          "Use TEXT for timestamp (SQLite convention with datetime('now'))",
+          "Use INTEGER for message IDs (Telegram message IDs are i64)"
+        ],
+        "learnings": [
+          "Placed after track1_video_key/track2_video_key migrations with a Telegram preview section comment"
+        ],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Place after existing add_column_if_missing calls for the artists table",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "4",
+      "agent": "@axum-backend",
+      "task": "Add the four new fields to the `Artist` struct in models.rs: `pub telegram_preview_message_id: Option<i64>`, `pub telegram_video1_message_id: Option<i64>`, `pub telegram_video2_message_id: Option<i64>`, `pub telegram_artist_preview_sent_at: Option<String>`. These must match the DB column names exactly for sqlx::FromRow derivation.",
+      "dependencies": ["3"],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "source/backend/src/models.rs",
+          "verification": "exists",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "done",
+      "knowledge": {
+        "decisions": [
+          "Option types since columns are nullable (no NOT NULL constraint)",
+          "sqlx::FromRow derives column mapping automatically by field name"
+        ],
+        "learnings": [
+          "Artist struct is in models.rs, has fields like instagram_posted_at, track1_video_key etc.",
+          "All existing Option<String> fields use Option<String> not Option<chrono::NaiveDateTime>",
+          "Placed between instagram_posted_at and status with a Telegram preview section comment"
+        ],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Place after existing telegram_preview_sent_at or at the end before status/created_at/updated_at",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    },
+    {
+      "id": "5",
+      "agent": "@axum-backend",
+      "task": "Run `cargo check` from source/backend/ to verify Phase 2 compiles. Fix any sqlx or struct field mismatch errors.",
+      "dependencies": ["1", "2", "3", "4"],
+      "artifacts": [
+        {
+          "type": "test",
+          "path": "cargo check output",
+          "verification": "passes",
+          "verified_at": null,
+          "auto_verified": false
+        }
+      ],
+      "status": "done",
+      "knowledge": {
+        "decisions": [],
+        "learnings": [
+          "cargo check passes with 15 warnings (same as after Phase 1 — no new warnings)"
+        ],
+        "references": [],
+        "blockers_encountered": [],
+        "notes": "Common issue: sqlx queries with SELECT * may need recompilation after adding columns if using compile-time checked queries. This project uses runtime queries (query_as with string SQL) so it should be fine.",
+        "agent_interactions": [],
+        "ignored_knowledge": []
+      }
+    }
+  ]
+}
