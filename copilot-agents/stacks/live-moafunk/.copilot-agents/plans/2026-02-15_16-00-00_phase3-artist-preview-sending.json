@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "2.0",
   "plan_id": "2026-02-15_16-00-00_phase3-artist-preview-sending",
   "stack": "live-moafunk",
   "description": "Phase 3: Implement send_artist_instagram_preview function that sends an artist's Instagram preview to Telegram with photo + caption + inline keyboard buttons (Publish, Edit Caption, Replace Image, Regen Video 1/2), plus track preview videos as separate reply messages.",
@@ -44,7 +44,14 @@
         "notes": "",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "2",
@@ -79,7 +86,14 @@
         "notes": "This function needs access to state.db for updating message IDs and state.config for bot token/chat_id. Use state.s3_client and state.config for presigned URLs.",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "3",
@@ -114,7 +128,14 @@
         "notes": "If video key exists but download fails, log warning and continue — don't fail the whole preview",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "4",
@@ -145,7 +166,18 @@
         "notes": "",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     }
-  ]
+  ],
+  "execution_mode": "sequential",
+  "batch_config": null,
+  "context_sources": [],
+  "token_budget": null
 }

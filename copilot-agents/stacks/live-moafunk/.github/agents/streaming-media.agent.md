@@ -21,6 +21,8 @@ scope:
   required:
     - Audio encoding and processing
     - Client-server streaming coordination
+mcp_servers:
+  - filesystem
 ---
 
 # @streaming-media

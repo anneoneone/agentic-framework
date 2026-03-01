@@ -21,6 +21,8 @@ scope:
   required:
     - User input validation
     - Proper error messages (no token leaks)
+mcp_servers:
+  - filesystem
 ---
 
 # @telegram-bot

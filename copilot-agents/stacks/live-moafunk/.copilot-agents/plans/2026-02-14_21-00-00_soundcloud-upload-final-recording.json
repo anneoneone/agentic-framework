@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "2.0",
   "plan_id": "2026-02-14_21-00-00_soundcloud-upload-final-recording",
   "stack": "live-moafunk",
   "description": "Upload final show recordings to SoundCloud (private by default) with frontend toggle to make public. Auto-trigger after recording upload, description from AI show bio + artist socials.",
@@ -24,7 +24,14 @@
         }
       ],
       "status": "completed",
-      "knowledge": {}
+      "knowledge": {},
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "2",
@@ -41,13 +48,22 @@
         }
       ],
       "status": "completed",
-      "knowledge": {}
+      "knowledge": {},
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "3",
       "agent": "@axum-backend",
       "task": "Update Show struct in models.rs: add soundcloud_track_id: Option<String>, soundcloud_url: Option<String>, soundcloud_uploaded_at: Option<String>, soundcloud_public: Option<bool>",
-      "dependencies": ["2"],
+      "dependencies": [
+        "2"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -58,13 +74,23 @@
         }
       ],
       "status": "completed",
-      "knowledge": {}
+      "knowledge": {},
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "4",
       "agent": "@axum-backend",
       "task": "Create soundcloud.rs module with SoundCloud API integration",
-      "dependencies": ["1", "3"],
+      "dependencies": [
+        "1",
+        "3"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -86,8 +112,17 @@
             "artifacts": [],
             "status": "completed",
             "knowledge": {
-              "references": ["https://developers.soundcloud.com/docs/api/guide#authentication"]
-            }
+              "references": [
+                "https://developers.soundcloud.com/docs/api/guide#authentication"
+              ]
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "4.2",
@@ -96,25 +131,51 @@
             "dependencies": [],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "4.3",
             "agent": "@axum-backend",
             "task": "Implement upload_track(state, show_id): fetch show from DB, build title as 'Show Title — Artist A, Artist B', call build_soundcloud_description for description, download recording bytes via storage::download_file(state, &recording_key), download cover via storage::download_file(state, &cover_key), POST multipart form to https://api.soundcloud.com/tracks with title, description, sharing=private, asset_data (audio), artwork_data (cover). On success, UPDATE shows SET soundcloud_track_id, soundcloud_url, soundcloud_uploaded_at",
-            "dependencies": ["4.1", "4.2"],
+            "dependencies": [
+              "4.1",
+              "4.2"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "4.4",
             "agent": "@axum-backend",
             "task": "Implement set_track_privacy(state, show_id, public: bool): fetch show from DB, get soundcloud_track_id, PUT https://api.soundcloud.com/tracks/:track_id with sharing=public or sharing=private, UPDATE shows SET soundcloud_public in DB",
-            "dependencies": ["4.1"],
+            "dependencies": [
+              "4.1"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -125,13 +186,22 @@
           "Cover image fetched from R2 at shows/{show_id}/cover.png via storage::download_file",
           "Track title format: 'Show Title — Artist A, Artist B' using dash separator"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "5",
       "agent": "@axum-backend",
       "task": "Register soundcloud module in main.rs (add mod soundcloud;) and add two API routes: POST /api/shows/:id/soundcloud/upload and POST /api/shows/:id/soundcloud/privacy",
-      "dependencies": ["4"],
+      "dependencies": [
+        "4"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -142,13 +212,22 @@
         }
       ],
       "status": "completed",
-      "knowledge": {}
+      "knowledge": {},
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "6",
       "agent": "@axum-backend",
       "task": "Add API handlers in handlers/api.rs: api_upload_to_soundcloud (require_admin, fetch show, call soundcloud::upload_track, return JSON result) and api_set_soundcloud_privacy (require_admin, accept {public: bool}, call soundcloud::set_track_privacy, return JSON result). Follow api_post_show_to_instagram pattern.",
-      "dependencies": ["5"],
+      "dependencies": [
+        "5"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -159,13 +238,22 @@
         }
       ],
       "status": "completed",
-      "knowledge": {}
+      "knowledge": {},
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "7",
       "agent": "@axum-backend",
       "task": "Add auto-trigger: in api_upload_show_recording (after DB update at ~L2362) and finalize_recording_upload (after DB update at ~L422), add tokio::spawn background task that checks config.soundcloud_client_id.is_some() then calls soundcloud::upload_track. Fire-and-forget pattern, log success/failure.",
-      "dependencies": ["4"],
+      "dependencies": [
+        "4"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -189,13 +277,22 @@
           "Both upload paths (single + chunked) trigger SoundCloud upload for consistency",
           "Graceful no-op when SoundCloud not configured (config check before spawn)"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "8",
       "agent": "@axum-backend",
       "task": "Update show detail API response: add soundcloud_track_id, soundcloud_url, soundcloud_uploaded_at, soundcloud_public fields to the JSON returned by api_get_show_detail. Ensure the SELECT query includes these columns.",
-      "dependencies": ["3"],
+      "dependencies": [
+        "3"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -206,13 +303,22 @@
         }
       ],
       "status": "completed",
-      "knowledge": {}
+      "knowledge": {},
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "9",
       "agent": "@vue-frontend",
       "task": "Update frontend types and API methods for SoundCloud integration",
-      "dependencies": ["6"],
+      "dependencies": [
+        "6"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -233,26 +339,51 @@
             "dependencies": [],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "9.2",
             "agent": "@vue-frontend",
             "task": "Add showsApi.uploadToSoundCloud(showId) → POST /api/shows/:id/soundcloud/upload and showsApi.setSoundCloudPrivacy(showId, public) → POST /api/shows/:id/soundcloud/privacy to the API client",
-            "dependencies": ["9.1"],
+            "dependencies": [
+              "9.1"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
-      "knowledge": {}
+      "knowledge": {},
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "10",
       "agent": "@vue-frontend",
       "task": "Add SoundCloud UI to ShowDetailPage.vue: below the final recording AudioPlayer section, add a SoundCloud status row. If soundcloud_url exists: show clickable link + 'Uploaded ✓' timestamp + toggle button (Make Public/Make Private). If no soundcloud_url but recording_url exists: show 'Upload to SoundCloud' button. Add reactive state (uploadingToSoundCloud, togglingPrivacy) and handler functions following postToInstagram pattern.",
-      "dependencies": ["9"],
+      "dependencies": [
+        "9"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -268,13 +399,24 @@
           "Toggle button placed in recording section (below AudioPlayer), not a separate SoundCloud section",
           "Follows postToInstagram pattern: call API, flash success/error, reload show"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "11",
       "agent": "@axum-backend",
       "task": "Verify implementation: cargo build in source/backend to confirm compilation. Test manually: upload a final recording, verify SoundCloud upload triggers in logs, verify soundcloud_track_id populated in DB, verify privacy toggle works via frontend button.",
-      "dependencies": ["7", "8", "10"],
+      "dependencies": [
+        "7",
+        "8",
+        "10"
+      ],
       "artifacts": [
         {
           "type": "manual",
@@ -285,13 +427,22 @@
         }
       ],
       "status": "completed",
-      "knowledge": {}
+      "knowledge": {},
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "12",
       "agent": "@documentation",
       "task": "Document SoundCloud integration in SHARED_KNOWLEDGE.md: configuration (env vars), auto-upload flow, privacy toggle, description format (AI bio + artist socials), track title format",
-      "dependencies": ["11"],
+      "dependencies": [
+        "11"
+      ],
       "artifacts": [
         {
           "type": "documentation",
@@ -302,7 +453,18 @@
         }
       ],
       "status": "completed",
-      "knowledge": {}
+      "knowledge": {},
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     }
-  ]
+  ],
+  "execution_mode": "sequential",
+  "batch_config": null,
+  "context_sources": [],
+  "token_budget": null
 }

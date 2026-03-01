@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "2.0",
   "plan_id": "2026-02-21_15-00-00_activate-current-parameters-shows",
   "stack": "live-moafunk",
   "description": "Replace 'Save to R2' with 'Activate Current Parameters' for shows: forces preset save (overwrite or new), sets active preset, triggers server-side cover regeneration. Remove show overlay gallery.",
@@ -34,16 +34,32 @@
             "dependencies": [],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "1.2",
             "agent": "@vue-frontend",
             "task": "Add BaseModal template with two radio-style options when currentPresetId is set: 'Overwrite preset [presetName]' and 'Save as new preset' (with text input for name). Footer has 'Cancel' and 'Activate' buttons. 'Activate' disabled until choice made (and name filled if 'new' selected).",
-            "dependencies": ["1.1"],
+            "dependencies": [
+              "1.1"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -61,13 +77,30 @@
         "notes": "BaseModal supports title, size (sm/md/lg), slots for body and footer. Existing pattern uses v-model-like open/close with @close emit.",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Add 'Activate Current Parameters' modal component to OverlayEditorPage using Bas",
+        "files_created": [
+          "source/frontend/src/admin/pages/OverlayEditorPage.vue"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "2",
       "agent": "@vue-frontend",
       "task": "Implement activateCurrentParams() function that replaces the show path in saveToR2(). Handles two flows: no-preset (direct name prompt → create preset → set active) and has-preset (open modal → overwrite or create new → set active). Both flows call showsApi.setActivePreset() which triggers server-side cover regeneration.",
-      "dependencies": ["1"],
+      "dependencies": [
+        "1"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -88,25 +121,50 @@
             "dependencies": [],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "2.2",
             "agent": "@vue-frontend",
             "task": "Implement confirmActivation(): for 'overwrite' choice — call presetsApi.update(currentPresetId, { params: JSON.stringify(params.value) }) then showsApi.setActivePreset(show.id, currentPresetId). For 'new' choice — call presetsApi.create(newPresetName, JSON.stringify(params.value), 'show') then showsApi.setActivePreset(show.id, newId). Update currentPresetId and refresh preset list via OverlayControls ref.",
-            "dependencies": ["2.1"],
+            "dependencies": [
+              "2.1"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "2.3",
             "agent": "@vue-frontend",
             "task": "Add success flash message ('Parameters activated — cover is regenerating') and close modal on completion. Handle errors with flash.error().",
-            "dependencies": ["2.2"],
+            "dependencies": [
+              "2.2"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -125,7 +183,22 @@
         "notes": "Backend setActivePreset always calls do_regenerate_show_cover regardless of whether preset_id changed — this is the desired behavior.",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Implement activateCurrentParams() function that replaces the show path in saveTo",
+        "files_created": [
+          "source/frontend/src/admin/pages/OverlayEditorPage.vue"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "3",
@@ -155,13 +228,30 @@
         "notes": "OverlayEditorPage already has a template ref for OverlayControls (overlayControlsRef or similar). Need to verify ref name.",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Expose refreshPresets() method from OverlayControls via defineExpose so parent O",
+        "files_created": [
+          "source/frontend/src/admin/components/OverlayControls.vue"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "4",
       "agent": "@vue-frontend",
       "task": "Replace 'Save to R2' button with 'Activate Current Parameters' for shows in template. Two locations: action bar (L704-707) and preview footer (L733-736). Use v-if on entityType to conditionally render — shows get 'Activate Current Parameters', artists keep 'Save to R2'.",
-      "dependencies": ["2"],
+      "dependencies": [
+        "2"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -186,13 +276,22 @@
         "notes": "",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "5",
       "agent": "@vue-frontend",
       "task": "Remove show overlay gallery: conditionally hide OverlayGallery component when entityType === 'show'. Keep gallery visible for artists. Also remove the showsApi.saveOverlay() call from the show path in saveToR2() (now handled by activateCurrentParams).",
-      "dependencies": ["2"],
+      "dependencies": [
+        "2"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -214,13 +313,23 @@
         "notes": "",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "6",
       "agent": "@vue-frontend",
       "task": "Refactor saveToR2() to be artist-only. Remove the show-specific else-if branch (L436-440). The function now only handles entityType === 'artist'. Shows are handled entirely by activateCurrentParams().",
-      "dependencies": ["2", "5"],
+      "dependencies": [
+        "2",
+        "5"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -244,13 +353,27 @@
         "notes": "",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "7",
       "agent": "@vue-frontend",
       "task": "Verify: run npm run typecheck and npm test in frontend to ensure no TypeScript errors or test failures. Fix any issues found.",
-      "dependencies": ["1", "2", "3", "4", "5", "6"],
+      "dependencies": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+      ],
       "artifacts": [
         {
           "type": "test",
@@ -263,13 +386,26 @@
       "status": "completed",
       "knowledge": {
         "decisions": [],
-        "learnings": ["Pre-existing @shared/components module resolution errors in vue-tsc — not introduced by this plan"],
+        "learnings": [
+          "Pre-existing @shared/components module resolution errors in vue-tsc — not introduced by this plan"
+        ],
         "references": [],
         "blockers_encountered": [],
         "notes": "No new tests required — this is a UI flow change. Existing tests still pass. Only pre-existing @shared/components alias errors in vue-tsc.",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     }
-  ]
+  ],
+  "execution_mode": "sequential",
+  "batch_config": null,
+  "context_sources": [],
+  "token_budget": null
 }

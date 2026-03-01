@@ -20,6 +20,9 @@ scope:
     - Issue tracking and linking
   required:
     - Conventional commit format compliance
+mcp_servers:
+  - git
+  - github
 ---
 
 You are a GitLab workflow expert for the ebee-controller-meta monorepo.

@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "2.0",
   "plan_id": "2026-02-15_16-00-00_phase5-video-start-offset",
   "stack": "live-moafunk",
   "description": "Phase 5: Add start_offset_secs parameter to video generation so users can regenerate preview videos starting from a custom timecode (e.g. 1:30 into the track).",
@@ -43,13 +43,22 @@
         "notes": "Format: -ss {minutes}:{seconds} or -ss {total_seconds}",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "2",
       "agent": "@axum-backend",
       "task": "Add `start_offset_secs: u32` parameter to `generate_track_preview_video` (line 56) and `generate_inner` (private helper called by it). Thread the parameter down to compose_video. The public API signature becomes: `pub async fn generate_track_preview_video(state, artist_image_key, track_key, _peaks_key, duration_secs, start_offset_secs) -> Result<Vec<u8>>`.",
-      "dependencies": ["1"],
+      "dependencies": [
+        "1"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -71,13 +80,22 @@
         "notes": "",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "3",
       "agent": "@axum-backend",
       "task": "Update all existing call sites of `generate_track_preview_video` to pass `0` for the new `start_offset_secs` parameter. Locations: (1) video.rs line ~145 in `generate_and_store_artist_videos` and (2) instagram.rs in `post_artist_to_instagram` on-demand video generation fallback (search for `generate_track_preview_video` in instagram.rs).",
-      "dependencies": ["2"],
+      "dependencies": [
+        "2"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -105,7 +123,14 @@
         "notes": "Search all .rs files for generate_track_preview_video to find all call sites",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "4",
@@ -133,13 +158,25 @@
         "notes": "",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "5",
       "agent": "@axum-backend",
       "task": "Run `cargo check` from source/backend/ to verify Phase 5 compiles. Fix any compilation errors.",
-      "dependencies": ["1", "2", "3", "4"],
+      "dependencies": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
       "artifacts": [
         {
           "type": "test",
@@ -158,7 +195,18 @@
         "notes": "cargo check passed with 14 warnings (all pre-existing dead_code warnings)",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     }
-  ]
+  ],
+  "execution_mode": "sequential",
+  "batch_config": null,
+  "context_sources": [],
+  "token_budget": null
 }

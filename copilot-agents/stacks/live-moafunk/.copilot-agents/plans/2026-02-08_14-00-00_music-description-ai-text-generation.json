@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "2.0",
   "plan_id": "2026-02-08_14-00-00_music-description-ai-text-generation",
   "stack": "live-moafunk",
   "description": "Add 'music description' required field to artist form, store in DB, display in admin. Implement AI text generation (via OpenAI API) to create Instagram-ready bio from the music description. Store AI bio in DB and show in admin with regenerate button.",
@@ -56,13 +56,22 @@
               "notes": "Add after 'mentions' field to group with other text content",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "1.2",
             "agent": "@axum-backend",
             "task": "Add migration in db.rs using add_column_if_missing for both columns",
-            "dependencies": ["1.1"],
+            "dependencies": [
+              "1.1"
+            ],
             "artifacts": [],
             "status": "pending",
             "knowledge": {
@@ -76,7 +85,14 @@
               "notes": "",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -88,13 +104,22 @@
         "notes": "",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "2",
       "agent": "@axum-backend",
       "task": "Add music-description field to both form submission handlers (submit.rs and submit_chunked.rs)",
-      "dependencies": ["1"],
+      "dependencies": [
+        "1"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -136,7 +161,14 @@
               "notes": "",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "2.2",
@@ -157,7 +189,14 @@
               "notes": "pending_submissions table also needs music_description column added in db.rs migration",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -169,13 +208,22 @@
         "notes": "",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "3",
       "agent": "@axum-backend",
       "task": "Add music_description and ai_bio to ArtistDetailResponse, UpdateArtistDetailsRequest, and api_update_artist_details handler",
-      "dependencies": ["1"],
+      "dependencies": [
+        "1"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -204,7 +252,14 @@
               "notes": "",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "3.2",
@@ -223,7 +278,14 @@
               "notes": "",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -235,13 +297,22 @@
         "notes": "",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "4",
       "agent": "@axum-backend",
       "task": "Create AI text generation module (ai.rs) using OpenAI API via reqwest",
-      "dependencies": ["1"],
+      "dependencies": [
+        "1"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -285,13 +356,22 @@
               "notes": "",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "4.2",
             "agent": "@axum-backend",
             "task": "Create src/ai.rs with generate_artist_bio() function: sends music_description to OpenAI chat completions endpoint, returns generated Instagram bio text",
-            "dependencies": ["4.1"],
+            "dependencies": [
+              "4.1"
+            ],
             "artifacts": [],
             "status": "pending",
             "knowledge": {
@@ -307,13 +387,22 @@
               "notes": "Function signature: pub async fn generate_artist_bio(config: &Config, music_description: &str) -> Result<String>",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "4.3",
             "agent": "@axum-backend",
             "task": "Register ai module in main.rs (mod ai;)",
-            "dependencies": ["4.2"],
+            "dependencies": [
+              "4.2"
+            ],
             "artifacts": [],
             "status": "pending",
             "knowledge": {
@@ -324,7 +413,14 @@
               "notes": "",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -333,18 +429,30 @@
           "Chose OpenAI GPT-4o-mini over alternatives: (1) Claude/Anthropic - great quality but higher cost for simple short text, (2) Ollama/local - requires GPU/infra, (3) Gemini - less mature API. GPT-4o-mini is cheapest with great quality for 2-3 sentence generation."
         ],
         "learnings": [],
-        "references": ["https://platform.openai.com/docs/models/gpt-4o-mini"],
+        "references": [
+          "https://platform.openai.com/docs/models/gpt-4o-mini"
+        ],
         "blockers_encountered": [],
         "notes": "",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "5",
       "agent": "@axum-backend",
       "task": "Add API endpoint POST /api/artists/:id/generate-bio that triggers AI bio generation and stores result in DB",
-      "dependencies": ["3", "4"],
+      "dependencies": [
+        "3",
+        "4"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -373,7 +481,14 @@
         "notes": "Handler: read artist.music_description from DB → call ai::generate_artist_bio() → UPDATE artists SET ai_bio = ? WHERE id = ? → return JSON { success, ai_bio }",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "6",
@@ -422,13 +537,22 @@
               "notes": "",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "6.2",
             "agent": "@vue-frontend",
             "task": "In unheard-artists-form.ts: add music-description to FormData in init submission (NOT in optionalFields array since it's required)",
-            "dependencies": ["6.1"],
+            "dependencies": [
+              "6.1"
+            ],
             "artifacts": [],
             "status": "pending",
             "knowledge": {
@@ -445,7 +569,14 @@
               "notes": "",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -457,13 +588,23 @@
         "notes": "",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "7",
       "agent": "@vue-frontend",
       "task": "Add music_description and ai_bio fields to admin frontend: ArtistDetail interface, detail page display, edit form, and generate-bio button",
-      "dependencies": ["3", "5"],
+      "dependencies": [
+        "3",
+        "5"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -505,13 +646,22 @@
               "notes": "",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "7.2",
             "agent": "@vue-frontend",
             "task": "Add music_description to edit form (detailsForm reactive object + textarea in edit mode) in ArtistDetailPage.vue",
-            "dependencies": ["7.1"],
+            "dependencies": [
+              "7.1"
+            ],
             "artifacts": [],
             "status": "pending",
             "knowledge": {
@@ -525,13 +675,22 @@
               "notes": "Add after mentions textarea in edit form",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "7.3",
             "agent": "@vue-frontend",
             "task": "Add music_description display section and ai_bio display with 'Generate Bio' / 'Regenerate Bio' button in read-only view of ArtistDetailPage.vue",
-            "dependencies": ["7.1"],
+            "dependencies": [
+              "7.1"
+            ],
             "artifacts": [],
             "status": "pending",
             "knowledge": {
@@ -549,7 +708,14 @@
               "notes": "",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -561,13 +727,26 @@
         "notes": "",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "8",
       "agent": "@axum-backend",
       "task": "Compile and verify backend builds successfully with all changes",
-      "dependencies": ["1", "2", "3", "4", "5"],
+      "dependencies": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
       "artifacts": [
         {
           "type": "test",
@@ -586,13 +765,23 @@
         "notes": "Run cargo build in source/backend/ to verify all Rust changes compile",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "9",
       "agent": "@vue-frontend",
       "task": "Build and verify frontend compiles successfully with all changes",
-      "dependencies": ["6", "7"],
+      "dependencies": [
+        "6",
+        "7"
+      ],
       "artifacts": [
         {
           "type": "test",
@@ -611,7 +800,18 @@
         "notes": "Run npm run build in source/frontend/ to verify TypeScript and Vue compilation",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     }
-  ]
+  ],
+  "execution_mode": "sequential",
+  "batch_config": null,
+  "context_sources": [],
+  "token_budget": null
 }

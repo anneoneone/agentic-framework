@@ -21,6 +21,9 @@ scope:
   required:
     - Event loop blocking prevention
     - Proper error handling in async code
+mcp_servers:
+  - filesystem
+  - git
 ---
 
 # @async-python

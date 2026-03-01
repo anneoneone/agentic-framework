@@ -18,6 +18,8 @@ scope:
     - Service communication patterns
   required:
     - Backward compatibility
+mcp_servers:
+  - filesystem
 ---
 
 You are an integration expert for ebee service communication.

@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "2.0",
   "plan_id": "2026-02-15_16-00-00_phase4-callback-handlers",
   "stack": "live-moafunk",
   "description": "Phase 4: Implement all callback query handlers for the artist Instagram preview buttons — Publish, Edit Caption, Replace Image, Regenerate Video. These replace the TODO stubs created in Phase 1 step 6.",
@@ -43,7 +43,14 @@
         "notes": "The chat_id and message_id come from q.message in the CallbackQuery",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "2",
@@ -74,7 +81,14 @@
         "notes": "",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "3",
@@ -99,7 +113,14 @@
         "notes": "",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "4",
@@ -129,13 +150,25 @@
         "notes": "If the video message ID is None (video wasn't sent), answer with an error and don't create a session",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "5",
       "agent": "@axum-backend",
       "task": "Wire up the callback handler stubs from Phase 1 step 6. In handle_callback_query, replace the TODO stubs with actual calls to handle_aig_pub, handle_aig_cap, handle_aig_img, handle_aig_vid. Each branch should extract the callback data, parse parameters, call the handler, and handle errors gracefully (log + answer callback query with error text).",
-      "dependencies": ["1", "2", "3", "4"],
+      "dependencies": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -157,13 +190,22 @@
         "notes": "aig_sort: callbacks are wired in Phase 6",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "6",
       "agent": "@axum-backend",
       "task": "Run `cargo check` from source/backend/ to verify Phase 4 compiles. Fix any compilation errors.",
-      "dependencies": ["5"],
+      "dependencies": [
+        "5"
+      ],
       "artifacts": [
         {
           "type": "test",
@@ -182,7 +224,18 @@
         "notes": "",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     }
-  ]
+  ],
+  "execution_mode": "sequential",
+  "batch_config": null,
+  "context_sources": [],
+  "token_budget": null
 }

@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "2.0",
   "plan_id": "2026-02-08_16-00-00_artist-instagram-post-caption",
   "stack": "live-moafunk",
   "description": "Create per-artist Instagram post captions that combine show context, AI-generated show bio, AI artist bio, track listing, and social links. Add a new backend endpoint and admin UI to generate/preview/post artist-specific Instagram content from the ArtistDetailPage.",
@@ -40,7 +40,14 @@
         "notes": "The function should return just the show-context bio text. Caption assembly happens in the handler.",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "2",
@@ -84,7 +91,14 @@
               }
             ],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "2.2",
@@ -109,7 +123,14 @@
               "notes": "",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "2.3",
@@ -128,7 +149,14 @@
               }
             ],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -140,7 +168,14 @@
         "notes": "",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "3",
@@ -159,7 +194,14 @@
         }
       ],
       "status": "completed",
-      "knowledge": {}
+      "knowledge": {},
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "4",
@@ -178,7 +220,14 @@
         }
       ],
       "status": "completed",
-      "knowledge": {}
+      "knowledge": {},
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "5",
@@ -209,7 +258,14 @@
         "notes": "The caption is read-only in the UI — user generates it, then copies to clipboard for manual posting or uses the existing show-level Instagram post flow.",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "6",
@@ -228,7 +284,18 @@
         }
       ],
       "status": "completed",
-      "knowledge": {}
+      "knowledge": {},
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     }
-  ]
+  ],
+  "execution_mode": "sequential",
+  "batch_config": null,
+  "context_sources": [],
+  "token_budget": null
 }

@@ -25,7 +25,9 @@ scope:
     - Plan creation or execution
     - Code implementation
     - Architecture decisions
-mcp_servers: []
+mcp_servers:
+  - filesystem
+  - agent-registry
 token_target: 400
 ---
 

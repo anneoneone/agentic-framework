@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "2.0",
   "plan_id": "2026-02-15_16-00-00_phase2-schema-changes",
   "stack": "live-moafunk",
   "description": "Phase 2: Add sort_order column to artist_show_assignments, add telegram_preview_message_id / telegram_video1_message_id / telegram_video2_message_id / telegram_artist_preview_sent_at columns to artists table, update Artist model struct.",
@@ -39,7 +39,14 @@
         "notes": "Inserted after .execute(pool).await? for the CREATE TABLE, before the trigger",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "2",
@@ -80,7 +87,14 @@
         "notes": "",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "3",
@@ -110,7 +124,14 @@
         "notes": "Place after existing add_column_if_missing calls for the artists table",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "4",
@@ -144,7 +165,14 @@
         "notes": "Place after existing telegram_preview_sent_at or at the end before status/created_at/updated_at",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "5",
@@ -176,7 +204,18 @@
         "notes": "Common issue: sqlx queries with SELECT * may need recompilation after adding columns if using compile-time checked queries. This project uses runtime queries (query_as with string SQL) so it should be fine.",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     }
-  ]
+  ],
+  "execution_mode": "sequential",
+  "batch_config": null,
+  "context_sources": [],
+  "token_budget": null
 }

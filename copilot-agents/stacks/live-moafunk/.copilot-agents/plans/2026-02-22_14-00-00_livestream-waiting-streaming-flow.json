@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "2.0",
   "plan_id": "2026-02-22_14-00-00_livestream-waiting-streaming-flow",
   "stack": "live-moafunk",
   "description": "Implement the livestream flow (B.1–B.5) for the artist 'My Page' flow. Both upload and live branches merge into shared Waiting Room and Streaming Room pages. Live branch adds OS selection, streaming tutorial, and test stream steps. Confirm page gets pre-listen audio. New backend loopback WebSocket for stream testing.",
@@ -44,7 +44,22 @@
               }
             ],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": {
+              "summary": "Completed: Create stream_test_ws.rs with WebSocket upgrade handler. Auth via session cookie",
+              "files_created": [
+                "source/backend/src/handlers/stream_test_ws.rs"
+              ],
+              "files_modified": [],
+              "tokens_used": null,
+              "duration_seconds": null
+            },
+            "cross_stack_dependencies": []
           },
           {
             "id": "1.2",
@@ -57,7 +72,14 @@
             "status": "completed",
             "knowledge": {
               "notes": "250ms matches the capture chunk interval in useAudioCapture.ts (MediaRecorder timeslice=250ms). Buffer ~40 chunks for 10 seconds."
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "1.3",
@@ -68,7 +90,14 @@
             ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "1.4",
@@ -80,7 +109,14 @@
             ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -92,7 +128,22 @@
         "references": [
           "source/backend/src/handlers/stream_ws.rs (auth pattern, WebSocket handler pattern)"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Create stream test loopback WebSocket handler (src/handlers/stream_test_ws.rs). ",
+        "files_created": [
+          "source/backend/src/handlers/stream_test_ws.rs"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "2",
@@ -129,7 +180,22 @@
               }
             ],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": {
+              "summary": "Completed: Create useStreamTest.ts composable. Expose state ref ('idle'|'recording'|'waitin",
+              "files_created": [
+                "source/frontend/src/admin/composables/useStreamTest.ts"
+              ],
+              "files_modified": [],
+              "tokens_used": null,
+              "duration_seconds": null
+            },
+            "cross_stack_dependencies": []
           },
           {
             "id": "2.2",
@@ -140,7 +206,14 @@
             ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "2.3",
@@ -153,7 +226,14 @@
             "status": "completed",
             "knowledge": {
               "notes": "Playback decoding delegated to consumer via onPlaybackData callback. The composable provides the chunks; the UI component (FlowLive.vue B.3) will handle MediaSource or AudioContext playback."
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -162,7 +242,22 @@
           "source/frontend/src/admin/composables/useStreamSocket.ts (WebSocket pattern)",
           "source/frontend/src/admin/composables/useAudioCapture.ts (audio pipeline)"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Create useStreamTest composable for the test stream sub-step. Connects to /ws/st",
+        "files_created": [
+          "source/frontend/src/admin/composables/useStreamTest.ts"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "3",
@@ -189,7 +284,14 @@
             "dependencies": [],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "3.2",
@@ -200,7 +302,14 @@
             ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "3.3",
@@ -211,7 +320,14 @@
             ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -219,7 +335,22 @@
         "decisions": [
           "Live sub-step state stored in useHostFlow singleton so FlowLayout can optionally show sub-step progress"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Extend useHostFlow composable with new flow steps and live-specific state. Add '",
+        "files_created": [
+          "source/frontend/src/admin/composables/useHostFlow.ts"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "4",
@@ -242,7 +373,22 @@
         "references": [
           "source/frontend/src/admin/router.ts L68-L80 (existing flow routes)"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Add FlowWaiting and FlowStreaming routes in router.ts. Add child routes: { path:",
+        "files_created": [
+          "source/frontend/src/admin/router.ts"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "5",
@@ -268,7 +414,22 @@
         "references": [
           "source/frontend/src/admin/pages/flow/FlowLayout.vue L9-L14 (current static progressSteps)"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Update FlowLayout.vue progress bar to be dynamic based on uploadMode. Upload bra",
+        "files_created": [
+          "source/frontend/src/admin/pages/flow/FlowLayout.vue"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "6",
@@ -289,7 +450,22 @@
         "references": [
           "source/frontend/src/admin/pages/flow/FlowSelectMode.vue L34-L42 (disabled live card)"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Update FlowSelectMode.vue: change disabled Live <div> to a <button> with @click ",
+        "files_created": [
+          "source/frontend/src/admin/pages/flow/FlowSelectMode.vue"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "7",
@@ -319,7 +495,14 @@
             "dependencies": [],
             "artifacts": [],
             "status": "pending",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "7.2",
@@ -335,7 +518,14 @@
                 "source/frontend/src/admin/pages/StreamPage.vue L157-175 (device selection pattern)",
                 "source/frontend/src/admin/pages/StreamPage.vue L251-258 (BlackHole reference)"
               ]
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "7.3",
@@ -346,7 +536,14 @@
             ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -354,7 +551,14 @@
         "decisions": [
           "Single-page wizard over child routes: FlowLive manages liveStep internally, avoids cluttering the router"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "8",
@@ -372,7 +576,23 @@
           "auto_verified": true
         }
       ],
-      "status": "completed"
+      "status": "completed",
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Update FlowConfirm.vue: replace pre-listen placeholder with functional AudioPlay",
+        "files_created": [
+          "source/frontend/src/admin/pages/flow/FlowConfirm.vue"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "knowledge": {},
+      "cross_stack_dependencies": []
     },
     {
       "id": "9",
@@ -410,7 +630,22 @@
               }
             ],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": {
+              "summary": "Completed: Create FlowWaiting.vue skeleton: show info card (title, date, time, artists), co",
+              "files_created": [
+                "source/frontend/src/admin/pages/flow/FlowWaiting.vue"
+              ],
+              "files_modified": [],
+              "tokens_used": null,
+              "duration_seconds": null
+            },
+            "cross_stack_dependencies": []
           },
           {
             "id": "9.2",
@@ -421,7 +656,14 @@
             ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "9.3",
@@ -432,7 +674,14 @@
             ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "9.4",
@@ -447,7 +696,14 @@
               "references": [
                 "source/frontend/src/admin/pages/StreamPage.vue L25-L34 (onData→send wiring pattern)"
               ]
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -457,7 +713,22 @@
           "No back button from waiting room — artist is committed at this point",
           "Audible beep in final 10 seconds via Web Audio API oscillator"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Create FlowWaiting.vue — shared waiting room page for both upload and live branc",
+        "files_created": [
+          "source/frontend/src/admin/pages/flow/FlowWaiting.vue"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "10",
@@ -495,7 +766,22 @@
               }
             ],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": {
+              "summary": "Completed: Create FlowStreaming.vue skeleton: stream status indicator (colored dot with pul",
+              "files_created": [
+                "source/frontend/src/admin/pages/flow/FlowStreaming.vue"
+              ],
+              "files_modified": [],
+              "tokens_used": null,
+              "duration_seconds": null
+            },
+            "cross_stack_dependencies": []
           },
           {
             "id": "10.2",
@@ -506,7 +792,14 @@
             ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "10.3",
@@ -517,7 +810,14 @@
             ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "10.4",
@@ -528,7 +828,14 @@
             ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -541,7 +848,22 @@
           "source/frontend/src/admin/pages/StreamPage.vue L143-149 (status dot pattern)",
           "source/frontend/src/admin/pages/StreamPage.vue L25-34 (composable wiring)"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Create FlowStreaming.vue — shared streaming room placeholder for both branches. ",
+        "files_created": [
+          "source/frontend/src/admin/pages/flow/FlowStreaming.vue"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "11",
@@ -558,7 +880,14 @@
       ],
       "artifacts": [],
       "status": "completed",
-      "knowledge": {}
+      "knowledge": {},
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "12",
@@ -577,7 +906,18 @@
         }
       ],
       "status": "pending",
-      "knowledge": {}
+      "knowledge": {},
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     }
-  ]
+  ],
+  "execution_mode": "sequential",
+  "batch_config": null,
+  "context_sources": [],
+  "token_budget": null
 }

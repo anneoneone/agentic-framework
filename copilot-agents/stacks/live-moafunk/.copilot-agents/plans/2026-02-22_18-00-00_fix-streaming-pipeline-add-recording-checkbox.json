@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "2.0",
   "plan_id": "2026-02-22_18-00-00_fix-streaming-pipeline-add-recording-checkbox",
   "stack": "live-moafunk",
   "description": "Fix broken streaming pipeline (clients see 'off air' during active stream) by making useAudioCapture a singleton, fixing public site polling/reconnection, fixing FlowStreaming status polling bugs, and adding an optional stream recording checkbox.",
@@ -40,7 +40,14 @@
               "references": [
                 "source/frontend/src/admin/composables/useStreamSocket.ts L17-L26 (singleton pattern reference)"
               ]
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "1.2",
@@ -53,7 +60,14 @@
             "status": "completed",
             "knowledge": {
               "notes": "Critical: StreamPage.vue passes onData via constructor options. The new setOnData() method lets FlowWaiting set it later since the singleton is created before the stream socket exists."
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "1.3",
@@ -64,7 +78,14 @@
             ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -77,7 +98,22 @@
           "source/frontend/src/admin/composables/useStreamSocket.ts (singleton pattern)",
           "source/frontend/src/admin/composables/useAudioCapture.ts (current per-instance implementation)"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Refactor useAudioCapture.ts to singleton pattern (like useStreamSocket.ts). Move",
+        "files_created": [
+          "source/frontend/src/admin/composables/useAudioCapture.ts"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "2",
@@ -104,7 +140,22 @@
           "source/frontend/src/admin/pages/StreamPage.vue L25-L34 (working pattern from 07f39e4)",
           "source/frontend/src/admin/pages/flow/FlowWaiting.vue L147-L170 (broken manual MediaRecorder)"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Fix FlowWaiting.vue handleGoLive(): use singleton useAudioCapture with setOnData",
+        "files_created": [
+          "source/frontend/src/admin/pages/flow/FlowWaiting.vue"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "3",
@@ -147,7 +198,14 @@
             "status": "completed",
             "knowledge": {
               "notes": "8s interval balances responsiveness with server load. HEAD request is lightweight."
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "3.2",
@@ -160,7 +218,14 @@
               "references": [
                 "source/frontend/src/player.ts L26-L44 (current FLV player init, no reconnect logic)"
               ]
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "3.3",
@@ -169,7 +234,14 @@
             "dependencies": [],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -178,7 +250,14 @@
           "Polling over SSE/WebSocket for public site — simpler, HEAD requests are cheap, no backend changes needed",
           "Full player destroy+re-create on transitions — FLV.js has stale buffer issues when attempting to reconnect"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "4",
@@ -203,7 +282,14 @@
           "source/frontend/src/admin/api/index.ts L743-L747 (streamApi.status definition)",
           "source/frontend/src/admin/pages/flow/FlowStreaming.vue L78-L87 (broken polling code)"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "5",
@@ -220,7 +306,14 @@
         }
       ],
       "status": "completed",
-      "knowledge": {}
+      "knowledge": {},
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "6",
@@ -245,7 +338,14 @@
           "source/frontend/src/admin/api/index.ts (recording API — POST /api/recording/start)",
           "source/backend/src/stream_bridge.rs L185-L210 (start_recording method — already implemented)"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "7",
@@ -265,7 +365,14 @@
         }
       ],
       "status": "completed",
-      "knowledge": {}
+      "knowledge": {},
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "8",
@@ -277,7 +384,14 @@
       ],
       "artifacts": [],
       "status": "completed",
-      "knowledge": {}
+      "knowledge": {},
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "9",
@@ -295,7 +409,14 @@
       ],
       "artifacts": [],
       "status": "completed",
-      "knowledge": {}
+      "knowledge": {},
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "10",
@@ -306,7 +427,18 @@
       ],
       "artifacts": [],
       "status": "completed",
-      "knowledge": {}
+      "knowledge": {},
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     }
-  ]
+  ],
+  "execution_mode": "sequential",
+  "batch_config": null,
+  "context_sources": [],
+  "token_budget": null
 }

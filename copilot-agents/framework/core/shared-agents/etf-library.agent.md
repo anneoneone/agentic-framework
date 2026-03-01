@@ -21,6 +21,8 @@ scope:
   required:
     - OCPP message handling
     - Async resource cleanup
+mcp_servers:
+  - filesystem
 ---
 
 # ETF Library Specialist

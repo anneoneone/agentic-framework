@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "2.0",
   "plan_id": "2026-02-15_16-00-00_phase9-catch-all-message-handler",
   "stack": "live-moafunk",
   "description": "Phase 9: Upgrade the catch-all message handler in telegram.rs to process pending edit sessions — handle text replies for caption edits and timecodes, photo replies for image replacement. This completes the interactive edit flow started by callback handlers in Phase 4.",
@@ -42,13 +42,22 @@
         "notes": "",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "2",
       "agent": "@axum-backend",
       "task": "Handle EditSession::AwaitingCaption in the catch-all handler. When the user sends a text message while AwaitingCaption { artist_id, preview_msg_id }: (1) Extract the text from the message. (2) Update `instagram_caption` in the artists DB table: `UPDATE artists SET instagram_caption = ?, updated_at = datetime('now') WHERE id = ?`. (3) Build the updated inline keyboard via build_artist_preview_keyboard (need to load artist to check track existence). (4) Call telegram_notify::edit_message_caption_raw() to update the preview message in-place with the new caption and preserved keyboard. (5) Send a confirmation reply: '✅ Caption updated'. (6) If message has no text, send error: '❌ Please send text for the new caption'.",
-      "dependencies": ["1"],
+      "dependencies": [
+        "1"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -70,13 +79,22 @@
         "notes": "",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "3",
       "agent": "@axum-backend",
       "task": "Handle EditSession::AwaitingImage in the catch-all handler. When the user sends a photo while AwaitingImage { artist_id, preview_msg_id }: (1) Extract the photo from msg.photo() — use the largest resolution (last element in the PhotoSize array). (2) Get the file from Telegram: call bot.get_file(file_id) to get FilePath, then download via `https://api.telegram.org/file/bot{token}/{file_path}`. (3) Upload the downloaded bytes to R2 as the artist's pic_overlay_key: `artists/{id}/overlay/telegram_upload.jpg`. (4) Update DB: `UPDATE artists SET pic_overlay_key = ?, updated_at = datetime('now') WHERE id = ?`. (5) Rebuild keyboard. (6) Call telegram_notify::edit_message_media_raw() to replace the preview photo in-place. (7) Send confirmation: '✅ Image updated'. (8) If message has no photo, send error: '❌ Please send a photo'.",
-      "dependencies": ["1"],
+      "dependencies": [
+        "1"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -105,13 +123,22 @@
         "notes": "The download from Telegram and upload to R2 may take a few seconds — consider sending a '⏳ Processing image...' message first",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "4",
       "agent": "@axum-backend",
       "task": "Handle EditSession::AwaitingTimecode in the catch-all handler. When the user sends a text message while AwaitingTimecode { artist_id, track_number, preview_msg_id, video_msg_id }: (1) Extract text, parse it with parse_timecode() (from Phase 5). (2) If parse fails, re-insert the session and reply with error: '❌ Invalid timecode. Send M:SS (e.g. 1:30) or seconds (e.g. 90)'. (3) Load artist from DB to get image key and track key. (4) Send '⏳ Regenerating video from {timecode}...' reply. (5) Call video::generate_track_preview_video(state, image_key, track_key, \"\", 30, start_offset_secs). (6) Upload regenerated video to R2 at the same key (artists/{id}/track{N}_video/preview.mp4), overwriting the old one. (7) Call telegram_notify::edit_message_media_raw() to replace the video message in-place with the new video. (8) Send confirmation: '✅ Video {N} regenerated from {timecode}'.",
-      "dependencies": ["1"],
+      "dependencies": [
+        "1"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -138,13 +165,25 @@
         "notes": "Video regeneration is CPU-intensive (FFmpeg). Consider running in tokio::spawn_blocking or a dedicated thread. However, the current codebase runs FFmpeg via tokio::process::Command which is already async.",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "5",
       "agent": "@axum-backend",
       "task": "Run `cargo check` from source/backend/ to verify Phase 9 compiles. Then run `cargo test` to ensure no regressions. Fix any compilation errors.",
-      "dependencies": ["1", "2", "3", "4"],
+      "dependencies": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
       "artifacts": [
         {
           "type": "test",
@@ -159,11 +198,24 @@
         "decisions": [],
         "learnings": [],
         "references": [],
-        "blockers_encountered": ["Pre-existing test failures in recording.rs (unrelated add_marker signature change + missing tempfile dep) prevent cargo test from compiling"],
+        "blockers_encountered": [
+          "Pre-existing test failures in recording.rs (unrelated add_marker signature change + missing tempfile dep) prevent cargo test from compiling"
+        ],
         "notes": "cargo check passes cleanly with 11 warnings (all pre-existing dead_code). cargo test blocked by pre-existing recording.rs issues.",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     }
-  ]
+  ],
+  "execution_mode": "sequential",
+  "batch_config": null,
+  "context_sources": [],
+  "token_budget": null
 }

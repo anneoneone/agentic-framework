@@ -21,6 +21,8 @@ scope:
   required:
     - Secret value protection
     - Type safety in configuration
+mcp_servers:
+  - filesystem
 ---
 
 # @pydantic-config

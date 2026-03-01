@@ -19,6 +19,8 @@ scope:
     - Protocol compliance guidance
   required:
     - Specification adherence
+mcp_servers:
+  - filesystem
 ---
 
 You are an OCPP 2.0 (Open Charge Point Protocol) domain expert.

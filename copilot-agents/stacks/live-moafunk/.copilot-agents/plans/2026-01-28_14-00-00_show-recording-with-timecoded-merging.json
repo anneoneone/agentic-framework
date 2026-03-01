@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "2.0",
   "plan_id": "2026-01-28_14-00-00_show-recording-with-timecoded-merging",
   "stack": "live-moafunk",
   "description": "Implement show recording with timecoded track triggers, WebSocket finalize progress, and post-show merging of pre-recorded tracks",
@@ -34,38 +34,80 @@
             "dependencies": [],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "1.2",
             "agent": "@axum-backend",
             "task": "Create RecordingSession struct with show_id, started_at, markers Vec, temp_file_path",
-            "dependencies": ["1.1"],
+            "dependencies": [
+              "1.1"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "1.3",
             "agent": "@axum-backend",
             "task": "Create RecordingManager as Arc<Mutex<Option<RecordingSession>>> with start/stop/add_marker methods",
-            "dependencies": ["1.2"],
+            "dependencies": [
+              "1.2"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
       "knowledge": {
         "patterns": "RecordingManager follows SharedStreamState pattern from stream_bridge.rs",
         "types": "SharedRecordingManager = Arc<Mutex<RecordingManager>>"
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Create RecordingSession struct and RecordingManager in new recording.rs module",
+        "files_created": [
+          "source/backend/src/recording.rs"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "2",
       "agent": "@axum-backend",
       "task": "Add recording REST endpoints: start, stop, marker",
-      "dependencies": ["1"],
+      "dependencies": [
+        "1"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -93,25 +135,50 @@
             "dependencies": [],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "2.2",
             "agent": "@axum-backend",
             "task": "Add POST /api/recording/marker endpoint accepting { artist_id, track_type, track_key, duration_ms }",
-            "dependencies": ["2.1"],
+            "dependencies": [
+              "2.1"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "2.3",
             "agent": "@axum-backend",
             "task": "Add POST /api/recording/stop endpoint to save raw WebM + markers.json to R2",
-            "dependencies": ["2.2"],
+            "dependencies": [
+              "2.2"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -123,13 +190,30 @@
           "POST /api/recording/stop"
         ],
         "uploads_to": "recordings/{show_id}/{version}/raw.webm and markers.json"
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Add recording REST endpoints: start, stop, marker",
+        "files_created": [
+          "source/backend/src/handlers/recording.rs"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "3",
       "agent": "@axum-backend",
       "task": "Extend StreamManager to tee WebM chunks to temp file during recording",
-      "dependencies": ["1"],
+      "dependencies": [
+        "1"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -150,25 +234,50 @@
             "dependencies": [],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "3.2",
             "agent": "@axum-backend",
             "task": "Modify chunk handling to write to recording_file when Some, alongside FFmpeg pipe",
-            "dependencies": ["3.1"],
+            "dependencies": [
+              "3.1"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "3.3",
             "agent": "@axum-backend",
             "task": "Add methods to start/stop file recording, coordinated with RecordingManager",
-            "dependencies": ["3.2"],
+            "dependencies": [
+              "3.2"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -176,7 +285,22 @@
         "fields_added": "recording_file: Option<File>, recording_path: Option<PathBuf>",
         "methods_added": "start_recording(path), stop_recording(), is_recording()",
         "integration": "Handlers pass SharedStreamState to start/stop recording alongside RecordingManager"
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Extend StreamManager to tee WebM chunks to temp file during recording",
+        "files_created": [
+          "source/backend/src/stream_bridge.rs"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "4",
@@ -197,13 +321,30 @@
         "endpoint": "GET /api/shows/:id/with-artists",
         "response_types": "ShowWithArtistsResponse, RecordingArtistInfo",
         "fields": "show: id, title, date, description, status | artist: id, name, pronouns, voice_url, track1_url, track1_name, track2_url, track2_name"
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Add GET /api/shows/:id/with-artists endpoint returning show with assigned artist",
+        "files_created": [
+          "source/backend/src/handlers/api.rs"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "5",
       "agent": "@vue-frontend",
       "task": "Create RecordingPage.vue with show selector and artist track grid",
-      "dependencies": ["4"],
+      "dependencies": [
+        "4"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -231,43 +372,86 @@
             "dependencies": [],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "5.2",
             "agent": "@vue-frontend",
             "task": "Add stream status panel reusing useStreamSocket state display",
-            "dependencies": ["5.1"],
+            "dependencies": [
+              "5.1"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "5.3",
             "agent": "@vue-frontend",
             "task": "Add volume meter component reusing useAudioMeter composable",
-            "dependencies": ["5.1"],
+            "dependencies": [
+              "5.1"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "5.4",
             "agent": "@vue-frontend",
             "task": "Add recording control buttons: Start, Stop, Finalize with loading states",
-            "dependencies": ["5.1"],
+            "dependencies": [
+              "5.1"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "5.5",
             "agent": "@vue-frontend",
             "task": "Add artist track grid: 4 columns × 3 rows of play buttons per artist",
-            "dependencies": ["5.1"],
+            "dependencies": [
+              "5.1"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -275,7 +459,22 @@
         "api_added": "recordingApi with getShowWithArtists, start, stop, status, addMarker",
         "features": "show selector, stream controls with device selection, audio level meter, recording timer, artist track grid with voice/track1/track2 buttons and progress bars",
         "reuses": "useStreamSocket, useAudioCapture, useAudioMeter composables from StreamPage"
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Create RecordingPage.vue with show selector and artist track grid",
+        "files_created": [
+          "source/frontend/src/admin/pages/RecordingPage.vue"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "6",
@@ -302,34 +501,68 @@
             "dependencies": [],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "6.2",
             "agent": "@vue-frontend",
             "task": "Implement loadArtistsForShow() calling GET /api/shows/:id/with-artists",
-            "dependencies": ["6.1"],
+            "dependencies": [
+              "6.1"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "6.3",
             "agent": "@vue-frontend",
             "task": "Implement playTrack(artist, trackType) with HTMLAudioElement and marker POST",
-            "dependencies": ["6.1"],
+            "dependencies": [
+              "6.1"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "6.4",
             "agent": "@vue-frontend",
             "task": "Add trackStates Map for tracking playing/progress state per track",
-            "dependencies": ["6.3"],
+            "dependencies": [
+              "6.3"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -339,7 +572,22 @@
         "actions": "loadShows, loadShowDetails, startRecording, stopRecording, checkRecordingStatus, toggleTrack, stopAllTracks",
         "helpers": "getTrackKey, getTrackUrl, getTrackName, getTrackState, isAnyTrackPlaying",
         "callbacks": "onError, onRecordingStarted, onRecordingStopped, onTrackStarted, onTrackEnded"
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Create useRecordingSession.ts composable for recording state and track playback",
+        "files_created": [
+          "source/frontend/src/admin/composables/useRecordingSession.ts"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "7",
@@ -363,13 +611,32 @@
         ],
         "returns": "Duration in milliseconds (u64)",
         "ffprobe_args": "-v quiet -show_entries format=duration -of csv=p=0"
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Add get_duration() function using ffprobe in audio.rs",
+        "files_created": [
+          "source/backend/src/audio.rs"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "8",
       "agent": "@axum-backend",
       "task": "Implement finalize WebSocket endpoint with FFmpeg merge and progress reporting",
-      "dependencies": ["2", "3", "7"],
+      "dependencies": [
+        "2",
+        "3",
+        "7"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -390,34 +657,68 @@
             "dependencies": [],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "8.2",
             "agent": "@axum-backend",
             "task": "Implement download phase: fetch raw.webm and all track files from R2, send progress",
-            "dependencies": ["8.1"],
+            "dependencies": [
+              "8.1"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "8.3",
             "agent": "@axum-backend",
             "task": "Implement merge phase: build FFmpeg filter graph with adelay for each track at offset",
-            "dependencies": ["8.2"],
+            "dependencies": [
+              "8.2"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "8.4",
             "agent": "@axum-backend",
             "task": "Implement upload phase: upload final.mp3 to R2, send completion message",
-            "dependencies": ["8.3"],
+            "dependencies": [
+              "8.3"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -436,13 +737,30 @@
         ],
         "ffmpeg_pattern": "filter_complex with adelay=offset_ms|offset_ms per track, amix for mixing",
         "temp_dir": "./data/finalize-temp/{show_id}_{version}/"
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Implement finalize WebSocket endpoint with FFmpeg merge and progress reporting",
+        "files_created": [
+          "source/backend/src/handlers/recording.rs"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "9",
       "agent": "@axum-backend",
       "task": "Add checkpoint recovery for finalize process",
-      "dependencies": ["8"],
+      "dependencies": [
+        "8"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -463,34 +781,68 @@
             "dependencies": [],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "9.2",
             "agent": "@axum-backend",
             "task": "Save checkpoint.json to R2 after each phase completion",
-            "dependencies": ["9.1"],
+            "dependencies": [
+              "9.1"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "9.3",
             "agent": "@axum-backend",
             "task": "On finalize start, check for checkpoint and resume from last completed phase",
-            "dependencies": ["9.2"],
+            "dependencies": [
+              "9.2"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "9.4",
             "agent": "@axum-backend",
             "task": "Delete checkpoint.json on successful finalize completion",
-            "dependencies": ["9.3"],
+            "dependencies": [
+              "9.3"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -506,13 +858,30 @@
         ],
         "checkpoint_key": "recordings/{show_id}/{version}/checkpoint.json",
         "skip_logic": "Skips raw download if raw_downloaded && file exists; skips tracks in downloaded_tracks map; skips merge if merge_complete && final.mp3 exists"
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Add checkpoint recovery for finalize process",
+        "files_created": [
+          "source/backend/src/handlers/recording.rs"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "10",
       "agent": "@vue-frontend",
       "task": "Create useFinalizeProgress.ts composable for WebSocket progress tracking",
-      "dependencies": ["8"],
+      "dependencies": [
+        "8"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -533,34 +902,68 @@
             "dependencies": [],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "10.2",
             "agent": "@vue-frontend",
             "task": "Add progress ref with phase, percent, detail fields",
-            "dependencies": ["10.1"],
+            "dependencies": [
+              "10.1"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "10.3",
             "agent": "@vue-frontend",
             "task": "Add status ref: idle, running, complete, error with event callbacks",
-            "dependencies": ["10.2"],
+            "dependencies": [
+              "10.2"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "10.4",
             "agent": "@vue-frontend",
             "task": "Implement auto-reconnect on disconnect during active finalize",
-            "dependencies": ["10.3"],
+            "dependencies": [
+              "10.3"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -571,13 +974,31 @@
         "actions": "startFinalize(showId, version), cancel(), reset()",
         "callbacks": "onStarted, onComplete, onError, onProgress, onDisconnected",
         "reconnect": "Exponential backoff with maxReconnectAttempts (default 3)"
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Create useFinalizeProgress.ts composable for WebSocket progress tracking",
+        "files_created": [
+          "source/frontend/src/admin/composables/useFinalizeProgress.ts"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "11",
       "agent": "@vue-frontend",
       "task": "Add finalize progress panel to RecordingPage.vue",
-      "dependencies": ["5", "10"],
+      "dependencies": [
+        "5",
+        "10"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -599,7 +1020,22 @@
         ],
         "integration": "useFinalizeProgress composable wired to UI with startFinalize, cancel, reset actions",
         "version_tracking": "lastRecordingVersion captured from onRecordingStopped callback"
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Add finalize progress panel to RecordingPage.vue",
+        "files_created": [
+          "source/frontend/src/admin/pages/RecordingPage.vue"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "12",
@@ -633,25 +1069,50 @@
             "dependencies": [],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "12.2",
             "agent": "@axum-backend",
             "task": "Add RecordingVersion struct to models.rs",
-            "dependencies": ["12.1"],
+            "dependencies": [
+              "12.1"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "12.3",
             "agent": "@axum-backend",
             "task": "Add CRUD queries in db.rs for recording versions",
-            "dependencies": ["12.2"],
+            "dependencies": [
+              "12.2"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -677,13 +1138,31 @@
           "update_recording_version_duration(pool, id, duration_ms)",
           "delete_recording_version(pool, id)"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Add recording_versions table and queries for version tracking",
+        "files_created": [
+          "source/backend/src/db.rs",
+          "source/backend/src/models.rs"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "13",
       "agent": "@vue-frontend",
       "task": "Add /recording route and nav item under Radio category",
-      "dependencies": ["5"],
+      "dependencies": [
+        "5"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -706,14 +1185,37 @@
           "path": "/recording",
           "name": "recording",
           "component": "RecordingPage",
-          "roles": ["admin", "superadmin"]
+          "roles": [
+            "admin",
+            "superadmin"
+          ]
         },
         "nav_item": {
           "label": "Recording",
           "category": "Radio",
           "position": "after Stream"
         }
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Add /recording route and nav item under Radio category",
+        "files_created": [
+          "source/frontend/src/admin/router.ts",
+          "source/frontend/src/shared/components/NavBar.vue"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     }
-  ]
+  ],
+  "execution_mode": "sequential",
+  "batch_config": null,
+  "context_sources": [],
+  "token_budget": null
 }

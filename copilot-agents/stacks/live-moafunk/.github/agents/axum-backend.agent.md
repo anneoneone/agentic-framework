@@ -21,6 +21,9 @@ scope:
   required:
     - Error handling and recovery
     - Database operation safety
+mcp_servers:
+  - filesystem
+  - git
 ---
 
 # @axum-backend

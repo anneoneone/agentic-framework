@@ -21,6 +21,8 @@ scope:
   required:
     - Hardware abstraction testing
     - Fixture cleanup and isolation
+mcp_servers:
+  - filesystem
 ---
 
 # @pytest-async

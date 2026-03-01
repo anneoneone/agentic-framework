@@ -21,6 +21,9 @@ scope:
   required:
     - TypeScript strict mode compliance
     - Component lifecycle management
+mcp_servers:
+  - filesystem
+  - git
 ---
 
 # @vue-frontend

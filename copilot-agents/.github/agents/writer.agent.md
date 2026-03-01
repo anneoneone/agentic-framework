@@ -7,6 +7,9 @@ keywords:
   - agent-generation
   - workspace-configuration
   - scaffolding
+mcp_servers:
+  - filesystem
+  - agent-registry
 ---
 
 You are an expert technical writer who creates complete stack directories and agent definition files.

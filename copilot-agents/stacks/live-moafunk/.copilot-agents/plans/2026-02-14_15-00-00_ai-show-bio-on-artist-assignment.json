@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "2.0",
   "plan_id": "2026-02-14_15-00-00_ai-show-bio-on-artist-assignment",
   "stack": "live-moafunk",
   "description": "Generate AI Show Bio from assigned artists' bios whenever artists are assigned/unassigned to/from a show",
@@ -40,7 +40,23 @@
           "source/backend/src/db.rs#L106-L117 (existing migration pattern)",
           "source/backend/src/models.rs#L51-L63 (Show struct)"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Add ai_bio column to shows table: add migration in db.rs using add_column_if_mis",
+        "files_created": [
+          "source/backend/src/db.rs",
+          "source/backend/src/models.rs"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "2",
@@ -73,7 +89,14 @@
               "references": [
                 "source/backend/src/ai.rs#L130-L157 (generate_artist_bio pattern)"
               ]
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "2.2",
@@ -89,7 +112,14 @@
                 "source/backend/src/ai.rs#L213-L241 (generate_and_store_artist_bio pattern)",
                 "source/backend/src/db.rs#L129-L137 (artist_show_assignments table)"
               ]
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -99,7 +129,22 @@
           "Clear ai_bio to NULL when zero artists are assigned",
           "Artists without ai_bio are skipped (only non-NULL bios used in prompt)"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Add generate_show_bio() and generate_and_store_show_bio() functions in ai.rs. ge",
+        "files_created": [
+          "source/backend/src/ai.rs"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "3",
@@ -129,7 +174,22 @@
           "source/backend/src/handlers/api.rs#L1791-L1889 (api_show_assign_artist)",
           "source/backend/src/handlers/api.rs#L1894-L1911 (api_show_unassign_artist)"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Hook generate_and_store_show_bio() into all 4 assign/unassign API handlers. Spaw",
+        "files_created": [
+          "source/backend/src/handlers/api.rs"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "4",
@@ -152,7 +212,22 @@
         "references": [
           "source/backend/src/handlers/api.rs#L1176 (ShowDetailResponse)"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Add ai_bio field to ShowDetailResponse and wire it into the show detail query at",
+        "files_created": [
+          "source/backend/src/handlers/api.rs"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "5",
@@ -193,7 +268,14 @@
               "references": [
                 "source/frontend/src/admin/api/index.ts#L317"
               ]
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "5.2",
@@ -209,7 +291,14 @@
                 "source/frontend/src/admin/pages/ShowDetailPage.vue#L168 (assignArtist pattern)",
                 "source/frontend/src/admin/pages/ShowDetailPage.vue#L220 (unassignArtist pattern)"
               ]
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "5.3",
@@ -224,7 +313,14 @@
               "decisions": [
                 "Reuse existing cover refresh polling pattern (setTimeout + refetch)"
               ]
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -233,7 +329,27 @@
           "AI show bio is display-only (not editable) — separate from manual description field",
           "Refresh via delayed polling after assign/unassign (same pattern as cover image)"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Display AI Show Bio in ShowDetailPage.vue and refresh it after artist assign/una",
+        "files_created": [
+          "source/frontend/src/admin/pages/ShowDetailPage.vue",
+          "source/frontend/src/admin/api/index.ts"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     }
-  ]
+  ],
+  "execution_mode": "sequential",
+  "batch_config": null,
+  "context_sources": [],
+  "token_budget": null
 }

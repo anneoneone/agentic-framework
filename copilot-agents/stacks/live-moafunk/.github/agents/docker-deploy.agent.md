@@ -21,6 +21,9 @@ scope:
   required:
     - Container security and best practices
     - Git workflow integration
+mcp_servers:
+  - filesystem
+  - git
 ---
 
 # @docker-deploy

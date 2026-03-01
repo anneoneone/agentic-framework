@@ -19,6 +19,8 @@ scope:
     - Documentation structure and organization
   required:
     - Reference actual documentation files
+mcp_servers:
+  - filesystem
 ---
 
 You are a documentation expert for the ebee monorepo.

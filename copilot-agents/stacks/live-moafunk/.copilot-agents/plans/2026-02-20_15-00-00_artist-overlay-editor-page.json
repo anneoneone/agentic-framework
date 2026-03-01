@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "2.0",
   "plan_id": "2026-02-20_15-00-00_artist-overlay-editor-page",
   "stack": "live-moafunk",
   "description": "Add admin subpage 'Overlay Editor' to regenerate artist images with configurable overlay (UN/HEARD/logo/name), image filters, presets, R2 gallery, and explicit active-overlay selection",
@@ -43,27 +43,52 @@
             "status": "completed",
             "knowledge": {
               "notes": "Codebase currently has no list operation. Uses aws_sdk_s3::Client already initialized in AppState"
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "1.2",
             "agent": "@axum-backend",
             "task": "Add GET /api/artists/:id/overlays endpoint in api.rs. Calls list_objects with prefix artists/{id}/pic_overlay/, returns JSON array of { key, url (presigned 1h), last_modified }",
-            "dependencies": ["1.1"],
+            "dependencies": [
+              "1.1"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "1.3",
             "agent": "@axum-backend",
             "task": "Add POST /api/artists/:id/overlays endpoint in api.rs. Accepts multipart form with single 'image' blob (JPEG). Uploads to R2 as artists/{id}/pic_overlay/{timestamp}-{uuid}.jpg. Does NOT update pic_overlay_key in DB. Returns { key, url }",
-            "dependencies": ["1.1"],
+            "dependencies": [
+              "1.1"
+            ],
             "artifacts": [],
             "status": "completed",
             "knowledge": {
               "notes": "Older images must not be replaced. Each save creates a new file with timestamp prefix for chronological ordering"
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "1.4",
@@ -74,7 +99,14 @@
             "status": "completed",
             "knowledge": {
               "notes": "This is the explicit 'Set as active' action. Only this endpoint changes the publicly visible overlay"
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -88,7 +120,14 @@
           "source/backend/src/storage.rs — existing upload_file, get_presigned_url patterns",
           "source/backend/src/handlers/api.rs L878-992 — existing api_update_artist_picture handler as reference"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "2",
@@ -110,7 +149,14 @@
         "references": [
           "source/backend/src/handlers/api.rs L356-360 — current pic_key priority chain"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "3",
@@ -137,25 +183,50 @@
             "dependencies": [],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "3.2",
             "agent": "@axum-backend",
             "task": "Add OverlayPreset struct in models.rs with id, name, params (serde_json::Value), created_at, updated_at. Add DB query functions: list_presets, create_preset, update_preset, delete_preset in db.rs",
-            "dependencies": ["3.1"],
+            "dependencies": [
+              "3.1"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "3.3",
             "agent": "@axum-backend",
             "task": "Add REST endpoints: GET /api/overlay-presets (list), POST /api/overlay-presets (create {name, params}), PUT /api/overlay-presets/:id (update {name, params}), DELETE /api/overlay-presets/:id (delete). All require admin role",
-            "dependencies": ["3.2"],
+            "dependencies": [
+              "3.2"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -164,13 +235,24 @@
           "Server-side presets (not localStorage) so all admins share the same presets",
           "params stored as JSON text blob — flexible schema for overlay settings without rigid columns"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "4",
       "agent": "@axum-backend",
       "task": "Register all new routes in main.rs under authenticated admin router group",
-      "dependencies": ["1", "2", "3"],
+      "dependencies": [
+        "1",
+        "2",
+        "3"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -183,13 +265,22 @@
       "status": "completed",
       "knowledge": {
         "notes": "Add routes: GET/POST /api/artists/:id/overlays, PUT /api/artists/:id/overlays/active, GET/POST /api/overlay-presets, PUT/DELETE /api/overlay-presets/:id. Follow existing route registration pattern in main.rs L280-500"
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "5",
       "agent": "@axum-backend",
       "task": "Verify backend compiles: cargo build and cargo clippy",
-      "dependencies": ["4"],
+      "dependencies": [
+        "4"
+      ],
       "artifacts": [
         {
           "type": "test",
@@ -200,7 +291,14 @@
         }
       ],
       "status": "completed",
-      "knowledge": {}
+      "knowledge": {},
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "6",
@@ -227,7 +325,14 @@
             "dependencies": [],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "6.2",
@@ -236,7 +341,14 @@
             "dependencies": [],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "6.3",
@@ -245,7 +357,14 @@
             "dependencies": [],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -254,7 +373,14 @@
           "source/frontend/src/admin/api/index.ts L133-216 — existing artistsApi pattern",
           "source/frontend/src/admin/api/index.ts L193-211 — existing updatePicture multipart pattern"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "7",
@@ -281,13 +407,22 @@
             "dependencies": [],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "7.2",
             "agent": "@vue-frontend",
             "task": "Add configurable drawOverlayOnCanvas(canvas, params: OverlayParams) function. Instead of reading DOM element positions, compute positions from params.un.x/y/size, params.heard.x/y/size, params.logo.x/y/size, params.artistName.x/y/size. Apply filter from params.filter. Render text/logo onto canvas at the specified positions",
-            "dependencies": ["7.1"],
+            "dependencies": [
+              "7.1"
+            ],
             "artifacts": [],
             "status": "completed",
             "knowledge": {
@@ -295,16 +430,32 @@
                 "source/frontend/src/admin/components/ImageCropper.vue L142-231 — existing drawOverlayOnCanvas function",
                 "source/frontend/src/admin/components/ImageCropper.vue L237-253 — filter application"
               ]
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "7.3",
             "agent": "@vue-frontend",
             "task": "Add renderPreview(cropperInstance, params: OverlayParams, artistName: string) function that: gets 1024x1024 canvas from CropperJS, applies CSS filter from params, draws overlay via drawOverlayOnCanvas, returns { croppedBlob, brandedBlob } as JPEG 0.92 quality",
-            "dependencies": ["7.2"],
+            "dependencies": [
+              "7.2"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "7.4",
@@ -313,7 +464,14 @@
             "dependencies": [],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -322,13 +480,22 @@
           "Composable computes positions from numeric params instead of reading DOM getBoundingClientRect — enables parameter-driven rendering",
           "Default params match the current hardcoded overlay layout from ImageCropper.vue for backward compatibility"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "8",
       "agent": "@vue-frontend",
       "task": "Refactor existing ImageCropper.vue to use the new useOverlayRenderer composable",
-      "dependencies": ["7"],
+      "dependencies": [
+        "7"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -341,13 +508,22 @@
       "status": "completed",
       "knowledge": {
         "notes": "Replace inline drawOverlayOnCanvas, font loading, and moafunkLogoPromise in ImageCropper.vue with imports from useOverlayRenderer. Use getDefaultOverlayParams() for the fixed overlay layout. Ensure existing behavior is preserved — no visual change to the existing artist form"
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "9",
       "agent": "@vue-frontend",
       "task": "Create OverlayControls.vue component — parameter console for overlay elements and image filters",
-      "dependencies": ["6"],
+      "dependencies": [
+        "6"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -368,34 +544,68 @@
             "dependencies": [],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "9.2",
             "agent": "@vue-frontend",
             "task": "Per-element controls: visibility toggle (checkbox), X position slider (0-100%), Y position slider (0-100%), size slider (8-80px for text, 5-40% for logo), color picker input (for text elements), font weight dropdown (400/600/700), font style dropdown (normal/italic). All two-way bound to OverlayParams via v-model",
-            "dependencies": ["9.1"],
+            "dependencies": [
+              "9.1"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "9.3",
             "agent": "@vue-frontend",
             "task": "Image filter section: sliders for brightness (0-2, step 0.01), contrast (0-2, step 0.01), saturate (0-2, step 0.01), hue-rotate (0-360, step 1), grayscale (0-1, step 0.01). Each with numeric input + slider. Reset button per filter to default value",
-            "dependencies": ["9.1"],
+            "dependencies": [
+              "9.1"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "9.4",
             "agent": "@vue-frontend",
             "task": "Preset management section at top: dropdown to select from saved presets (fetched via presetsApi.list), 'Load' button to apply selected preset params to modelValue, 'Save as new' button (prompts for name, calls presetsApi.create), 'Update current' button (calls presetsApi.update), 'Delete' button with confirm (calls presetsApi.delete)",
-            "dependencies": ["9.1"],
+            "dependencies": [
+              "9.1"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -404,13 +614,22 @@
           "Individual controls per element (not grouped bottom-bar layout) for maximum flexibility",
           "Presets store full OverlayParams JSON — loading a preset restores all positions, sizes, colors, and filter values"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "10",
       "agent": "@vue-frontend",
       "task": "Create OverlayGallery.vue component — grid of previously saved overlay images",
-      "dependencies": ["6"],
+      "dependencies": [
+        "6"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -423,13 +642,25 @@
       "status": "completed",
       "knowledge": {
         "notes": "Props: artistId: number, activeKey: string | null. Emits: set-active(key). Fetches overlay list via artistsApi.listOverlays(artistId) on mount and when artistId changes. Displays thumbnail grid. Each item shows: image (presigned URL), created date, 'Preview' button (opens full-size modal/new tab), 'Set as active' button (emits set-active with key), visual highlight if key matches activeKey. Auto-refreshes after parent saves a new overlay"
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "11",
       "agent": "@vue-frontend",
       "task": "Create OverlayEditorPage.vue — main admin page assembling all components",
-      "dependencies": ["7", "8", "9", "10"],
+      "dependencies": [
+        "7",
+        "8",
+        "9",
+        "10"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -450,56 +681,108 @@
             "dependencies": [],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "11.2",
             "agent": "@vue-frontend",
             "task": "Add CropperJS integration: square aspect ratio (1:1), viewMode 1, dragMode 'move', background false. Load original artist image. Apply CSS filter from OverlayParams to the cropper preview img elements (same pattern as ImageCropper.vue L791-793). Render live DOM overlay on top of the crop area matching current OverlayParams (position/size/color/visibility)",
-            "dependencies": ["11.1"],
+            "dependencies": [
+              "11.1"
+            ],
             "artifacts": [],
             "status": "completed",
             "knowledge": {
               "references": [
                 "source/frontend/src/admin/components/ImageCropper.vue — CropperJS setup pattern, overlay DOM attachment to .cropper-view-box"
               ]
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "11.3",
             "agent": "@vue-frontend",
             "task": "Add OverlayControls component in right panel, two-way bound to reactive OverlayParams ref. Initialize with getDefaultOverlayParams(). Changes update the live DOM overlay and CSS filter in real-time",
-            "dependencies": ["11.2"],
+            "dependencies": [
+              "11.2"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "11.4",
             "agent": "@vue-frontend",
             "task": "Add 'Preview' button: calls useOverlayRenderer.renderPreview() with current cropper + params, opens result in a modal showing the full 1024x1024 rendered image",
-            "dependencies": ["11.3"],
+            "dependencies": [
+              "11.3"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "11.5",
             "agent": "@vue-frontend",
             "task": "Add 'Save to R2' button: calls renderPreview() to get brandedBlob, then artistsApi.saveOverlay(artistId, brandedBlob). Show success flash. Trigger OverlayGallery refresh. Original image in R2 is never modified",
-            "dependencies": ["11.4"],
+            "dependencies": [
+              "11.4"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "11.6",
             "agent": "@vue-frontend",
             "task": "Add OverlayGallery component in bottom section. On 'set-active' event, call artistsApi.setActiveOverlay(artistId, key), show success flash, refresh gallery to update active indicator",
-            "dependencies": ["11.5"],
+            "dependencies": [
+              "11.5"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
@@ -509,13 +792,22 @@
           "Gallery in bottom section below the editor",
           "Original image always loaded from file_urls.pic_original — never from overlay or cropped variant"
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "12",
       "agent": "@vue-frontend",
       "task": "Add route and navigation for Overlay Editor page",
-      "dependencies": ["11"],
+      "dependencies": [
+        "11"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -543,7 +835,14 @@
             "dependencies": [],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "12.2",
@@ -552,7 +851,14 @@
             "dependencies": [],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "12.3",
@@ -565,17 +871,34 @@
               "references": [
                 "source/frontend/src/admin/pages/ArtistDetailPage.vue — add near the existing image section"
               ]
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
       },
-      "knowledge": {}
+      "knowledge": {},
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "13",
       "agent": "@vue-frontend",
       "task": "Verify frontend builds and existing tests pass: npx vitest run",
-      "dependencies": ["8", "12"],
+      "dependencies": [
+        "8",
+        "12"
+      ],
       "artifacts": [
         {
           "type": "test",
@@ -588,7 +911,18 @@
       "status": "completed",
       "knowledge": {
         "notes": "Ensure ImageCropper refactor (step 8) does not break existing tests. Verify build succeeds with all new components"
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     }
-  ]
+  ],
+  "execution_mode": "sequential",
+  "batch_config": null,
+  "context_sources": [],
+  "token_budget": null
 }

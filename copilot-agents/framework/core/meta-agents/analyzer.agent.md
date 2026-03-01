@@ -18,6 +18,9 @@ scope:
     - Stack capability assessment
   required:
     - Evidence-based recommendations
+mcp_servers:
+  - filesystem
+  - agent-registry
 ---
 
 You are an expert systems analyst who identifies what custom GitHub Copilot agents a stack needs.

@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1",
+  "schema_version": "2.0",
   "plan_id": "2026-02-10_18-00-00_telegram-bot-backend-control",
   "stack": "live-moafunk",
   "description": "Add a teloxide-based Telegram bot to the Axum backend for admin control (commands via group + DM) and push notifications (artist uploads, stream events). Bot shares Arc<AppState>, runs as a tokio::spawn alongside the HTTP server.",
@@ -47,13 +47,30 @@
         "notes": "Existing deps: reqwest 0.12, tokio 1 (full), serde, serde_json, sqlx 0.8, chrono, tracing — all compatible with teloxide",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Add teloxide dependency to Cargo.toml",
+        "files_created": [
+          "source/backend/Cargo.toml"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "2",
       "agent": "@axum-backend",
       "task": "Extend Config struct with Telegram env vars (telegram_bot_token, telegram_admin_chat_id, telegram_instagram_account)",
-      "dependencies": ["1"],
+      "dependencies": [
+        "1"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -79,13 +96,30 @@
         "notes": "Config struct is in source/backend/src/config.rs. Uses #[derive(Deserialize)] with envy. All new fields must be Option<T> with #[serde(default)].",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Extend Config struct with Telegram env vars (telegram_bot_token, telegram_admin_",
+        "files_created": [
+          "source/backend/src/config.rs"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "3",
       "agent": "@axum-backend",
       "task": "Add Option<teloxide::Bot> field to AppState and initialize it from config in main.rs",
-      "dependencies": ["2"],
+      "dependencies": [
+        "2"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -113,13 +147,30 @@
         "notes": "",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Add Option<teloxide::Bot> field to AppState and initialize it from config in mai",
+        "files_created": [
+          "source/backend/src/main.rs"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "4",
       "agent": "@axum-backend",
       "task": "Create src/telegram_notify.rs — fire-and-forget notification helpers",
-      "dependencies": ["3"],
+      "dependencies": [
+        "3"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -167,34 +218,76 @@
               "notes": "",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "4.2",
             "agent": "@axum-backend",
             "task": "Implement notify_artist_submission(state, artist_id, artist_name) — formatted message: '🎤 New artist submitted: {name} (ID: {id})'",
-            "dependencies": ["4.1"],
+            "dependencies": [
+              "4.1"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "4.3",
             "agent": "@axum-backend",
             "task": "Implement notify_stream_start(state, username) — '📡 Stream started by {username}' and notify_stream_stop(state, username) — '📡 Stream ended ({username})'",
-            "dependencies": ["4.1"],
+            "dependencies": [
+              "4.1"
+            ],
             "artifacts": [],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Create src/telegram_notify.rs — fire-and-forget notification helpers",
+        "files_created": [
+          "source/backend/src/telegram_notify.rs"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "5",
       "agent": "@axum-backend",
       "task": "Inject notification calls at key backend event points",
-      "dependencies": ["4"],
+      "dependencies": [
+        "4"
+      ],
       "artifacts": [],
       "status": "completed",
       "verified_at": "2026-02-11T10:25:00Z",
@@ -242,7 +335,14 @@
               "notes": "",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "5.2",
@@ -269,7 +369,22 @@
               "notes": "",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": {
+              "summary": "Completed: Inject notify_artist_submission in handlers/submit_chunked.rs submit_finalize fu",
+              "files_created": [
+                "source/backend/src/handlers/submit_chunked.rs"
+              ],
+              "files_modified": [],
+              "tokens_used": null,
+              "duration_seconds": null
+            },
+            "cross_stack_dependencies": []
           },
           {
             "id": "5.3",
@@ -298,7 +413,22 @@
               "notes": "",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": {
+              "summary": "Completed: Inject notify_stream_start in handlers/stream_ws.rs after 'Stream started' log (",
+              "files_created": [
+                "source/backend/src/handlers/stream_ws.rs"
+              ],
+              "files_modified": [],
+              "tokens_used": null,
+              "duration_seconds": null
+            },
+            "cross_stack_dependencies": []
           },
           {
             "id": "5.4",
@@ -315,16 +445,40 @@
               }
             ],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": {
+              "summary": "Completed: Inject notify_stream_stop in handlers/stream_ws.rs after 'Stream ended' log (~li",
+              "files_created": [
+                "source/backend/src/handlers/stream_ws.rs"
+              ],
+              "files_modified": [],
+              "tokens_used": null,
+              "duration_seconds": null
+            },
+            "cross_stack_dependencies": []
           }
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "6",
       "agent": "@axum-backend",
       "task": "Refactor shared logic out of API handlers into reusable service functions",
-      "dependencies": ["1"],
+      "dependencies": [
+        "1"
+      ],
       "artifacts": [],
       "status": "completed",
       "verified_at": "2026-02-11T10:35:00Z",
@@ -365,7 +519,22 @@
               }
             ],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": {
+              "summary": "Completed: Extract AI bio generation logic from api.rs ~line 646 into ai::generate_and_stor",
+              "files_created": [
+                "source/backend/src/ai.rs"
+              ],
+              "files_modified": [],
+              "tokens_used": null,
+              "duration_seconds": null
+            },
+            "cross_stack_dependencies": []
           },
           {
             "id": "6.2",
@@ -382,7 +551,22 @@
               }
             ],
             "status": "completed",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": {
+              "summary": "Completed: Extract Instagram caption assembly logic from api.rs ~line 686 into ai::generate",
+              "files_created": [
+                "source/backend/src/ai.rs"
+              ],
+              "files_modified": [],
+              "tokens_used": null,
+              "duration_seconds": null
+            },
+            "cross_stack_dependencies": []
           },
           {
             "id": "6.3",
@@ -402,16 +586,33 @@
               "notes": "",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     },
     {
       "id": "7",
       "agent": "@axum-backend",
       "task": "Create src/telegram.rs — bot setup, command enum, dispatcher, and auth guard",
-      "dependencies": ["3", "6"],
+      "dependencies": [
+        "3",
+        "6"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -472,34 +673,76 @@
               "notes": "",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "7.2",
             "agent": "@axum-backend",
             "task": "Implement auth guard middleware: check msg.chat.id == config.telegram_admin_chat_id. Reject with 'Unauthorized' reply if mismatch.",
-            "dependencies": ["7.1"],
+            "dependencies": [
+              "7.1"
+            ],
             "artifacts": [],
             "status": "pending",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "7.3",
             "agent": "@axum-backend",
             "task": "Implement pub async fn run(state: Arc<AppState>) — create Bot from token, build dptree dispatcher with command handler + auth filter, start long-polling. No-op if token is None.",
-            "dependencies": ["7.2"],
+            "dependencies": [
+              "7.2"
+            ],
             "artifacts": [],
             "status": "pending",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Create src/telegram.rs — bot setup, command enum, dispatcher, and auth guard",
+        "files_created": [
+          "source/backend/src/telegram.rs"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "8",
       "agent": "@axum-backend",
       "task": "Implement all Telegram command handler functions",
-      "dependencies": ["7"],
+      "dependencies": [
+        "7"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -545,7 +788,14 @@
               "notes": "",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "8.2",
@@ -565,7 +815,14 @@
               "notes": "",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "8.3",
@@ -574,7 +831,14 @@
             "dependencies": [],
             "artifacts": [],
             "status": "pending",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "8.4",
@@ -583,7 +847,14 @@
             "dependencies": [],
             "artifacts": [],
             "status": "pending",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "8.5",
@@ -593,14 +864,23 @@
             "artifacts": [],
             "status": "pending",
             "knowledge": {
-              "decisions": ["Depends on step 6.1 and 6.2 extracted functions"],
+              "decisions": [
+                "Depends on step 6.1 and 6.2 extracted functions"
+              ],
               "learnings": [],
               "references": [],
               "blockers_encountered": [],
               "notes": "",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "8.6",
@@ -609,7 +889,14 @@
             "dependencies": [],
             "artifacts": [],
             "status": "pending",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "8.7",
@@ -629,7 +916,14 @@
               "notes": "",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "8.8",
@@ -650,7 +944,14 @@
               "notes": "",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "8.9",
@@ -670,7 +971,14 @@
               "notes": "",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "8.10",
@@ -679,7 +987,14 @@
             "dependencies": [],
             "artifacts": [],
             "status": "pending",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "8.11",
@@ -700,7 +1015,14 @@
               "notes": "",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "8.12",
@@ -709,7 +1031,14 @@
             "dependencies": [],
             "artifacts": [],
             "status": "pending",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "8.13",
@@ -728,16 +1057,41 @@
               "notes": "",
               "agent_interactions": [],
               "ignored_knowledge": []
-            }
+            },
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Implement all Telegram command handler functions",
+        "files_created": [
+          "source/backend/src/telegram.rs"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "9",
       "agent": "@axum-backend",
       "task": "Register telegram and telegram_notify modules in main.rs and spawn bot alongside HTTP server",
-      "dependencies": ["7", "4"],
+      "dependencies": [
+        "7",
+        "4"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -765,13 +1119,30 @@
         "notes": "",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Register telegram and telegram_notify modules in main.rs and spawn bot alongside",
+        "files_created": [
+          "source/backend/src/main.rs"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "10",
       "agent": "@documentation",
       "task": "Update README.md and environment documentation with new Telegram env vars",
-      "dependencies": ["9"],
+      "dependencies": [
+        "9"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -800,13 +1171,31 @@
         "notes": "",
         "agent_interactions": [],
         "ignored_knowledge": []
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": {
+        "summary": "Completed: Update README.md and environment documentation with new Telegram env vars",
+        "files_created": [
+          "source/backend/README.md"
+        ],
+        "files_modified": [],
+        "tokens_used": null,
+        "duration_seconds": null
+      },
+      "cross_stack_dependencies": []
     },
     {
       "id": "11",
       "agent": "@axum-backend",
       "task": "Verify end-to-end: compile check, test bot startup, test commands, test notifications",
-      "dependencies": ["9", "10"],
+      "dependencies": [
+        "9",
+        "10"
+      ],
       "artifacts": [
         {
           "type": "manual",
@@ -836,46 +1225,100 @@
             "dependencies": [],
             "artifacts": [],
             "status": "pending",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "11.2",
             "agent": "@axum-backend",
             "task": "Start backend without TELEGRAM_BOT_TOKEN — verify server starts normally, no bot, no errors (graceful degradation)",
-            "dependencies": ["11.1"],
+            "dependencies": [
+              "11.1"
+            ],
             "artifacts": [],
             "status": "pending",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "11.3",
             "agent": "@axum-backend",
             "task": "Start backend with TELEGRAM_BOT_TOKEN + TELEGRAM_ADMIN_CHAT_ID — verify 'Telegram bot started' log. Send /help, /artists, /shows, /stats, /stream_status — verify responses.",
-            "dependencies": ["11.2"],
+            "dependencies": [
+              "11.2"
+            ],
             "artifacts": [],
             "status": "pending",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "11.4",
             "agent": "@axum-backend",
             "task": "Test full Instagram workflow via Telegram: /generate_bio <id> → /preview_instagram <id> → /edit_caption <id> ... → /post_instagram <id>. Verify each step returns expected output.",
-            "dependencies": ["11.3"],
+            "dependencies": [
+              "11.3"
+            ],
             "artifacts": [],
             "status": "pending",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           },
           {
             "id": "11.5",
             "agent": "@axum-backend",
             "task": "Test notifications: submit an artist via public form → verify '🎤 New artist submitted' arrives in Telegram. Start/stop stream → verify '📡' messages arrive.",
-            "dependencies": ["11.3"],
+            "dependencies": [
+              "11.3"
+            ],
             "artifacts": [],
             "status": "pending",
-            "knowledge": {}
+            "knowledge": {},
+            "parallel_group": null,
+            "priority": "normal",
+            "estimated_tokens": null,
+            "context_needed": [],
+            "mcp_tools": [],
+            "output": null,
+            "cross_stack_dependencies": []
           }
         ]
-      }
+      },
+      "parallel_group": null,
+      "priority": "normal",
+      "estimated_tokens": null,
+      "context_needed": [],
+      "mcp_tools": [],
+      "output": null,
+      "cross_stack_dependencies": []
     }
-  ]
+  ],
+  "execution_mode": "sequential",
+  "batch_config": null,
+  "context_sources": [],
+  "token_budget": null
 }

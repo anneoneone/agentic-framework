@@ -21,6 +21,8 @@ scope:
   required:
     - Hardware safety (voltage protection)
     - Mock implementations for testing
+mcp_servers:
+  - filesystem
 ---
 
 # @raspi-hardware

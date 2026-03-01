@@ -21,6 +21,8 @@ scope:
   required:
     - File stream safety
     - Error handling for storage operations
+mcp_servers:
+  - filesystem
 ---
 
 # @s3-storage
