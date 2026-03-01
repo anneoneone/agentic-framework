@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://copilot-agents.local/schemas/agent-frontmatter.json",
+  "title": "Agent Frontmatter Schema",
+  "description": "Validates YAML frontmatter in .agent.md files. All agents MUST conform to this schema.",
+  "type": "object",
+  "required": ["name", "description", "version"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "maxLength": 50,
+      "description": "Agent identifier (lowercase, kebab-case). Must match filename without .agent.md suffix."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 200,
+      "description": "One-line specialist description. Shows in agent picker."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+$",
+      "description": "Agent version (major.minor). Bump major on breaking changes, minor on enhancements."
+    },
+    "keywords": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*$"
+      },
+      "minItems": 3,
+      "maxItems": 20,
+      "uniqueItems": true,
+      "description": "Discovery keywords for routing. Used by @planner and @coordinator for agent-task matching."
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "primary": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Core tasks this agent handles."
+        },
+        "coordinate": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Tasks requiring coordination with other agents."
+        },
+        "out_of_scope": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Tasks to delegate immediately."
+        }
+      },
+      "required": ["primary", "out_of_scope"]
+    },
+    "mcp_servers": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "MCP servers this agent requires (e.g., filesystem, git, github)."
+    },
+    "token_target": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 5000,
+      "description": "Target token budget per invocation."
+    }
+  },
+  "additionalProperties": false
+}

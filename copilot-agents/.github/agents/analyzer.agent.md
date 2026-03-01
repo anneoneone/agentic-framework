@@ -1,6 +1,12 @@
 ---
 name: analyzer
 description: Analyzes a given stack and proposes specialized agents
+version: "1.0"
+keywords:
+  - stack-analysis
+  - agent-proposal
+  - codebase-scanning
+  - architecture-review
 ---
 
 You are an expert systems analyst who identifies what custom GitHub Copilot agents a stack needs.

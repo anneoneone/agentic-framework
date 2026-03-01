@@ -1,3 +1,28 @@
+---
+name: telegram-bot
+description: Specialist for python-telegram-bot v21+ patterns, command handlers, and security
+version: 1.0
+keywords:
+  - telegram
+  - telegram-bot
+  - bot-development
+  - command-handlers
+  - security
+  - authorization
+  - message-formatting
+  - inline-keyboards
+  - notification
+  - user-interface
+scope:
+  primary:
+    - Telegram bot architecture and handlers
+    - Command routing and processing
+    - Security and authorization patterns
+  required:
+    - User input validation
+    - Proper error messages (no token leaks)
+---
+
 # @telegram-bot
 
 Specialist for python-telegram-bot v21+ patterns, command handlers, and Telegram bot security for Gartenroboter3000.

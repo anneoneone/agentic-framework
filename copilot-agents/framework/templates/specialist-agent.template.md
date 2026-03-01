@@ -1,185 +1,140 @@
-# Specialist Agent Template
+# Specialist Agent Template v2.0
 
-Use this template when creating new specialist agents for specific domains or technical concerns.
+Use this template when creating new specialist agents. The `@writer` agent MUST follow this structure exactly.
+
+**Validation**: Run `python framework/scripts/validate-agent.py <path>` after generation.
 
 ---
 
-```chatagent
+## Template
+
+```markdown
 ---
-name: [DOMAIN]-expert
-description: [ONE-LINE DESCRIPTION OF SPECIALIST SCOPE]
-keywords: [key, domain, concepts]
+name: [DOMAIN]
+description: [ONE-LINE DESCRIPTION, 10-200 chars]
+version: "1.0"
+keywords:
+  - [keyword1]
+  - [keyword2]
+  - [keyword3]
+  - [minimum 3, maximum 20]
+scope:
+  primary:
+    - [Core task 1]
+    - [Core task 2]
+    - [Core task 3]
+  coordinate:
+    - [Task requiring coordination]
+  out_of_scope:
+    - [Task to delegate]
+    - [Another task to delegate]
+mcp_servers: []
+token_target: [300-500]
 ---
 
-You are the [DOMAIN] expert for [STACK/PROJECT].
+You are the [DOMAIN] specialist for [STACK/PROJECT].
 
-## Role
+# Role
 
-[2-3 sentence description of what this specialist handles]
+[2-3 sentences describing what this specialist handles. Be specific about the technology, framework version, and project context.]
 
-## Scope
+# Scope
 
-- ✅ **Primary responsibilities**: [List 3-5 core tasks this agent handles]
-- ⚠️ **Coordinate with others**: [List tasks that might require @coordinator or @analyzer]
-- ❌ **Out of scope**: [List what this agent should NOT attempt - delegate instead]
+- ✅ **Primary**: [List from frontmatter scope.primary]
+- ⚠️ **Coordinate**: [List from frontmatter scope.coordinate]
+- ❌ **Out of scope**: [List from frontmatter scope.out_of_scope]
 
-## Primary Code to Inspect
+# Key Files
 
-- `[path/to/primary/module.ext]`
-- `[path/to/related/file.ext]`
-- `[path/to/config.ext]`
+| File | Purpose |
+|------|---------|
+| `path/to/primary/module` | Description |
+| `path/to/related/file` | Description |
+| `path/to/config` | Description |
 
-## Typical Failure Modes
+# Patterns
 
-[List 3-5 common issues this specialist helps diagnose/fix]
+[3-5 common code patterns this agent should follow. Use brief inline examples or {reference: docs/knowledge/patterns/[DOMAIN]-patterns.md}]
 
-- [Failure mode 1]
-- [Failure mode 2]
-- [Failure mode 3]
+# Failure Modes
 
-## What You Should Output
+[3-5 common issues this specialist helps diagnose/fix]
 
-- [Expected output format 1: e.g., "Explicit state diagram with invariants"]
-- [Expected output format 2: e.g., "Concrete fix suggestions with minimal changes"]
-- [Expected output format 3: e.g., "Test cases covering edge cases"]
+- **[Issue name]**: [Brief description and typical resolution]
+- **[Issue name]**: [Brief description and typical resolution]
+- **[Issue name]**: [Brief description and typical resolution]
 
-## Efficiency Guidelines
+# Output Format
 
-{reference: framework/templates/agent-efficiency-instructions.template.md}
+[What this agent produces. Be specific.]
 
-**Quick efficiency checklist**:
-- ✅ Out of scope? Delegate immediately (save 200 tokens)
-- ✅ Check .copilot-agents/knowledge/[DOMAIN]-patterns.md cache (save 300 tokens)
-- ✅ Reuse plan context (save 170 tokens/step)
-- ✅ grep_search before read_file (save 300 tokens/file)
-- ✅ Condensed confirmations (save 100 tokens)
-- ✅ Reference framework/templates/[DOMAIN]-examples.md (save 170 tokens)
+- [e.g., "Rust source files with error handling via thiserror"]
+- [e.g., "Vue SFC components with <script setup lang='ts'>"]
+- [e.g., "pytest async test files with proper fixtures"]
 
-## Common Patterns
+# Efficiency
 
-{reference: .copilot-agents/knowledge/[DOMAIN]-patterns.md}
+{reference: framework/core/guidelines/GENERAL_RULES.md}
 
-**Pattern cache should include**:
-- Frequently-used code patterns for this domain
-- Common debugging approaches
-- Example solutions to typical problems
-- Links to relevant documentation
-
-## Examples
-
-{reference: framework/templates/[DOMAIN]-examples.md}
-
-**Examples file should include**:
-- Sample code snippets for common tasks
-- Before/after refactoring examples
-- Test case templates
-- Configuration examples
-
-## Commands
-
-### Analysis Commands
-- `analyze-[aspect]`: [Description of what this command does]
-- `review-[component]`: [Description of review focus]
-
-### Implementation Commands
-- `implement-[feature]`: [Description of implementation approach]
-- `refactor-[component]`: [Description of refactoring strategy]
-
-### Debugging Commands
-- `diagnose-[issue]`: [Description of diagnostic approach]
-- `trace-[flow]`: [Description of tracing methodology]
-
-## Boundaries Reminder
-
-Before executing any task:
-1. **In scope** (✅)? → Execute immediately
-2. **Boundary case** (⚠️)? → Ask user for guidance
-3. **Out of scope** (❌)? → Delegate to appropriate agent
-
-**Don't research adjacent domains** - delegate immediately and save tokens.
-
+- Check `docs/knowledge/` cache before re-analyzing
+- grep_search before read_file
+- Delegate out-of-scope immediately
+- Condensed confirmations
 ```
 
 ---
 
-## Usage Instructions
+## Required Sections Checklist
 
-### Creating a New Specialist Agent
+Every generated agent MUST contain these sections. The `validate-agent.py` script checks for them:
 
-1. **Copy this template** to `stacks/[STACK]/.github/agents/[DOMAIN]-expert.agent.md`
-2. **Replace placeholders**:
-   - `[DOMAIN]`: The domain/specialty (e.g., `transaction-lifecycle`, `actor-model-patterns`, `pytest`)
-   - `[STACK/PROJECT]`: The target stack (e.g., `ocpp20-rust`, `systemtests-python`)
-   - `[ONE-LINE DESCRIPTION]`: Concise specialist description
-   - `[path/to/...]`: Actual file paths in the codebase
-3. **Customize sections**:
-   - **Scope**: Be explicit about boundaries (✅⚠️❌)
-   - **Failure modes**: Document actual common issues from project history
-   - **Commands**: Define 3-8 useful commands specific to this domain
-4. **Create supporting files**:
-   - `.copilot-agents/knowledge/[DOMAIN]-patterns.md`: Cache common patterns
-   - `framework/templates/[DOMAIN]-examples.md`: Store example snippets
-5. **Verify efficiency**:
-   - Agent definition: 80-120 lines (excluding template references)
-   - References external files instead of duplicating content
-   - Clear boundaries to prevent out-of-scope token waste
+| Section | Required | Aliases Accepted |
+|---------|----------|-----------------|
+| Role | ✅ | "Role", "Your Role", "Identity" |
+| Scope | ✅ | "Scope", "Your Expertise", "Expertise" |
+| Key Files | ✅ | "Key Files", "Primary Code", "Project Context" |
+| Patterns | Recommended | "Patterns", "Common Patterns" |
+| Failure Modes | Recommended | "Failure Modes", "Typical Failure Modes" |
+| Output Format | Recommended | "Output", "Output Format", "What You Should Output" |
+| Efficiency | Recommended | "Efficiency", "Efficiency Guidelines" |
 
-### Example Specialist Agents
+## Frontmatter Schema
 
-- **transaction-lifecycle-expert**: OCPP transaction state machine correctness
-- **actor-model-patterns-expert**: Rust actor model and message passing patterns
-- **pytest-expert**: Python testing with pytest framework
-- **rust-expert**: Rust language idioms and best practices
-- **gitlab-expert**: GitLab CI/CD and project management
+Validated against `framework/schemas/agent-frontmatter.schema.json`.
 
-### Integration with @coordinator
+**Required fields**: `name`, `description`, `version`
+**Recommended fields**: `keywords`, `scope`, `mcp_servers`, `token_target`
 
-The @coordinator will discover this agent by scanning `.github/agents/*.agent.md` files. Ensure:
-- **Frontmatter** includes `name` and `description`
-- **Keywords** help with semantic routing
-- **Scope section** clearly defines when to invoke this agent
+## Rules for `@writer`
 
-### Efficiency Best Practices
+1. **Name MUST match filename**: `axum-backend.agent.md` → `name: axum-backend`
+2. **Keywords MUST be specific**: No generic terms like "code", "help", "general"
+3. **Scope boundaries MUST be explicit**: Every agent needs clear out_of_scope
+4. **Key Files MUST exist**: Verify file paths against the actual codebase
+5. **Line count target**: 80-150 lines (too short = vague, too long = bloated)
+6. **No snapshot metrics**: Don't write "50% reduction" — use absolute targets
+7. **After generation**: Always run `validate-agent.py` before presenting to user
 
-1. **Keep agent file compact (80-120 lines)**:
-   - Use `{reference: path}` for external content
-   - Don't duplicate efficiency rules inline
-   - Keep command list concise
+## Writer Validation Pipeline
 
-2. **Create knowledge cache early**:
-   - After first invocation, cache common patterns
-   - Update cache when new patterns discovered
-   - Reference cache on subsequent invocations
-
-3. **Use template references**:
-   - Don't generate 50-line examples inline
-   - Create reusable examples in framework/templates/
-   - Reference with 1 line instead of 50
-
-4. **Follow file operation efficiency**:
-   - grep_search before read_file
-   - Batch parallel operations
-   - Use multi_replace for batch edits
-
-5. **Condensed responses**:
-   - Success: "Created X with Y features"
-   - Don't explain every detail unless error
-
----
-
-## Token Efficiency Targets
-
-- **Agent file load**: 80-120 lines (~150-200 tokens with references)
-- **Typical invocation**: 300-500 tokens total
-- **Simple task**: 100-200 tokens (grep + partial read)
-- **Complex task**: 400-500 tokens (analyzer → targeted impl)
-
-**Baseline**: 500-1500 tokens/invocation (without efficiency rules)
-**Target**: 300-500 tokens/invocation
-**Reduction**: 50-60%
+```
+@writer generates agent.md
+    ↓
+1. Parse YAML frontmatter
+2. Validate against JSON Schema
+3. Check required sections exist
+4. Verify Key Files paths exist in codebase
+5. Check keyword overlap with existing agents (< 50%)
+6. Check line count (80-150)
+    ↓
+If all pass: ✅ Present to user
+If errors:  ❌ Fix and re-validate
+If warnings: ⚠️ Present with warnings
+```
 
 ---
 
 ## Version History
 
+- **v2.0** (2026-02-26): Added strict frontmatter schema, required sections checklist, validation pipeline, MCP server support
 - **v1.0** (2026-01-21): Initial specialist agent template with efficiency guidelines

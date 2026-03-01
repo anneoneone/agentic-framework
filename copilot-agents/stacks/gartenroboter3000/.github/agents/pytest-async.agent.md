@@ -1,3 +1,28 @@
+---
+name: pytest-async
+description: Expert in pytest-asyncio testing patterns, mock fixtures, and IoT test strategies
+version: 1.0
+keywords:
+  - pytest
+  - pytest-asyncio
+  - testing
+  - async-testing
+  - fixtures
+  - mocking
+  - test-organization
+  - hardware-mocking
+  - integration-testing
+  - coverage
+scope:
+  primary:
+    - Pytest-asyncio fixture design
+    - Async mock implementation
+    - Test organization and markers
+  required:
+    - Hardware abstraction testing
+    - Fixture cleanup and isolation
+---
+
 # @pytest-async
 
 Expert in pytest-asyncio testing patterns, mock fixtures, and IoT test strategies for Gartenroboter3000.

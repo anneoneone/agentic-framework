@@ -26,7 +26,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "Use a separate AI prompt (INSTAGRAM_POST_PROMPT) distinct from the existing SYSTEM_PROMPT which generates short artist bios. The new prompt generates a longer show-context paragraph.",
@@ -46,7 +46,9 @@
       "id": "2",
       "agent": "@axum-backend",
       "task": "Add new API endpoint POST /api/artists/:id/generate-instagram-caption in api.rs. This handler: (1) fetches the artist from DB (name, pronouns, music_description, ai_bio, track1_name, track2_name, instagram, soundcloud), (2) fetches the artist's assigned show(s) via artist_show_assignments to get show.title, (3) calls ai::generate_artist_instagram_caption() for the show-context bio, (4) assembles the full caption using the template format, (5) stores the result in a new instagram_caption field on the artist, (6) returns the caption as JSON.",
-      "dependencies": ["1"],
+      "dependencies": [
+        "1"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -56,7 +58,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "sub_plan": {
         "description": "Break the endpoint implementation into data model + handler + routing",
         "steps": [
@@ -81,16 +83,18 @@
                 "auto_verified": false
               }
             ],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           },
           {
             "id": "2.2",
             "agent": "@axum-backend",
             "task": "Implement api_generate_instagram_caption handler in api.rs. The handler fetches artist + assigned show, calls AI for show-context bio, then assembles the full caption string using this template:\n\n\"UNHEARD Guest: {artist_name}\\n\\n{ai_show_bio}\\n\\n{ai_bio}\\n\\nTrack 1: \\\"{track1_name}\\\"\\nTrack 2: \\\"{track2_name}\\\"\\n\\nSoundcloud link in Bio.\\n\\n@{instagram_handle}\"\n\nStores result in artists.instagram_caption, returns JSON with caption text.",
-            "dependencies": ["2.1"],
+            "dependencies": [
+              "2.1"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {
               "decisions": [
                 "The show is determined by fetching the most recent show assigned to this artist via artist_show_assignments ORDER BY s.date DESC LIMIT 1",
@@ -111,7 +115,9 @@
             "id": "2.3",
             "agent": "@axum-backend",
             "task": "Register the route POST /api/artists/:id/generate-instagram-caption in main.rs and add instagram_caption to ArtistDetailResponse in api.rs",
-            "dependencies": ["2.2"],
+            "dependencies": [
+              "2.2"
+            ],
             "artifacts": [
               {
                 "type": "file",
@@ -121,7 +127,7 @@
                 "auto_verified": false
               }
             ],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           }
         ]
@@ -140,7 +146,9 @@
       "id": "3",
       "agent": "@axum-backend",
       "task": "Verify backend compiles with cargo check. Fix any compilation errors.",
-      "dependencies": ["2"],
+      "dependencies": [
+        "2"
+      ],
       "artifacts": [
         {
           "type": "test",
@@ -150,14 +158,16 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {}
     },
     {
       "id": "4",
       "agent": "@vue-frontend",
       "task": "Add instagram_caption field to ArtistDetail interface in admin/api/index.ts. Add generateInstagramCaption API method that calls POST /api/artists/:id/generate-instagram-caption.",
-      "dependencies": ["3"],
+      "dependencies": [
+        "3"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -167,14 +177,16 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {}
     },
     {
       "id": "5",
       "agent": "@vue-frontend",
       "task": "Add Instagram Caption section to ArtistDetailPage.vue (view mode). Show the stored instagram_caption in a styled card (similar to the existing ai_bio card). Add a 'Generate Instagram Caption' button (or 'Regenerate' if one exists). Display the caption in a pre-formatted block so line breaks are visible. Add a 'Copy to Clipboard' button next to the caption for easy pasting into Instagram.",
-      "dependencies": ["4"],
+      "dependencies": [
+        "4"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -184,7 +196,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "Instagram caption section goes in the view mode (not edit mode) since it's auto-generated, similar to the existing AI bio section",
@@ -203,7 +215,9 @@
       "id": "6",
       "agent": "@vue-frontend",
       "task": "Verify frontend builds with npm run build / tsc --noEmit. Fix any TypeScript errors.",
-      "dependencies": ["5"],
+      "dependencies": [
+        "5"
+      ],
       "artifacts": [
         {
           "type": "test",
@@ -213,7 +227,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {}
     }
   ]

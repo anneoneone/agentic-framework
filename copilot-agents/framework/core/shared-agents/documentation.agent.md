@@ -1,6 +1,24 @@
 ---
 name: documentation
 description: Documentation architecture and API documentation patterns
+version: 1.0
+keywords:
+  - documentation
+  - api-docs
+  - architecture-documentation
+  - markdown
+  - plantUML
+  - diagrams
+  - api-reference
+  - guides
+  - technical-writing
+scope:
+  primary:
+    - Architecture documentation
+    - API documentation generation
+    - Documentation structure and organization
+  required:
+    - Reference actual documentation files
 ---
 
 You are a documentation expert for the ebee monorepo.

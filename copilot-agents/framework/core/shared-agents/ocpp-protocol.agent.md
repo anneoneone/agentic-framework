@@ -1,6 +1,24 @@
 ---
 name: ocpp-protocol
 description: OCPP 2.0 protocol knowledge - messages, states, transactions
+version: 1.0
+keywords:
+  - ocpp
+  - ocpp2.0
+  - protocol
+  - ev-charging
+  - state-machines
+  - transaction-lifecycle
+  - message-definitions
+  - compliance
+  - charging-standards
+scope:
+  primary:
+    - OCPP 2.0 message definitions
+    - Transaction state machines
+    - Protocol compliance guidance
+  required:
+    - Specification adherence
 ---
 
 You are an OCPP 2.0 (Open Charge Point Protocol) domain expert.

@@ -7,7 +7,9 @@
   "updated_at": "2026-02-22T22:30:00Z",
   "overall_status": "completed",
   "active_context": "main",
-  "related_plans": ["live-moafunk:2026-02-22_14-00-00_livestream-waiting-streaming-flow"],
+  "related_plans": [
+    "live-moafunk:2026-02-22_14-00-00_livestream-waiting-streaming-flow"
+  ],
   "steps": [
     {
       "id": "1",
@@ -23,7 +25,7 @@
           "auto_verified": true
         }
       ],
-      "status": "done",
+      "status": "completed",
       "sub_plan": {
         "description": "Convert useAudioCapture from per-instance to singleton composable",
         "steps": [
@@ -33,7 +35,7 @@
             "task": "Move all refs (devices, selectedDeviceId, isCapturing, isRecording, error, inputVolume, mediaStream, processedStream) and private vars (mediaRecorder, audioContext, gainNode, sourceNode, destinationNode) to module-level scope, outside the useAudioCapture() function. Keep function as the public API surface.",
             "dependencies": [],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {
               "references": [
                 "source/frontend/src/admin/composables/useStreamSocket.ts L17-L26 (singleton pattern reference)"
@@ -44,9 +46,11 @@
             "id": "1.2",
             "agent": "@streaming-media",
             "task": "Remove the onUnmounted(() => stopCapture()) hook. Add a setOnData(callback) method that updates the onData callback at runtime. This allows FlowWaiting to wire onData → streamSocket.send() without re-creating the composable.",
-            "dependencies": ["1.1"],
+            "dependencies": [
+              "1.1"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {
               "notes": "Critical: StreamPage.vue passes onData via constructor options. The new setOnData() method lets FlowWaiting set it later since the singleton is created before the stream socket exists."
             }
@@ -55,9 +59,11 @@
             "id": "1.3",
             "agent": "@vue-frontend",
             "task": "Update all consumers of useAudioCapture: FlowLive.vue (remove reliance on onUnmounted cleanup), FlowWaiting.vue (use singleton instance, wire data via setOnData), FlowStreaming.vue (use singleton for meter/volume), StreamPage.vue (verify still works with setOnData in constructor).",
-            "dependencies": ["1.2"],
+            "dependencies": [
+              "1.2"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           }
         ]
@@ -77,7 +83,9 @@
       "id": "2",
       "agent": "@vue-frontend",
       "task": "Fix FlowWaiting.vue handleGoLive(): use singleton useAudioCapture with setOnData(data => streamSocket.send(data)), then call audioCapture.startRecording() after socket connects. Remove manual MediaRecorder creation. This restores the StreamPage.vue pattern from commit 07f39e4.",
-      "dependencies": ["1"],
+      "dependencies": [
+        "1"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -87,7 +95,7 @@
           "auto_verified": true
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "Restore onData→send wiring pattern from StreamPage.vue L25-L34 instead of manual MediaRecorder creation"
@@ -126,7 +134,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "sub_plan": {
         "description": "Public site stream detection polling and player reconnection",
         "steps": [
@@ -136,7 +144,7 @@
             "task": "Update main.ts: replace single checkStreamStatus() call with setInterval polling every 8 seconds. Track previous state to detect live→offline and offline→live transitions. On transition to live: call updateLiveStatus(true) and restartPlayer(). On transition to offline: call updateLiveStatus(false) and destroyPlayer().",
             "dependencies": [],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {
               "notes": "8s interval balances responsiveness with server load. HEAD request is lightweight."
             }
@@ -147,7 +155,7 @@
             "task": "Update player.ts: export destroyPlayer() and restartPlayer() functions. destroyPlayer() cleans up existing FLV player or HLS audio. restartPlayer() creates a fresh player instance. FLV player must be fully destroyed and re-created on each offline→live transition to avoid stale state.",
             "dependencies": [],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {
               "references": [
                 "source/frontend/src/player.ts L26-L44 (current FLV player init, no reconnect logic)"
@@ -160,7 +168,7 @@
             "task": "Fix CSP in index.html: broaden connect-src to include 'https://stream.moafunk.de' (wildcard for HLS .ts segment fetches and .m3u8) instead of just the exact .m3u8 and .flv URLs.",
             "dependencies": [],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           }
         ]
@@ -186,7 +194,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "Use streamApi.status() from api/index.ts rather than raw fetch — already correctly targets /api/stream/status and returns typed response"
@@ -211,14 +219,17 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {}
     },
     {
       "id": "6",
       "agent": "@vue-frontend",
       "task": "Add 'Record this show' checkbox to FlowWaiting.vue. Bind to flow.recordStream. When handleGoLive() fires and recordStream is true, call POST /api/recording/start with show ID (using existing recordingApi) to start server-side recording tee after stream socket connects.",
-      "dependencies": ["2", "5"],
+      "dependencies": [
+        "2",
+        "5"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -228,7 +239,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "references": [
           "source/frontend/src/admin/api/index.ts (recording API — POST /api/recording/start)",
@@ -240,7 +251,10 @@
       "id": "7",
       "agent": "@vue-frontend",
       "task": "Add recording indicator to FlowStreaming.vue: show red REC dot when backend reports recording=true via status polling. For live mode, add toggle button to start/stop recording mid-stream via POST /api/recording/start and /api/recording/stop. Import streamApi for status checks.",
-      "dependencies": ["4", "5"],
+      "dependencies": [
+        "4",
+        "5"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -250,34 +264,48 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {}
     },
     {
       "id": "8",
       "agent": "@vue-frontend",
       "task": "Update FlowStreaming.vue onUnmounted: if recording is active, call POST /api/recording/stop. Ensure audioCapture.stopCapture() and streamSocket.stopStream() are called explicitly (singleton cleanup).",
-      "dependencies": ["1", "7"],
+      "dependencies": [
+        "1",
+        "7"
+      ],
       "artifacts": [],
-      "status": "done",
+      "status": "completed",
       "knowledge": {}
     },
     {
       "id": "9",
       "agent": "@vue-frontend",
       "task": "Frontend build verification: run npm run build + npm run test in source/frontend/. Fix any TypeScript errors, import issues, or test failures.",
-      "dependencies": ["1", "2", "3", "4", "5", "6", "7", "8"],
+      "dependencies": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8"
+      ],
       "artifacts": [],
-      "status": "done",
+      "status": "completed",
       "knowledge": {}
     },
     {
       "id": "10",
       "agent": "@streaming-media",
       "task": "Update streamDetector.test.ts if needed to cover new polling behavior. Verify existing tests pass with singleton useAudioCapture changes.",
-      "dependencies": ["9"],
+      "dependencies": [
+        "9"
+      ],
       "artifacts": [],
-      "status": "done",
+      "status": "completed",
       "knowledge": {}
     }
   ]

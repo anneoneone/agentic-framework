@@ -26,7 +26,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "Callback data prefix 'aig_' = artist instagram. Short to stay within Telegram's 64-byte limit",
@@ -50,7 +50,9 @@
       "id": "2",
       "agent": "@axum-backend",
       "task": "Add `pub async fn send_artist_instagram_preview(state: &Arc<AppState>, artist: &models::Artist) -> Result<(), String>` in telegram_notify.rs.",
-      "dependencies": ["1"],
+      "dependencies": [
+        "1"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -60,7 +62,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "Send photo as the main message with inline keyboard buttons",
@@ -83,7 +85,9 @@
       "id": "3",
       "agent": "@axum-backend",
       "task": "Extend send_artist_instagram_preview (step 2) to also send track preview videos as separate reply messages after the main photo. For each track (track1, track2): if artist has track{N}_video_key, download the video from R2 via presigned URL + download_file_bytes(), call send_video_raw() with a short caption like '🎵 Track {N}: {track_name}' and no reply_markup. Save returned message_id to artists.telegram_video{N}_message_id in DB.",
-      "dependencies": ["2"],
+      "dependencies": [
+        "2"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -93,7 +97,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "Videos are separate messages (Telegram doesn't support mixed media + inline keyboard)",
@@ -116,7 +120,11 @@
       "id": "4",
       "agent": "@axum-backend",
       "task": "Run `cargo check` from source/backend/ to verify Phase 3 compiles. Fix any compilation errors.",
-      "dependencies": ["1", "2", "3"],
+      "dependencies": [
+        "1",
+        "2",
+        "3"
+      ],
       "artifacts": [
         {
           "type": "test",
@@ -126,7 +134,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [],
         "learnings": [

@@ -32,7 +32,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "Use Option<&str> not serde_json::Value — caller serializes the InlineKeyboardMarkup JSON before passing",
@@ -56,7 +56,9 @@
       "id": "2",
       "agent": "@axum-backend",
       "task": "Add `send_video_raw` function in telegram_notify.rs, modeled after `send_photo_raw`. Signature: `async fn send_video_raw(token: &str, chat_id: i64, video_bytes: Vec<u8>, filename: String, caption: &str, parse_mode: &str, thread_id: Option<i32>, reply_markup: Option<&str>) -> Result<i64, String>`. Uses reqwest::multipart with a `video` part (not `photo`). Calls Telegram `sendVideo` endpoint. Returns message_id from response.",
-      "dependencies": ["1"],
+      "dependencies": [
+        "1"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -66,7 +68,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "Same reqwest multipart pattern as send_photo_raw",
@@ -100,7 +102,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "Use JSON POST (not multipart) since no file upload needed for caption edits",
@@ -130,7 +132,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "Use multipart because we're uploading a new file",
@@ -161,7 +163,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [],
         "learnings": [],
@@ -188,7 +190,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "Callback data prefix convention: aig_ = artist instagram. Short prefixes to stay within Telegram's 64-byte callback_data limit",
@@ -231,7 +233,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "In-memory HashMap, lost on restart — acceptable since edit sessions are short-lived interactive UI flows",
@@ -254,7 +256,15 @@
       "id": "8",
       "agent": "@axum-backend",
       "task": "Run `cargo check` from source/backend/ to verify Phase 1 compiles. Fix any compilation errors. The stub TODO handlers in step 6 should use `tracing::warn!(\"TODO: handle callback {}\", data)` to avoid unused variable warnings.",
-      "dependencies": ["1", "2", "3", "4", "5", "6", "7"],
+      "dependencies": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ],
       "artifacts": [
         {
           "type": "test",
@@ -264,7 +274,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [],
         "learnings": [

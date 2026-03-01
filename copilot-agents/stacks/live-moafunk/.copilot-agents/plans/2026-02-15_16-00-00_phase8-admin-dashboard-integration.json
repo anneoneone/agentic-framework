@@ -25,7 +25,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "Reuse the same send_artist_instagram_preview function used by the scheduler and Telegram commands",
@@ -46,7 +46,9 @@
       "id": "2",
       "agent": "@axum-backend",
       "task": "Register the new route in main.rs Router: `.route(\"/api/artists/:id/telegram-preview\", post(api::api_send_artist_telegram_preview))`.",
-      "dependencies": ["1"],
+      "dependencies": [
+        "1"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -56,7 +58,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [],
         "learnings": [
@@ -83,7 +85,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [],
         "learnings": [
@@ -100,7 +102,9 @@
       "id": "4",
       "agent": "@vue-frontend",
       "task": "Add '📱 Preview on Telegram' button to ArtistDetailPage.vue. Location: near the Instagram preview section, around the existing Instagram buttons (~line 850-955). Add: (1) A `sendingTelegramPreview` ref(false) for loading state. (2) A `sendTelegramPreview()` async function that calls `artistsApi.sendTelegramPreview(artist.id)`, shows flash success/error, and sets loading state. (3) A BaseButton in the template: `<BaseButton @click=\"sendTelegramPreview\" :disabled=\"sendingTelegramPreview\" :loading=\"sendingTelegramPreview\">📱 Preview on Telegram</BaseButton>`. Disable the button if no instagram_caption exists (same condition as Instagram preview). Show the button only when the artist has an instagram_caption.",
-      "dependencies": ["3"],
+      "dependencies": [
+        "3"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -110,7 +114,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "Use BaseButton component (existing shared component)",
@@ -133,7 +137,10 @@
       "id": "5",
       "agent": "@axum-backend",
       "task": "Run `cargo check` from source/backend/ to verify the backend compiles. Fix any errors.",
-      "dependencies": ["1", "2"],
+      "dependencies": [
+        "1",
+        "2"
+      ],
       "artifacts": [
         {
           "type": "test",
@@ -143,7 +150,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [],
         "learnings": [],

@@ -25,7 +25,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "sub_plan": {
         "description": "Build the rich notification function step by step",
         "steps": [
@@ -35,7 +35,7 @@
             "task": "Add import for teloxide::types::InputFile, teloxide::requests::Requester, and crate::{models, storage}",
             "dependencies": [],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {
               "decisions": [],
               "learnings": [
@@ -54,9 +54,11 @@
             "id": "1.2",
             "agent": "@axum-backend",
             "task": "Implement `async fn send_artist_preview(state, artist_id)` — fetch Artist from DB, build caption, generate presigned URLs, send photo + audio messages",
-            "dependencies": ["1.1"],
+            "dependencies": [
+              "1.1"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {
               "decisions": [
                 "Query the artist row by ID — all text fields and R2 keys are in the artists table.",
@@ -86,7 +88,7 @@
             "task": "Build the HTML caption string: 🎤 name (pronouns), track names, socials (IG/SC/BC/Spotify), mentions, upcoming events, music description, then clickable profile link. HTML-escape user text to avoid breaking Telegram's parser.",
             "dependencies": [],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {
               "decisions": [
                 "Include all artist-provided text fields (not ai_bio, not instagram_caption — those are AI-generated).",
@@ -124,7 +126,9 @@
       "id": "2",
       "agent": "@axum-backend",
       "task": "Replace the current notify_artist_submission to call send_artist_preview instead, with a fallback to the simple text notification if the artist row or presigned URLs fail",
-      "dependencies": ["1"],
+      "dependencies": [
+        "1"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -134,7 +138,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "Keep the fire-and-forget tokio::spawn pattern.",
@@ -152,7 +156,9 @@
       "id": "3",
       "agent": "@axum-backend",
       "task": "Handle the chunked-upload timing issue: in submit_chunked.rs the notification fires before background processing completes (files still in pending/). Either defer sending or use the pending keys for presigned URLs.",
-      "dependencies": ["2"],
+      "dependencies": [
+        "2"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -162,7 +168,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "Best approach: move the notify call into finalize_artist_files_background() after files are moved and the DB is updated. This way all R2 keys in the artist row are final and presigned URLs work.",
@@ -187,7 +193,9 @@
       "id": "4",
       "agent": "@axum-backend",
       "task": "cargo check — verify compilation succeeds with no new errors",
-      "dependencies": ["3"],
+      "dependencies": [
+        "3"
+      ],
       "artifacts": [
         {
           "type": "test",
@@ -197,10 +205,12 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [],
-        "learnings": ["cargo check passes with only pre-existing warnings (dead_code in audio.rs, db.rs, models.rs)."],
+        "learnings": [
+          "cargo check passes with only pre-existing warnings (dead_code in audio.rs, db.rs, models.rs)."
+        ],
         "references": [],
         "blockers_encountered": [],
         "notes": "",

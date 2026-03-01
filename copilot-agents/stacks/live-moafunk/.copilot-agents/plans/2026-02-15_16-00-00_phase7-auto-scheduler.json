@@ -27,7 +27,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "30-day lookback window — beyond that, no more auto-sending",
@@ -50,7 +50,9 @@
       "id": "2",
       "agent": "@axum-backend",
       "task": "Register scheduler.rs as a module. Add `pub mod scheduler;` in main.rs alongside existing mod declarations.",
-      "dependencies": ["1"],
+      "dependencies": [
+        "1"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -60,7 +62,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [],
         "learnings": [
@@ -77,7 +79,9 @@
       "id": "3",
       "agent": "@axum-backend",
       "task": "Add the daily scheduler background task in main.rs. Following the pattern of the existing weekly expired-user-cleanup (lines 487-510): add a `tokio::spawn` block that runs a loop with `tokio::time::interval(Duration::from_secs(60))`. On each tick: get current time in Europe/Berlin. Check if the minute is :00 and the hour is 16 (i.e., exactly 16:00). If so, call `scheduler::check_artist_preview_schedule(state.clone()).await`. Use a simple `last_check_date` variable to ensure it only runs once per day (compare current date to last_check_date, only proceed if different).",
-      "dependencies": ["2"],
+      "dependencies": [
+        "2"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -87,7 +91,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "60-second interval check — simple and reliable",
@@ -109,7 +113,11 @@
       "id": "4",
       "agent": "@axum-backend",
       "task": "Run `cargo check` from source/backend/ to verify Phase 7 compiles. Fix any compilation errors.",
-      "dependencies": ["1", "2", "3"],
+      "dependencies": [
+        "1",
+        "2",
+        "3"
+      ],
       "artifacts": [
         {
           "type": "test",
@@ -119,7 +127,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [],
         "learnings": [],

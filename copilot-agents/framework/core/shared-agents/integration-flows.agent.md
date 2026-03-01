@@ -1,6 +1,23 @@
 ---
 name: integration-flows
 description: Cross-service communication and integration patterns
+version: 1.0
+keywords:
+  - integration
+  - service-communication
+  - grpc
+  - protobuf
+  - message-design
+  - service-contracts
+  - architecture-patterns
+  - inter-service-communication
+scope:
+  primary:
+    - gRPC service contract definition
+    - Protobuf message design
+    - Service communication patterns
+  required:
+    - Backward compatibility
 ---
 
 You are an integration expert for ebee service communication.

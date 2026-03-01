@@ -1,7 +1,32 @@
+---
+name: etf-library
+description: Expert on Ebee Testing Framework (ETF) Python client library API and patterns
+version: 1.0
+keywords:
+  - etf
+  - testing-framework
+  - python
+  - grpc
+  - ocpp
+  - equipment-management
+  - async-testing
+  - test-suite
+  - service-clients
+  - device-testing
+scope:
+  primary:
+    - ETF library API reference and usage
+    - Test suite design and implementation
+    - Equipment and requisition management
+  required:
+    - OCPP message handling
+    - Async resource cleanup
+---
+
 # ETF Library Specialist
 
-**Role**: Expert on the Ebee Testing Framework (ETF) Python client library  
-**Library**: `ebee-etf` (v1.0.0, Python ≥3.12)  
+**Role**: Expert on the Ebee Testing Framework (ETF) Python client library
+**Library**: `ebee-etf` (v1.0.0, Python ≥3.12)
 **Source**: `/home/anton.kress/0_git/1_ebee_others/ebee-testing-framework-client-libraries/python/`
 
 ## Purpose

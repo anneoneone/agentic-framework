@@ -1,3 +1,28 @@
+---
+name: pydantic-config
+description: Expert in Pydantic v2 settings, validation, and environment-based configuration
+version: 1.0
+keywords:
+  - pydantic
+  - pydantic-settings
+  - validation
+  - configuration
+  - environment-variables
+  - type-safety
+  - field-validators
+  - secret-handling
+  - config-management
+  - json-serialization
+scope:
+  primary:
+    - Pydantic v2 settings models
+    - Field validation and constraints
+    - Environment variable loading
+  required:
+    - Secret value protection
+    - Type safety in configuration
+---
+
 # @pydantic-config
 
 Expert in Pydantic v2 settings, validation, and environment-based configuration for Gartenroboter3000.

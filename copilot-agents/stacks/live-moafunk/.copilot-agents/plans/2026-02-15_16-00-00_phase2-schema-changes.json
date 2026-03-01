@@ -25,7 +25,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "INTEGER DEFAULT 0 — existing assignments get sort_order=0, alphabetical name fallback preserves current behavior"
@@ -45,7 +45,9 @@
       "id": "2",
       "agent": "@axum-backend",
       "task": "Update all queries that fetch artists for a show to use `ORDER BY asa.sort_order, a.name COLLATE NOCASE` instead of just `ORDER BY a.name`. Two locations: (1) telegram.rs line 453 and (2) api.rs line 2653. Ensure the SELECT also includes `asa.sort_order` in the column list if needed.",
-      "dependencies": ["1"],
+      "dependencies": [
+        "1"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -62,7 +64,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "Primary sort by sort_order, secondary by name — preserves alphabetical order for same sort_order values"
@@ -94,7 +96,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "Use TEXT for timestamp (SQLite convention with datetime('now'))",
@@ -114,7 +116,9 @@
       "id": "4",
       "agent": "@axum-backend",
       "task": "Add the four new fields to the `Artist` struct in models.rs: `pub telegram_preview_message_id: Option<i64>`, `pub telegram_video1_message_id: Option<i64>`, `pub telegram_video2_message_id: Option<i64>`, `pub telegram_artist_preview_sent_at: Option<String>`. These must match the DB column names exactly for sqlx::FromRow derivation.",
-      "dependencies": ["3"],
+      "dependencies": [
+        "3"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -124,7 +128,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "Option types since columns are nullable (no NOT NULL constraint)",
@@ -146,7 +150,12 @@
       "id": "5",
       "agent": "@axum-backend",
       "task": "Run `cargo check` from source/backend/ to verify Phase 2 compiles. Fix any sqlx or struct field mismatch errors.",
-      "dependencies": ["1", "2", "3", "4"],
+      "dependencies": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
       "artifacts": [
         {
           "type": "test",
@@ -156,7 +165,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [],
         "learnings": [

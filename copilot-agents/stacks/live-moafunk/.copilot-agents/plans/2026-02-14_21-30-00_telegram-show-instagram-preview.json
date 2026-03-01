@@ -23,9 +23,11 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
-        "decisions": ["Use chrono-tz 0.10 for Europe/Berlin timezone handling"],
+        "decisions": [
+          "Use chrono-tz 0.10 for Europe/Berlin timezone handling"
+        ],
         "learnings": [
           "chrono 0.4 with serde feature already exists in Cargo.toml"
         ],
@@ -50,7 +52,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "Extract caption logic from post_show_to_instagram into pub async fn build_show_caption(state, show) -> Result<String> so both instagram.rs and telegram_notify.rs use the same formatting"
@@ -58,7 +60,9 @@
         "learnings": [
           "Caption format: {title} - {date}\\n\\n{description}\\n💛\\n\\n@handle1\\n@handle2. Artists fetched via artist_show_assignments join"
         ],
-        "references": ["source/backend/src/instagram.rs#L792-L855"],
+        "references": [
+          "source/backend/src/instagram.rs#L792-L855"
+        ],
         "blockers_encountered": [],
         "notes": "The new function needs DB access to fetch artist Instagram handles. post_show_to_instagram should call build_show_caption internally.",
         "agent_interactions": [],
@@ -79,7 +83,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "sub_plan": {
         "description": "Modify send_photo_raw and update all call sites",
         "steps": [
@@ -89,7 +93,7 @@
             "task": "Add reply_markup: Option<String> parameter to send_photo_raw function signature and append to multipart form when Some",
             "dependencies": [],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {
               "notes": "reply_markup is JSON-serialized InlineKeyboardMarkup, added as text field to multipart form"
             }
@@ -98,9 +102,11 @@
             "id": "3.2",
             "agent": "@axum-backend",
             "task": "Update all existing call sites of send_photo_raw (lines ~340 and ~622) to pass None for reply_markup",
-            "dependencies": ["3.1"],
+            "dependencies": [
+              "3.1"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {
               "notes": "Two call sites: notify_artist_submission (~L340) and send_show_update_notification (~L622)"
             }
@@ -114,7 +120,9 @@
         "learnings": [
           "send_photo_raw exists because teloxide-core 0.10.x multipart PartSerializer doesn't implement serialize_newtype_struct, so ThreadId + InputFile panics"
         ],
-        "references": ["source/backend/src/telegram_notify.rs#L52"],
+        "references": [
+          "source/backend/src/telegram_notify.rs#L52"
+        ],
         "blockers_encountered": [],
         "notes": "",
         "agent_interactions": [],
@@ -125,7 +133,10 @@
       "id": "4",
       "agent": "@axum-backend",
       "task": "Add send_show_instagram_preview function in telegram_notify.rs",
-      "dependencies": ["2", "3"],
+      "dependencies": [
+        "2",
+        "3"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -135,7 +146,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "sub_plan": {
         "description": "Build and send the Instagram preview message with inline keyboard",
         "steps": [
@@ -145,16 +156,18 @@
             "task": "Implement pub async fn send_show_instagram_preview(state, show_id) -> Result<(), String> that fetches show, builds caption via instagram::build_show_caption, downloads cover from R2",
             "dependencies": [],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           },
           {
             "id": "4.2",
             "agent": "@axum-backend",
             "task": "Build InlineKeyboardMarkup JSON with two buttons: '📸 Publish' (callback: ig_publish:{id}) and '✏️ Edit' (callback: ig_edit:{id}), serialize to JSON string",
-            "dependencies": ["4.1"],
+            "dependencies": [
+              "4.1"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {
               "notes": "Use serde_json to build {inline_keyboard: [[{text, callback_data}]]} structure. Two buttons in one row."
             }
@@ -163,9 +176,11 @@
             "id": "4.3",
             "agent": "@axum-backend",
             "task": "Call send_photo_raw with cover bytes, caption, and reply_markup JSON to send the preview message",
-            "dependencies": ["4.2"],
+            "dependencies": [
+              "4.2"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           }
         ]
@@ -188,7 +203,9 @@
       "id": "5",
       "agent": "@axum-backend",
       "task": "Add callback query handler to Telegram bot dispatcher for Publish/Edit buttons",
-      "dependencies": ["4"],
+      "dependencies": [
+        "4"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -198,7 +215,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "sub_plan": {
         "description": "Register callback query handler and implement publish/edit actions",
         "steps": [
@@ -208,7 +225,7 @@
             "task": "Add Update::filter_callback_query() branch to the dispatcher in telegram::run alongside existing filter_message branch",
             "dependencies": [],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {
               "notes": "Import CallbackQuery from teloxide::types. Add new branch before the message handler in Dispatcher::builder."
             }
@@ -217,18 +234,22 @@
             "id": "5.2",
             "agent": "@axum-backend",
             "task": "Implement handle_callback_query endpoint: auth check, parse callback_data (ig_publish:{id} / ig_edit:{id}), dispatch to handlers",
-            "dependencies": ["5.1"],
+            "dependencies": [
+              "5.1"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           },
           {
             "id": "5.3",
             "agent": "@axum-backend",
             "task": "Implement ig_publish handler: call instagram::post_show_to_instagram with configured account, answer callback query, edit message to remove buttons and append result status",
-            "dependencies": ["5.2"],
+            "dependencies": [
+              "5.2"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {
               "decisions": [
                 "Use bot.answer_callback_query() to dismiss spinner, bot.edit_message_reply_markup() to remove buttons, bot.edit_message_caption() to append status"
@@ -240,9 +261,11 @@
             "id": "5.4",
             "agent": "@axum-backend",
             "task": "Implement ig_edit handler: answer callback query with placeholder text 'Edit mode coming soon', keep buttons intact",
-            "dependencies": ["5.2"],
+            "dependencies": [
+              "5.2"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           }
         ]
@@ -255,7 +278,9 @@
         "learnings": [
           "Current dispatcher only uses Update::filter_message(). No CallbackQuery imports or handlers exist."
         ],
-        "references": ["source/backend/src/telegram.rs#L76-L91"],
+        "references": [
+          "source/backend/src/telegram.rs#L76-L91"
+        ],
         "blockers_encountered": [],
         "notes": "May need to use raw reqwest calls for editMessageCaption/editMessageReplyMarkup if teloxide has same ThreadId serializer bug. Test first with teloxide methods.",
         "agent_interactions": [],
@@ -266,7 +291,9 @@
       "id": "6",
       "agent": "@axum-backend",
       "task": "Add /preview_show_instagram command to Telegram bot for dev convenience",
-      "dependencies": ["4"],
+      "dependencies": [
+        "4"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -276,11 +303,15 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
-        "decisions": ["Add PreviewShowInstagram(i64) variant to Command enum"],
+        "decisions": [
+          "Add PreviewShowInstagram(i64) variant to Command enum"
+        ],
         "learnings": [],
-        "references": ["source/backend/src/telegram.rs#L30-L58"],
+        "references": [
+          "source/backend/src/telegram.rs#L30-L58"
+        ],
         "blockers_encountered": [],
         "notes": "Description: '<show_id> — preview show IG post on Telegram'. Handler calls telegram_notify::send_show_instagram_preview.",
         "agent_interactions": [],
@@ -291,7 +322,9 @@
       "id": "7",
       "agent": "@axum-backend",
       "task": "Add POST /api/shows/:id/telegram-preview API endpoint and handler",
-      "dependencies": ["4"],
+      "dependencies": [
+        "4"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -301,7 +334,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "sub_plan": {
         "description": "Add route and handler for frontend trigger",
         "steps": [
@@ -311,18 +344,22 @@
             "task": "Add handler function api_send_telegram_preview in handlers/api.rs: validate show exists + has cover, call telegram_notify::send_show_instagram_preview, return JSON {success, error?}",
             "dependencies": [],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           },
           {
             "id": "7.2",
             "agent": "@axum-backend",
             "task": "Register route POST /api/shows/:id/telegram-preview in main.rs router alongside existing show routes",
-            "dependencies": ["7.1"],
+            "dependencies": [
+              "7.1"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {
-              "references": ["source/backend/src/main.rs#L300-L460"]
+              "references": [
+                "source/backend/src/main.rs#L300-L460"
+              ]
             }
           }
         ]
@@ -341,7 +378,9 @@
       "id": "8",
       "agent": "@vue-frontend",
       "task": "Add 'Preview on Telegram' button to ShowDetailPage and API method",
-      "dependencies": ["7"],
+      "dependencies": [
+        "7"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -358,7 +397,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "sub_plan": {
         "description": "Frontend button and API integration",
         "steps": [
@@ -368,16 +407,18 @@
             "task": "Add sendTelegramPreview method to showsApi in api/index.ts: api.post<{success: boolean; error?: string}>(`/api/shows/${showId}/telegram-preview`)",
             "dependencies": [],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           },
           {
             "id": "8.2",
             "agent": "@vue-frontend",
             "task": "Add '📱 Preview on Telegram' button next to 'Post to Instagram' button in shows cover card section with loading state and flash feedback",
-            "dependencies": ["8.1"],
+            "dependencies": [
+              "8.1"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {
               "notes": "Add sendingTelegramPreview ref, sendTelegramPreview() async function, BaseButton in cover-actions div next to existing Instagram button. Show success/error via flash composable.",
               "references": [
@@ -422,7 +463,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "sub_plan": {
         "description": "DB migration and model update for preview tracking",
         "steps": [
@@ -432,25 +473,29 @@
             "task": "Add ALTER TABLE shows ADD COLUMN telegram_preview_sent_at TEXT to migration logic in db.rs",
             "dependencies": [],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           },
           {
             "id": "9.2",
             "agent": "@axum-backend",
             "task": "Add telegram_preview_sent_at: Option<String> field to Show struct in models.rs",
-            "dependencies": ["9.1"],
+            "dependencies": [
+              "9.1"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           },
           {
             "id": "9.3",
             "agent": "@axum-backend",
             "task": "Update send_show_instagram_preview to set telegram_preview_sent_at after successful send",
-            "dependencies": ["9.2"],
+            "dependencies": [
+              "9.2"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           }
         ]
@@ -476,7 +521,11 @@
       "id": "10",
       "agent": "@axum-backend",
       "task": "Add 7pm Berlin time scheduler as background tokio task for automatic show preview",
-      "dependencies": ["1", "4", "9"],
+      "dependencies": [
+        "1",
+        "4",
+        "9"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -486,7 +535,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "sub_plan": {
         "description": "Background task that sends previews at 19:00 Berlin time on show day",
         "steps": [
@@ -496,18 +545,22 @@
             "task": "Spawn new tokio::spawn background task in main.rs alongside existing cleanup task with 60-second interval loop",
             "dependencies": [],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {
-              "references": ["source/backend/src/main.rs#L493-L510"]
+              "references": [
+                "source/backend/src/main.rs#L493-L510"
+              ]
             }
           },
           {
             "id": "10.2",
             "agent": "@axum-backend",
             "task": "On each tick: get current Berlin time via chrono_tz::Europe::Berlin, check if hour==19 and minute==0, query shows with date matching today that have cover_generated_at set and telegram_preview_sent_at is NULL or not today",
-            "dependencies": ["10.1"],
+            "dependencies": [
+              "10.1"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {
               "notes": "Use chrono::Utc::now().with_timezone(&chrono_tz::Europe::Berlin) for timezone conversion. Query: SELECT * FROM shows WHERE date = ? AND cover_generated_at IS NOT NULL AND (telegram_preview_sent_at IS NULL OR telegram_preview_sent_at < ?)"
             }
@@ -516,9 +569,11 @@
             "id": "10.3",
             "agent": "@axum-backend",
             "task": "For each matching show, call send_show_instagram_preview and log results",
-            "dependencies": ["10.2"],
+            "dependencies": [
+              "10.2"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           }
         ]

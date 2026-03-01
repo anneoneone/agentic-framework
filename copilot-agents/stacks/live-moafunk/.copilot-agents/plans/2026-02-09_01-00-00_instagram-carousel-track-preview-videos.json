@@ -25,7 +25,7 @@
           "auto_verified": false
         }
       ],
-      "status": "done",
+      "status": "completed",
       "sub_plan": {
         "description": "Break video generation into atomic sub-tasks",
         "steps": [
@@ -50,7 +50,9 @@
             "id": "1.2",
             "agent": "@axum-backend",
             "task": "Implement peaks JSON parsing: download peaks from R2, deserialize JSON array of f64 values, normalize to 0.0-1.0 range",
-            "dependencies": ["1.1"],
+            "dependencies": [
+              "1.1"
+            ],
             "artifacts": [],
             "status": "pending",
             "knowledge": {
@@ -61,7 +63,9 @@
             "id": "1.3",
             "agent": "@axum-backend",
             "task": "Implement waveform PNG rendering using imageproc + image crates: render orange vertical bars on transparent 1080x200 PNG from normalized peaks data, matching the existing SoundCloud-style waveform look",
-            "dependencies": ["1.2"],
+            "dependencies": [
+              "1.2"
+            ],
             "artifacts": [],
             "status": "pending",
             "knowledge": {
@@ -75,7 +79,9 @@
             "id": "1.4",
             "agent": "@axum-backend",
             "task": "Implement FFmpeg video composition: combine artist image (looped 30s) + track audio (first 30s) + waveform PNG overlay + animated cursor line (white vertical bar moving left-to-right). Output 1080x1080 H.264+AAC MP4 at 30fps",
-            "dependencies": ["1.3"],
+            "dependencies": [
+              "1.3"
+            ],
             "artifacts": [],
             "status": "pending",
             "knowledge": {
@@ -92,7 +98,9 @@
             "id": "1.5",
             "agent": "@axum-backend",
             "task": "Wire it all together: download artist image + track MP3 + peaks JSON from R2 to temp dir, call rendering pipeline, return MP4 bytes, clean up temp files",
-            "dependencies": ["1.4"],
+            "dependencies": [
+              "1.4"
+            ],
             "artifacts": [],
             "status": "pending",
             "knowledge": {
@@ -115,7 +123,7 @@
       "task": "Extend InstagramClient in instagram.rs with carousel posting support (multi-slide album posts with images and videos)",
       "dependencies": [],
       "artifacts": [],
-      "status": "done",
+      "status": "completed",
       "sub_plan": {
         "description": "Add Instagram Graph API carousel methods",
         "steps": [
@@ -150,7 +158,11 @@
             "id": "2.4",
             "agent": "@axum-backend",
             "task": "Add post_carousel(image_url, video_urls, caption) orchestrator: create all item containers, poll each until FINISHED, create carousel container, poll, publish. Increase poll timeout to 120s for video processing",
-            "dependencies": ["2.1", "2.2", "2.3"],
+            "dependencies": [
+              "2.1",
+              "2.2",
+              "2.3"
+            ],
             "artifacts": [],
             "status": "pending",
             "knowledge": {
@@ -172,9 +184,12 @@
       "id": "3",
       "agent": "@axum-backend",
       "task": "Update post_artist_to_instagram() to generate 2 track preview videos, upload to R2, and post as 3-slide carousel instead of single image",
-      "dependencies": ["1", "2"],
+      "dependencies": [
+        "1",
+        "2"
+      ],
       "artifacts": [],
-      "status": "done",
+      "status": "completed",
       "sub_plan": {
         "description": "Wire video generation and carousel posting into the existing artist Instagram flow",
         "steps": [
@@ -193,7 +208,9 @@
             "id": "3.2",
             "agent": "@axum-backend",
             "task": "Rewrite post_artist_to_instagram(): generate 2 preview videos via video::generate_track_preview_video(), upload to R2, get presigned URLs for image + 2 videos, call client.post_carousel(), clean up temp videos from R2",
-            "dependencies": ["3.1"],
+            "dependencies": [
+              "3.1"
+            ],
             "artifacts": [],
             "status": "pending",
             "knowledge": {
@@ -211,7 +228,9 @@
       "id": "4",
       "agent": "@axum-backend",
       "task": "Compile and test: verify cargo check passes, test video generation with a real artist's data, verify Instagram carousel post flow end-to-end",
-      "dependencies": ["3"],
+      "dependencies": [
+        "3"
+      ],
       "artifacts": [
         {
           "type": "test",

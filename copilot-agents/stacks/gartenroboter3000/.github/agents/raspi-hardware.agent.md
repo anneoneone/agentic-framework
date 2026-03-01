@@ -1,3 +1,28 @@
+---
+name: raspi-hardware
+description: Expert in Raspberry Pi GPIO, SPI/I2C protocols, sensor interfacing, and hardware abstraction
+version: 1.0
+keywords:
+  - raspberry-pi
+  - gpio
+  - spi
+  - i2c
+  - sensor-interfacing
+  - hardware-abstraction
+  - embedded-systems
+  - adc
+  - ultrasonic
+  - relay-control
+scope:
+  primary:
+    - GPIO programming and abstraction layers
+    - SPI/I2C protocol implementation
+    - Sensor reading and calibration
+  required:
+    - Hardware safety (voltage protection)
+    - Mock implementations for testing
+---
+
 # @raspi-hardware
 
 Expert in Raspberry Pi GPIO, SPI/I2C protocols, sensor interfacing, and hardware abstraction for Gartenroboter3000.

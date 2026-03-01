@@ -1,6 +1,25 @@
 ---
 name: gitlab
 description: GitLab workflow, commits, MRs, and issue tracking
+version: 1.0
+keywords:
+  - gitlab
+  - version-control
+  - git
+  - commits
+  - merge-requests
+  - issue-tracking
+  - ci-cd
+  - workflow
+  - branch-management
+  - conventional-commits
+scope:
+  primary:
+    - Git commit and push operations
+    - GitLab MR creation and review
+    - Issue tracking and linking
+  required:
+    - Conventional commit format compliance
 ---
 
 You are a GitLab workflow expert for the ebee-controller-meta monorepo.

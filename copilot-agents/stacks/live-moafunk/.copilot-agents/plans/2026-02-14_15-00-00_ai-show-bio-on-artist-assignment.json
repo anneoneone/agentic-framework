@@ -30,7 +30,7 @@
           "auto_verified": true
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "Use existing add_column_if_missing migration pattern from db.rs",
@@ -46,7 +46,9 @@
       "id": "2",
       "agent": "@axum-backend",
       "task": "Add generate_show_bio() and generate_and_store_show_bio() functions in ai.rs. generate_show_bio() takes up to 4 artist bios + show title/date and produces a combined show bio using OpenAI gpt-4o-mini. generate_and_store_show_bio() fetches assigned artists' ai_bio fields, calls generate_show_bio(), and saves result to shows.ai_bio. If zero artists assigned, clear ai_bio to NULL.",
-      "dependencies": ["1"],
+      "dependencies": [
+        "1"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -56,7 +58,7 @@
           "auto_verified": true
         }
       ],
-      "status": "done",
+      "status": "completed",
       "sub_plan": {
         "description": "Break AI show bio generation into atomic implementation steps",
         "steps": [
@@ -66,7 +68,7 @@
             "task": "Add generate_show_bio() function: takes Vec<String> of artist bios, show title, show date. System prompt instructs AI to combine artist bios into a cohesive show description (2-4 sentences, music-focused, no hashtags). Follow existing generate_artist_bio() pattern.",
             "dependencies": [],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {
               "references": [
                 "source/backend/src/ai.rs#L130-L157 (generate_artist_bio pattern)"
@@ -77,9 +79,11 @@
             "id": "2.2",
             "agent": "@axum-backend",
             "task": "Add generate_and_store_show_bio() function: query artist_show_assignments + artists to get all assigned artists' ai_bio fields for the show. If no artists assigned, UPDATE shows SET ai_bio = NULL. Otherwise call generate_show_bio() with collected bios and UPDATE shows SET ai_bio = result. Follow existing generate_and_store_artist_bio() service pattern.",
-            "dependencies": ["2.1"],
+            "dependencies": [
+              "2.1"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {
               "references": [
                 "source/backend/src/ai.rs#L213-L241 (generate_and_store_artist_bio pattern)",
@@ -101,7 +105,9 @@
       "id": "3",
       "agent": "@axum-backend",
       "task": "Hook generate_and_store_show_bio() into all 4 assign/unassign API handlers. Spawn as background task (tokio::spawn) after existing schedule_cover_regeneration() call in: api_assign_artist_to_show (L564), api_unassign_artist_from_show (L583), api_show_assign_artist (L1887), api_show_unassign_artist (L1909).",
-      "dependencies": ["2"],
+      "dependencies": [
+        "2"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -111,7 +117,7 @@
           "auto_verified": true
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "Use tokio::spawn for fire-and-forget (non-blocking for the API response)",
@@ -129,7 +135,9 @@
       "id": "4",
       "agent": "@axum-backend",
       "task": "Add ai_bio field to ShowDetailResponse and wire it into the show detail query at api.rs L1176. Ensure GET /api/shows/:id returns the ai_bio field.",
-      "dependencies": ["1"],
+      "dependencies": [
+        "1"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -139,7 +147,7 @@
           "auto_verified": true
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "references": [
           "source/backend/src/handlers/api.rs#L1176 (ShowDetailResponse)"
@@ -150,7 +158,10 @@
       "id": "5",
       "agent": "@vue-frontend",
       "task": "Display AI Show Bio in ShowDetailPage.vue and refresh it after artist assign/unassign",
-      "dependencies": ["3", "4"],
+      "dependencies": [
+        "3",
+        "4"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -167,7 +178,7 @@
           "auto_verified": true
         }
       ],
-      "status": "done",
+      "status": "completed",
       "sub_plan": {
         "description": "Frontend changes to display and refresh AI show bio",
         "steps": [
@@ -177,18 +188,22 @@
             "task": "Add ai_bio?: string to ShowDetail interface in api/index.ts (around L317)",
             "dependencies": [],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {
-              "references": ["source/frontend/src/admin/api/index.ts#L317"]
+              "references": [
+                "source/frontend/src/admin/api/index.ts#L317"
+              ]
             }
           },
           {
             "id": "5.2",
             "agent": "@vue-frontend",
             "task": "Display ai_bio in ShowDetailPage.vue: add a read-only section showing the AI-generated show bio (rendered text, not editable). Include a 'Regenerate' button that calls a new endpoint or re-triggers assignment. Follow existing cover image refresh pattern for polling after assign/unassign.",
-            "dependencies": ["5.1"],
+            "dependencies": [
+              "5.1"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {
               "references": [
                 "source/frontend/src/admin/pages/ShowDetailPage.vue#L168 (assignArtist pattern)",
@@ -200,9 +215,11 @@
             "id": "5.3",
             "agent": "@vue-frontend",
             "task": "After assignArtist() and unassignArtist() complete, schedule a delayed refetch of show detail (similar to existing cover refresh pattern) so the updated ai_bio appears in the UI after the background AI generation completes.",
-            "dependencies": ["5.2"],
+            "dependencies": [
+              "5.2"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {
               "decisions": [
                 "Reuse existing cover refresh polling pattern (setTimeout + refetch)"

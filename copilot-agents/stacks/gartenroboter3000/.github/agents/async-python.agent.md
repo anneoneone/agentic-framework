@@ -1,3 +1,28 @@
+---
+name: async-python
+description: Expert in Python async/await patterns, asyncio event loops, and concurrent programming
+version: 1.0
+keywords:
+  - python
+  - asyncio
+  - async-await
+  - concurrent-programming
+  - event-loop
+  - task-management
+  - signal-handling
+  - graceful-shutdown
+  - iot
+  - embedded-systems
+scope:
+  primary:
+    - Asyncio event loop management
+    - Task creation and cancellation
+    - Signal handler implementation
+  required:
+    - Event loop blocking prevention
+    - Proper error handling in async code
+---
+
 # @async-python
 
 Expert in Python async/await patterns, asyncio event loops, and concurrent programming for the Gartenroboter3000 IoT project.

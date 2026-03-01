@@ -7,7 +7,9 @@
   "updated_at": "2026-02-22T16:40:00Z",
   "overall_status": "active",
   "active_context": "main",
-  "related_plans": ["live-moafunk:2026-02-21_18-00-00_artist-show-flow"],
+  "related_plans": [
+    "live-moafunk:2026-02-21_18-00-00_artist-show-flow"
+  ],
   "steps": [
     {
       "id": "1",
@@ -23,7 +25,7 @@
           "auto_verified": true
         }
       ],
-      "status": "done",
+      "status": "completed",
       "sub_plan": {
         "description": "Backend loopback WebSocket for stream testing",
         "steps": [
@@ -41,16 +43,18 @@
                 "auto_verified": true
               }
             ],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           },
           {
             "id": "1.2",
             "agent": "@axum-backend",
             "task": "Implement playback logic: on 'play' command, iterate buffered chunks sending each as Binary frame with tokio::time::sleep(Duration::from_millis(250)) between them. Send 'playback-start' text before first chunk, 'playback-done' after last.",
-            "dependencies": ["1.1"],
+            "dependencies": [
+              "1.1"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {
               "notes": "250ms matches the capture chunk interval in useAudioCapture.ts (MediaRecorder timeslice=250ms). Buffer ~40 chunks for 10 seconds."
             }
@@ -59,18 +63,23 @@
             "id": "1.3",
             "agent": "@axum-backend",
             "task": "Register module in handlers/mod.rs (pub mod stream_test_ws) and add route GET /ws/stream-test → stream_test_ws_handler in main.rs alongside existing /ws/stream route.",
-            "dependencies": ["1.1"],
+            "dependencies": [
+              "1.1"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           },
           {
             "id": "1.4",
             "agent": "@axum-backend",
             "task": "Run cargo check and cargo test to verify compilation. Fix any issues.",
-            "dependencies": ["1.2", "1.3"],
+            "dependencies": [
+              "1.2",
+              "1.3"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           }
         ]
@@ -89,7 +98,9 @@
       "id": "2",
       "agent": "@vue-frontend",
       "task": "Create useStreamTest composable for the test stream sub-step. Connects to /ws/stream-test WebSocket, sends audio chunks from useAudioCapture, plays back received audio.",
-      "dependencies": ["1"],
+      "dependencies": [
+        "1"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -99,7 +110,7 @@
           "auto_verified": true
         }
       ],
-      "status": "done",
+      "status": "completed",
       "sub_plan": {
         "description": "Frontend composable for stream test loopback",
         "steps": [
@@ -117,25 +128,29 @@
                 "auto_verified": true
               }
             ],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           },
           {
             "id": "2.2",
             "agent": "@vue-frontend",
             "task": "Implement startTest(): start useAudioCapture recording, wire onData to send binary chunks via WebSocket, after 10 seconds stop recording and send 'play' text command. Transition state: idle→recording→waiting.",
-            "dependencies": ["2.1"],
+            "dependencies": [
+              "2.1"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           },
           {
             "id": "2.3",
             "agent": "@streaming-media",
             "task": "Implement playback: on 'playback-start' message, collect incoming Binary frames. Decode WebM/Opus chunks via AudioContext.decodeAudioData() and play via AudioBufferSourceNode. On 'playback-done', transition state to 'done'. Handle decode errors gracefully.",
-            "dependencies": ["2.2"],
+            "dependencies": [
+              "2.2"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {
               "notes": "Playback decoding delegated to consumer via onPlaybackData callback. The composable provides the chunks; the UI component (FlowLive.vue B.3) will handle MediaSource or AudioContext playback."
             }
@@ -163,7 +178,7 @@
           "auto_verified": true
         }
       ],
-      "status": "done",
+      "status": "completed",
       "sub_plan": {
         "description": "Extend flow composable for merged flow",
         "steps": [
@@ -173,25 +188,29 @@
             "task": "Add 'waiting' | 'streaming' to FlowStep type union. Add new refs: liveSubStep ('os-select'|'tutorial'|'test'), liveTestPassed (boolean), selectedOs ('windows'|'macos'|'linux'|null).",
             "dependencies": [],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           },
           {
             "id": "3.2",
             "agent": "@vue-frontend",
             "task": "Update canNavigateTo(): 'waiting' requires (isConfirmed && uploadMode==='prerecorded') || (uploadMode==='live' && liveTestPassed). 'streaming' requires canNavigateTo('waiting'). Keep existing 'live' logic.",
-            "dependencies": ["3.1"],
+            "dependencies": [
+              "3.1"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           },
           {
             "id": "3.3",
             "agent": "@vue-frontend",
             "task": "Add setLiveTestPassed(), setLiveSubStep(), setSelectedOs() actions. Export all new refs and actions from useHostFlow().",
-            "dependencies": ["3.1"],
+            "dependencies": [
+              "3.1"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           }
         ]
@@ -206,7 +225,9 @@
       "id": "4",
       "agent": "@vue-frontend",
       "task": "Add FlowWaiting and FlowStreaming routes in router.ts. Add child routes: { path: 'waiting', component: FlowWaiting } and { path: 'streaming', component: FlowStreaming } under the /stream parent.",
-      "dependencies": ["3"],
+      "dependencies": [
+        "3"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -216,7 +237,7 @@
           "auto_verified": true
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "references": [
           "source/frontend/src/admin/router.ts L68-L80 (existing flow routes)"
@@ -227,7 +248,9 @@
       "id": "5",
       "agent": "@vue-frontend",
       "task": "Update FlowLayout.vue progress bar to be dynamic based on uploadMode. Upload branch: Info→Mode→Upload→Confirm→Waiting→Live. Live branch: Info→Mode→Setup→Waiting→Live. Show progress bar for 'waiting' and 'streaming' steps.",
-      "dependencies": ["3"],
+      "dependencies": [
+        "3"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -237,7 +260,7 @@
           "auto_verified": true
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "decisions": [
           "Progress bar computed dynamically per branch rather than static 4-step display"
@@ -261,7 +284,7 @@
           "auto_verified": true
         }
       ],
-      "status": "done",
+      "status": "completed",
       "knowledge": {
         "references": [
           "source/frontend/src/admin/pages/flow/FlowSelectMode.vue L34-L42 (disabled live card)"
@@ -272,7 +295,10 @@
       "id": "7",
       "agent": "@vue-frontend",
       "task": "Rewrite FlowLive.vue as multi-sub-step wizard for B.1–B.3 only (OS selection, tutorial, test stream). Internal liveStep ref: 'os-select'|'tutorial'|'test'. Back navigation available from B.1–B.2, locked during active test.",
-      "dependencies": ["2", "3"],
+      "dependencies": [
+        "2",
+        "3"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -299,7 +325,9 @@
             "id": "7.2",
             "agent": "@vue-frontend",
             "task": "B.2 — Streaming Tutorial sub-step: Content varies by selectedOs. macOS: BlackHole install guide + external audio section (reuse text from StreamPage.vue L251-258). Windows: screen share audio via getDisplayMedia. Linux: PulseAudio/PipeWire monitor source. Audio device dropdown using useAudioCapture.refreshDevices()+devices. 'Select & Continue →' once device captured. '← Back' to OS selection.",
-            "dependencies": ["7.1"],
+            "dependencies": [
+              "7.1"
+            ],
             "artifacts": [],
             "status": "pending",
             "knowledge": {
@@ -313,9 +341,11 @@
             "id": "7.3",
             "agent": "@vue-frontend",
             "task": "B.3 — Test Stream sub-step: Uses useStreamTest composable. 'Start Test' button → 10s capture+send → 'Listening...' → playback. Audio level meter via useAudioMeter during capture. 'Test passed ✓'/'Try Again' result buttons. On pass: flow.setLiveTestPassed(), 'Continue →' navigates to router.push('/stream/waiting'). '← Back' to tutorial (only before/after test).",
-            "dependencies": ["7.2"],
+            "dependencies": [
+              "7.2"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           }
         ]
@@ -330,7 +360,9 @@
       "id": "8",
       "agent": "@vue-frontend",
       "task": "Update FlowConfirm.vue: replace pre-listen placeholder with functional AudioPlayer.vue (WaveSurfer.js waveform player) fed by flow.prerecordedUrl. After confirming, show 'Continue to Waiting Room →' button navigating to /stream/waiting instead of static 'You're all set' message.",
-      "dependencies": ["3"],
+      "dependencies": [
+        "3"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -340,13 +372,16 @@
           "auto_verified": true
         }
       ],
-      "status": "done",
+      "status": "completed"
     },
     {
       "id": "9",
       "agent": "@vue-frontend",
       "task": "Create FlowWaiting.vue — shared waiting room page for both upload and live branches. Countdown to show.start_time + show.date (Europe/Berlin). Alert states at 1min (yellow pulse) and 10sec (red pulse + audible beep). 'Go Live'/'Start Show' button enabled at countdown=0. No back button.",
-      "dependencies": ["3", "4"],
+      "dependencies": [
+        "3",
+        "4"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -356,7 +391,7 @@
           "auto_verified": true
         }
       ],
-      "status": "done",
+      "status": "completed",
       "sub_plan": {
         "description": "Shared waiting room with countdown and mode-specific behavior",
         "steps": [
@@ -374,34 +409,40 @@
                 "auto_verified": true
               }
             ],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           },
           {
             "id": "9.2",
             "agent": "@vue-frontend",
             "task": "Add alert states: normal display, 1-minute warning (yellow pulse CSS animation), 10-second warning (red pulse + audible beep via AudioContext oscillator). Beep plays once per second in final 10s.",
-            "dependencies": ["9.1"],
+            "dependencies": [
+              "9.1"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           },
           {
             "id": "9.3",
             "agent": "@vue-frontend",
             "task": "Add mode-specific sections. Live mode: audio device status indicator (green=capturing, red=lost) — useAudioCapture keeps running from test step. Upload mode: passive 'Your set is ready' message. 'Go Live'/'Start Show' button enabled when countdown ≤ 0.",
-            "dependencies": ["9.1"],
+            "dependencies": [
+              "9.1"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           },
           {
             "id": "9.4",
             "agent": "@streaming-media",
             "task": "On 'Go Live' button press for live mode: connect useStreamSocket, wire useAudioCapture.onData → streamSocket.send(), transition to /stream/streaming. For upload mode: just navigate to /stream/streaming (backend/admin handles playback).",
-            "dependencies": ["9.3"],
+            "dependencies": [
+              "9.3"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {
               "references": [
                 "source/frontend/src/admin/pages/StreamPage.vue L25-L34 (onData→send wiring pattern)"
@@ -422,7 +463,10 @@
       "id": "10",
       "agent": "@vue-frontend",
       "task": "Create FlowStreaming.vue — shared streaming room placeholder for both branches. Adapts UI based on flow.uploadMode. Common: status dot, elapsed timer, show info, placeholder panels for future features. Live: level meter, volume slider, stop button. Upload: passive monitoring.",
-      "dependencies": ["3", "4"],
+      "dependencies": [
+        "3",
+        "4"
+      ],
       "artifacts": [
         {
           "type": "file",
@@ -432,7 +476,7 @@
           "auto_verified": true
         }
       ],
-      "status": "done",
+      "status": "completed",
       "sub_plan": {
         "description": "Shared streaming room with mode-adaptive UI",
         "steps": [
@@ -450,34 +494,40 @@
                 "auto_verified": true
               }
             ],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           },
           {
             "id": "10.2",
             "agent": "@streaming-media",
             "task": "Live mode additions: audio level meter (useAudioMeter), volume slider (useAudioCapture.setInputVolume()), 'Stop Streaming' button → streamSocket.disconnect() + audioCapture.stopCapture(). Show stream ended confirmation on disconnect.",
-            "dependencies": ["10.1"],
+            "dependencies": [
+              "10.1"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           },
           {
             "id": "10.3",
             "agent": "@vue-frontend",
             "task": "Upload (pre-recorded) mode: 'Your set is playing' status message, stream monitoring via streamApi.status() polling (5s interval), no active controls. Show info about current playback state.",
-            "dependencies": ["10.1"],
+            "dependencies": [
+              "10.1"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           },
           {
             "id": "10.4",
             "agent": "@vue-frontend",
             "task": "Add greyed-out placeholder panels for future features: listener count, audio quality dashboard, live chat. Each shows 'Coming soon' label. On stream end: 'Stream ended' confirmation with option to return to show info.",
-            "dependencies": ["10.1"],
+            "dependencies": [
+              "10.1"
+            ],
             "artifacts": [],
-            "status": "done",
+            "status": "completed",
             "knowledge": {}
           }
         ]
@@ -497,16 +547,26 @@
       "id": "11",
       "agent": "@vue-frontend",
       "task": "Frontend build verification: npm run build + npm run test. Fix any TypeScript errors, import issues, or test failures introduced by the new/updated files.",
-      "dependencies": ["4", "5", "6", "7", "8", "9", "10"],
+      "dependencies": [
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10"
+      ],
       "artifacts": [],
-      "status": "done",
+      "status": "completed",
       "knowledge": {}
     },
     {
       "id": "12",
       "agent": "@vue-frontend",
       "task": "End-to-end manual verification. Test both branches: (A) Upload: Info→Mode→Upload→Confirm (pre-listen audio)→Confirm→Waiting→Streaming (passive). (B) Live: Info→Mode→Live→OS Select→Tutorial→device select→Test Stream (verify loopback audio)→Waiting→Go Live→Streaming (active). Verify back nav works from B.1/B.2 but not waiting room. Verify progress bar updates per branch.",
-      "dependencies": ["11"],
+      "dependencies": [
+        "11"
+      ],
       "artifacts": [
         {
           "type": "manual",
