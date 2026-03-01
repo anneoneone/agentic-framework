@@ -228,6 +228,89 @@ def validate_plan(plan: dict) -> list[str]:
     return errors
 
 
+def resolve_context_sources(
+    sources: list[dict], plan: dict, root: Path
+) -> list[dict]:
+    """Resolve context_needed entries to actual content.
+
+    Supports types: file, knowledge, plan_output.
+    Returns list of resolved context items with content.
+    """
+    resolved = []
+    stack = plan.get("stack", "")
+
+    for source in sources:
+        src_type = source.get("type", "")
+        result = {"type": src_type, "reason": source.get("reason", "")}
+
+        if src_type == "file":
+            file_path = root / ".." / "stacks" / stack / source.get("path", "")
+            if not file_path.exists():
+                # Try relative to copilot-agents root
+                file_path = root / source.get("path", "")
+            try:
+                content = file_path.read_text()
+                # Truncate to 2000 chars for token efficiency
+                if len(content) > 2000:
+                    content = content[:2000] + f"\n... [truncated, {len(content)} chars total]"
+                result["content"] = content
+                result["path"] = source.get("path", "")
+                result["tokens_est"] = len(content.split()) * 1.3  # rough estimate
+            except Exception as e:
+                result["error"] = f"Could not read {source.get('path')}: {e}"
+
+        elif src_type == "knowledge":
+            # Search knowledge files using simple grep (MCP not available in script)
+            query = source.get("query", "")
+            knowledge_dir = root / "stacks" / stack / "docs" / "knowledge"
+            matches = []
+            if knowledge_dir.exists():
+                for kfile in knowledge_dir.rglob("*.jsonl"):
+                    try:
+                        for line in kfile.read_text().splitlines():
+                            if query.lower() in line.lower():
+                                matches.append(line.strip())
+                                if len(matches) >= 5:
+                                    break
+                    except Exception:
+                        pass
+                    if len(matches) >= 5:
+                        break
+            result["content"] = "\n".join(matches) if matches else f"No results for: {query}"
+            result["matches"] = len(matches)
+            result["tokens_est"] = sum(len(m.split()) for m in matches) * 1.3
+
+        elif src_type == "plan_output":
+            step_id = source.get("step_id", "")
+            flat = flatten_steps(plan.get("steps", []))
+            target = next((s for s in flat if s["id"] == step_id), None)
+            if target and target.get("output"):
+                result["content"] = json.dumps(target["output"], indent=2)
+                result["tokens_est"] = len(result["content"].split()) * 1.3
+            else:
+                result["error"] = f"Step {step_id} has no output yet"
+
+        elif src_type == "mcp_query":
+            result["content"] = f"[MCP query deferred: {source.get('query', '')} via {source.get('source', 'unknown')}]"
+            result["tokens_est"] = 0
+
+        resolved.append(result)
+
+    return resolved
+
+
+def display_context_summary(step: dict, resolved: list[dict]):
+    """Display resolved context summary for a step."""
+    if not resolved:
+        return
+    total_tokens = sum(r.get("tokens_est", 0) for r in resolved)
+    print(f"     Context ({len(resolved)} sources, ~{int(total_tokens)} tokens):")
+    for r in resolved:
+        status = "✅" if "content" in r else "❌"
+        reason = r.get("reason", "")[:40]
+        print(f"       {status} {r['type']}: {reason}")
+
+
 def generate_batch_request(step: dict, plan: dict) -> dict:
     """Generate an Anthropic Batch API request for a single step."""
     batch_config = plan.get("batch_config", {}) or {}
@@ -299,6 +382,33 @@ def main():
     schedule.critical_path = identify_critical_path(plan["steps"])
 
     schedule.display()
+
+    # Resolve context if requested
+    if "--context" in sys.argv:
+        print(f"\n── Context Resolution ──")
+        root = plan_path.parent.parent.parent.parent  # Navigate up to copilot-agents/
+        flat = flatten_steps(plan["steps"])
+
+        # Plan-level context
+        plan_ctx = plan.get("context_sources", [])
+        if plan_ctx:
+            resolved = resolve_context_sources(plan_ctx, plan, root)
+            total_tokens = sum(r.get("tokens_est", 0) for r in resolved)
+            print(f"\n  Plan-level context ({len(plan_ctx)} sources, ~{int(total_tokens)} tokens):")
+            for r in resolved:
+                status = "✅" if "content" in r else "❌"
+                print(f"    {status} {r['type']}: {r.get('reason', r.get('path', ''))[:60]}")
+
+        # Step-level context
+        for step in flat:
+            step_ctx = step.get("context_needed", [])
+            if step_ctx:
+                resolved = resolve_context_sources(step_ctx, plan, root)
+                total_tokens = sum(r.get("tokens_est", 0) for r in resolved)
+                print(f"\n  Step {step['id']} context ({len(step_ctx)} sources, ~{int(total_tokens)} tokens):")
+                for r in resolved:
+                    status = "✅" if "content" in r else "❌"
+                    print(f"    {status} {r['type']}: {r.get('reason', r.get('path', ''))[:60]}")
 
     # For batch mode, show request structure
     if mode == "batch":

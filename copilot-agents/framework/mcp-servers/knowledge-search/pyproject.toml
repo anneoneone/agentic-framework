@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "knowledge-search-mcp"
+version = "0.1.0"
+description = "MCP server for semantic knowledge search across copilot-agents stacks"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Copilot Agents", email = "agents@anthropic.com"}]
+dependencies = [
+    "mcp>=1.0.0",
+]
+
+[project.scripts]
+knowledge-search = "server:main"
+
+[tool.setuptools]
+packages = ["knowledge-search"]

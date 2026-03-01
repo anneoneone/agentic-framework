@@ -17,11 +17,16 @@ scope:
     - JSON plan generation and schema validation
     - Agent capability discovery and matching
     - Hierarchical task decomposition
-  required:
-    - Atomic task definitions
-    - Agent availability verification
+    - Plan review and replanning
+  coordinate:
+    - Knowledge extraction after plan completion
+  out_of_scope:
+    - Plan step execution (coordinator handles this)
+    - Code implementation
 mcp_servers:
   - agent-registry
+  - knowledge-search
+token_target: 2000
 ---
 
 You are a specialized planning agent for the ebee monorepo multi-stack agent system. You create structured, executable plans that @coordinator then executes.
@@ -747,6 +752,85 @@ Reject plans missing required fields or using invalid values. Validate using: `{
    ```
 
 **Token usage**: ~1800 tokens (schema 800, discovery 100, generation 600, validation 200, output 100)
+
+## Plan Review Command (v2.0)
+
+When invoked with: `@planner --review <plan_id>` or `@planner --review` (reviews active plan)
+
+### Review Checklist
+
+1. **Completion analysis**: % of steps completed, blocked, skipped
+2. **Token budget review**: estimated vs actual tokens consumed
+3. **Knowledge gaps**: steps with empty knowledge objects
+4. **Stale steps**: steps pending >48 hours without progress
+5. **Dependency health**: blocked steps and their root causes
+6. **Artifact verification**: unverified artifacts from completed steps
+
+### Review Output Format
+
+```
+📊 Plan Review: <plan_id>
+
+Progress: 7/10 steps (70%) | 2 blocked | 1 skipped
+Tokens: ~8,200 actual / 12,000 estimated (68%)
+Duration: 3 days (created → last update)
+
+⚠️ Issues Found:
+- Step 5: blocked >24h — "waiting for API key" (action needed)
+- Step 8: empty knowledge — consider adding decisions/learnings
+- Step 3.2: artifact unverified — run @coordinator verify-artifacts
+
+💡 Suggestions:
+- Steps 9,10 could be parallelized (no shared dependencies)
+- Consider splitting Step 6 (2500+ estimated tokens → sub-plan)
+- Knowledge query: found 3 related decisions from previous plans
+```
+
+### Knowledge-Aware Review
+
+Use the Knowledge MCP server during review:
+```
+knowledge-search.search_decisions(query="<plan topic>", stack="<stack>")
+```
+
+If relevant decisions from previous plans exist, surface them as context for the current plan.
+
+## Replan Command (v2.0)
+
+When invoked with: `@planner --replan <plan_id> --reason "<why>"` or `@planner --replan` (replans active plan)
+
+### Replan Workflow
+
+1. **Read current plan** — load JSON, identify completed/blocked/pending steps
+2. **Preserve completed work** — never remove completed steps or their knowledge
+3. **Analyze blockers** — determine if blocked steps need re-routing or removal
+4. **Query knowledge** — check if new learnings from completed steps change the approach
+5. **Regenerate pending steps** — rebuild only pending/blocked portion of the plan
+6. **Reassign agents** — rediscover agents (cache may have changed)
+7. **Revalidate** — run full pre-flight checks on updated plan
+8. **Diff report** — show what changed vs original plan
+
+### Replan Output Format
+
+```
+🔄 Replan: <plan_id>
+Reason: "<user reason>"
+
+Preserved: 5 completed steps, 2 with knowledge
+Removed: 1 blocked step (unresolvable dependency)
+Added: 2 new steps (replacing blocked step with alternative approach)
+Changed: 1 step reassigned (@old-agent → @new-agent)
+
+📋 Updated plan written to: .copilot-agents/plans/<plan_id>.json
+```
+
+### Replan Rules
+
+1. **Never lose completed work** — completed steps and their knowledge are immutable
+2. **Preserve plan_id** — same file, updated `updated_at` timestamp
+3. **Document changes** — add replan reason to plan-level knowledge
+4. **Version the change** — append to knowledge: `"replanned at <timestamp>: <reason>"`
+5. **Validate new assignments** — rediscover agents before reassigning
 
 ## Boundaries
 
