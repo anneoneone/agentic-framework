@@ -44,25 +44,50 @@ A stack represents one project (or monorepo) and contains its own domain-special
 
 ### Step 1: Analyze your project
 
-Point the analyzer at your project root. It scans the codebase for languages, frameworks, and domain patterns, then recommends which agents to generate:
+The `analyzer` meta-agent scans your codebase for languages, frameworks, dependencies, and domain patterns, then recommends which specialist agents to generate.
 
 ```bash
-# Example: analyze a Rust + Vue.js live-streaming platform
-python framework/scripts/agent-cli.py task "Analyze the codebase and recommend agents" \
+# Point the analyzer at a Rust + Vue.js live-streaming platform
+python framework/scripts/agent-cli.py invoke analyzer \
+  "Analyze ~/projects/live-moafunk and recommend agents" \
   --stack live-moafunk
 
-# Example: analyze a Raspberry Pi robotics project
-python framework/scripts/agent-cli.py task "Analyze the codebase and recommend agents" \
+# Point the analyzer at a Raspberry Pi robotics project (Python + C++)
+python framework/scripts/agent-cli.py invoke analyzer \
+  "Analyze ~/projects/gartenroboter3000 and recommend agents" \
   --stack gartenroboter3000
+```
+
+The analyzer reads project files (Cargo.toml, package.json, CMakeLists.txt, …), samples 3–5 representative source files, detects patterns (async frameworks, gRPC, state machines, etc.), and outputs a structured recommendation:
+
+```
+# Agent Recommendations for live-moafunk
+
+## Stack Analysis
+- Path:       ~/projects/live-moafunk
+- Tech Stack: Rust 1.78 (Axum 0.7), Vue 3.4 + Vite, FFmpeg 6.1, Nginx
+- Project Type: Monorepo (backend + frontend + media pipeline)
+- Key Patterns: async/await, HLS streaming, WebSocket, JWT auth
+
+## Recommended Agents
+  Priority 1: axum-backend       Rust/Axum API — routes, middleware, DB
+  Priority 2: vue-frontend        Vue 3 + Vite — components, stores, router
+  Priority 3: ffmpeg-pipeline     FFmpeg transcoding — HLS, thumbnails, probes
+  Priority 4: nginx-config        Nginx reverse proxy — TLS, WebSocket, caching
+
+## Common Agents (auto-symlinked)
+  coordinator    Cross-agent coordination and routing
+  planner        Task decomposition and plan generation
 ```
 
 ### Step 2: Generate the stack
 
-Based on the analyzer output, create the stack and its agents:
+Pass the analyzer's recommendations to the `writer` meta-agent to create the stack directory and all agent files:
 
 ```bash
 python framework/scripts/agent-cli.py invoke writer \
-  "Create stack live-moafunk with agents: axum-backend, vue-frontend, ffmpeg-pipeline, nginx-config"
+  "Create stack live-moafunk with agents: axum-backend, vue-frontend, ffmpeg-pipeline, nginx-config" \
+  --stack live-moafunk
 ```
 
 This creates the full directory structure:
@@ -110,6 +135,22 @@ python framework/scripts/agent-cli.py list --stack live-moafunk
 #     nginx-config        Nginx reverse proxy configuration
 #     coordinator         Cross-agent coordination and routing
 #     planner             Task decomposition and plan generation
+```
+
+### Step 6 (optional): Update agents later
+
+As your project evolves, re-run the analyzer to check for gaps and update existing agents:
+
+```bash
+# Re-analyze — detects new patterns (e.g., you added a Redis cache layer)
+python framework/scripts/agent-cli.py invoke analyzer \
+  "Re-analyze live-moafunk — check for new patterns since last analysis" \
+  --stack live-moafunk
+
+# Update existing agents or add new ones
+python framework/scripts/agent-cli.py invoke writer \
+  "Update stack live-moafunk: add redis-cache agent, update axum-backend scope" \
+  --stack live-moafunk
 ```
 
 Your stack agents are now ready.
