@@ -1,419 +1,192 @@
-# Custom GitHub Copilot Agents Framework
+# Copilot Agents Framework
 
-This framework provides **stack-based specialized agents** with filtered agent availability - only relevant agents appear when you open a workspace.
+A **stack-based multi-agent system** built on GitHub Copilot's `.agent.md` discovery mechanism. Each stack isolates domain-specific agents so only relevant agents appear in your workspace. The framework adds structured planning, knowledge management, and autonomous execution on top.
 
-## 🚀 Quick Start
+## Quick Start
 
-| I want to... | Workspace to open | Agents available |
-|-------------|-------------------|------------------|
-| **USE the framework** (create stacks) | `copilot-agents.code-workspace` | @analyzer, @writer |
-| **DEVELOP the framework** (maintain agents) | `stacks/meta-agents/meta-agents.code-workspace` | @meta-maintainer, @stack-validator, etc. |
+| I want to... | Do this |
+|-------------|---------|
+| **Create a new stack** | `@analyzer /path/to/project` → `@writer create-stack ...` |
+| **Plan a task** | `@coordinator plan: <task description>` |
+| **Execute a plan** | `python framework/scripts/plan-executor.py <plan.json>` |
+| **Search knowledge** | Use `knowledge-search` MCP server or `@coordinator search-knowledge <query>` |
+| **Validate agents** | `python framework/scripts/validate-agent.py --all` |
 
-See [GETTING_STARTED.md](GETTING_STARTED.md) for detailed workflows.
+See [GETTING_STARTED.md](GETTING_STARTED.md) for the full setup walkthrough.
 
-## Two Modes of Operation
+## How It Works
 
-### 🔧 USING the Framework (Start Here)
+### 1. Analyze → 2. Create Stack → 3. Plan → 4. Execute → 5. Learn
 
-**Open the main workspace:**
-```bash
-code copilot-agents.code-workspace
+```
+@analyzer scans codebase → recommends agents
+   ↓
+@writer generates stack (agents, workspace, docs)
+   ↓
+@planner creates structured JSON plan (v2.0 schema)
+   ↓
+@coordinator orchestrates execution (manual or autonomous)
+   ↓
+Knowledge auto-extracted → feeds future plans
 ```
 
-**Available agents:**
-- **@analyzer** - Analyzes your project and recommends specialized agents
-- **@writer** - Generates complete stack directories with agent definitions
+### Agent Tiers
 
-**Workflow:**
+Agents live in three tiers, each with different scope:
 
-**1. Analyze a monorepo path to get agent recommendations:**
-```
-@analyzer ${env:EBEE_MONOREPO_ROOT}/services/session_service
-```
-
-**2. Generate a complete stack with proposed agents:**
-```
-@writer create-stack stacks/session-service from ${env:EBEE_MONOREPO_ROOT}/services/session_service with agents: @session-state @transaction-lifecycle
-```
-
-**3. Open the generated workspace:**
-```bash
-code stacks/session-service/session-service.code-workspace
-```
-
-Only the 3-5 agents relevant to session-service appear in Copilot chat.
-
-### 🛠️ DEVELOPING the Framework
-
-**For maintaining/updating the framework itself:**
-```bash
-code stacks/meta-agents/meta-agents.code-workspace
-```
-
-See the [meta-agents stack README](stacks/meta-agents/README.md) for details on framework development agents.
-
-## Multi-Clone Support
-
-For working across multiple monorepo clones, point the stack-local `monorepo` symlink at the clone you want:
-
-```bash
-ln -snf "$HOME/0_git/0_ebee_meta_projects/monorepo" stacks/session-service/monorepo
-code stacks/session-service/session-service.code-workspace
-```
-
-See [docs/multi-clone-setup.md](docs/multi-clone-setup.md) for details.
+- **Stack-specific** — `stacks/STACKNAME/.github/agents/` — domain experts for one project
+- **Common** — `framework/core/common-agents/` — shared across all stacks (coordinator, gitlab, planner)
+- **Shared knowledge** — `framework/core/shared-agents/` — domain expertise reusable across stacks
+- **Meta-agents** — `framework/core/meta-agents/` — framework management (analyzer, writer)
 
 ## Repository Structure
 
 ```
-~/copilot-agents/
-├── framework/                   # 🏗️ Reusable framework components
-│   ├── core/                   # Agent storage
-│   │   ├── common-agents/      # Agents in ALL stacks (symlinked)
-│   │   │   ├── coordinator.agent.md  # Cross-stack routing
-│   │   │   └── gitlab.agent.md       # GitLab workflow
-│   │   ├── shared-agents/      # Domain knowledge (symlinked)
-│   │   │   ├── ocpp-protocol.agent.md
-│   │   │   ├── documentation.agent.md
-│   │   │   ├── etf-library.agent.md
-│   │   │   └── integration-flows.agent.md
-│   │   └── meta-agents/        # Framework-level agents
-│   │       ├── analyzer.agent.md     # Proposes stack agents
-│   │       └── writer.agent.md       # Generates stacks
-│   ├── architecture/           # Framework design docs (maintainers)
-│   │   ├── README.md
-│   │   ├── stack-architecture.md
-│   │   ├── structure.md
-│   │   ├── migration.md
-│   │   └── symlink-reference.md
-│   └── templates/              # Boilerplate and scaffolding
-│       ├── README.md
-│       └── stack-creation-template.md
-├── stacks/                      # Stack-specific directories
-│   └── STACKNAME/
-│       ├── .github/agents/       # Stack agents (discoverable)
-│       ├── docs/
-│       ├── monorepo -> /path/to/clone
-│       └── STACKNAME.code-workspace
-└── docs/                        # User guides and references
-    ├── usage-guide.md
-    ├── coordinator-usage.md
-    ├── multi-clone-setup.md
-    └── stack-map.md
+copilot-agents/
+├── framework/
+│   ├── core/
+│   │   ├── common-agents/          # @coordinator, @gitlab, @planner
+│   │   ├── shared-agents/          # @ocpp-protocol, @documentation, etc.
+│   │   ├── meta-agents/            # @analyzer, @writer
+│   │   └── guidelines/             # GENERAL_RULES.md, TOKEN_EFFICIENCY.md
+│   ├── mcp-servers/
+│   │   ├── agent-registry/         # Agent discovery and capability mapping
+│   │   ├── knowledge-search/       # TF-IDF/BM25 semantic knowledge search
+│   │   └── plan-execution/         # Autonomous step execution via Anthropic API
+│   ├── schemas/
+│   │   ├── agent-frontmatter.schema.json
+│   │   └── plan-v2.schema.json
+│   ├── scripts/                    # 12 utility scripts (see below)
+│   ├── knowledge/                  # Cross-stack knowledge index
+│   ├── cache/                      # Adaptive cache TTL configs
+│   ├── telemetry/                  # Token usage and agent scoring data
+│   ├── templates/
+│   │   └── specialist-template-v2.agent.md
+│   └── architecture/               # Design docs
+├── stacks/
+│   ├── live-moafunk/               # Music streaming app stack
+│   └── gartenroboter3000/          # Garden robot stack
+├── .github/agents/                 # Root-level agent discovery
+├── docs/                           # User guides
+│   ├── usage-guide.md
+│   ├── coordinator-usage.md
+│   ├── multi-clone-setup.md
+│   └── stack-map.md
+├── GETTING_STARTED.md
+├── TODO.md
+└── IMPLEMENTATION_CHECKLIST.md
 ```
 
-## Three-Tier Agent System
+## Core Agents
 
-1. **Stack-specific** - Stored in `stacks/STACKNAME/.github/agents/`
-2. **Common** - Stored in `framework/core/common-agents/` (optionally added per stack)
-3. **Shared knowledge** - Stored in `framework/core/shared-agents/` (optionally added per stack)
+| Agent | Role | MCP Servers |
+|-------|------|-------------|
+| `@analyzer` | Scans codebases, recommends agents | agent-registry |
+| `@writer` | Generates complete stacks | filesystem, agent-registry |
+| `@planner` | Creates v2.0 JSON plans with parallel groups | agent-registry, knowledge-search, plan-execution |
+| `@coordinator` | Routes tasks, executes plans, tracks progress | agent-registry, plan-execution |
+| `@gitlab` | GitLab workflow, commits, MRs | — |
 
-## Migrating Old Workspace Files
+## MCP Servers
 
-Legacy workspace files in `workspaces/` still use the old structure. To migrate:
+Three custom MCP servers power the framework's automation layer:
 
-1. Use `@analyzer` on the monorepo path
-2. Use `@writer` with recommended agents
-3. Archive old workspace file
+**Agent Registry** — Agent discovery and capability mapping (5 tools: `list_agents`, `get_agent`, `find_agents_for_task`, `validate_agent`, `get_capability_map`). Keyword scoring with 24h TTL cache.
 
-Agents available:
-- `@meta-analyzer`, `@meta-writer`, `@coordinator`
-- Future: `@docs-architect`, `@markdown-expert`
+**Knowledge Search** — Semantic search over accumulated knowledge using TF-IDF/BM25 (6 tools: `search_knowledge`, `get_knowledge_entry`, `list_knowledge_files`, `search_decisions`, `search_cross_stack`, `resolve_context`). No external vector DB required.
 
-## How Agents Work
+**Plan Execution** — Autonomous plan step execution via Anthropic Messages and Batch APIs (6 tools: `execute_step`, `execute_wave`, `get_execution_schedule`, `get_execution_status`, `resume_execution`, `validate_plan_for_execution`). Includes human approval gates for critical steps.
 
-### Meta-Agents (Available in all workspaces)
+## Scripts
 
-**@meta-analyzer** - Analyzes your project and recommends specialized agents
-- Auto-search mode: Reads files, detects patterns, proposes agents
-- Manual input mode: Asks you about your needs
+| Script | Purpose |
+|--------|---------|
+| `validate-agent.py` | Validate all agents against frontmatter schema |
+| `plan-executor.py` | Execute plans (sequential, batch, or dry-run) |
+| `extract-knowledge.py` | Extract decisions/learnings from completed plans |
+| `build-knowledge-index.py` | Build cross-stack knowledge index |
+| `compress-knowledge.py` | Compress old knowledge into hierarchical summaries |
+| `post-step-hook.py` | Auto-extract knowledge after each step completion |
+| `migrate-plans-v2.py` | Migrate plans from v1.1 to v2.0 schema |
+| `token-telemetry.py` | Track and report token usage per agent/step |
+| `agent-scoring.py` | Score agent performance (success, efficiency, speed) |
+| `adaptive-cache.py` | Tune MCP cache TTLs based on change frequency |
+| `cross-stack-orchestrator.py` | Coordinate plan execution across stacks |
+| `normalize-plan-status.py` | Normalize plan status values |
 
-**@meta-writer** - Generates complete agent definition files
-- Takes agent specs from @meta-analyzer or user requirements
-- Creates production-ready `.md` files following best practices
-- Includes commands, examples, boundaries
+## Plan Schema v2.0
 
-**@coordinator** - Routes questions across stacks
-- Knows which specialist handles what domain
-- Provides workspace switching instructions
-- Formats cross-stack queries
+Plans are structured JSON files with hierarchical task decomposition:
 
-### Creating Your First Specialist Agent
-
-**Step 1: Analyze**
-```
-@meta-analyzer --auto-search
-```
-
-Example output:
-```markdown
-# Recommended Agents for OCPP20
-
-1. @rust-expert - General Rust patterns
-2. @async-tokio - Tokio runtime, cancellation safety
-3. @ocpp-protocol - OCPP 2.0 state machines
-4. @grpc-integration - tonic RPC services
-```
-
-**Step 2: Generate**
-```
-@meta-writer generate @async-tokio agent for Rust with tokio expertise
-```
-
-**Step 3: Save**
-Save the output to `.github/agents/async-tokio.agent.md`
-
-**Step 4: Use**
-```
-@async-tokio how do I handle cancellation in a select! block?
+```json
+{
+  "schema_version": "2.0",
+  "plan_id": "2026-03-01_14-30-00_add-feature",
+  "stack": "live-moafunk",
+  "execution_mode": "parallel",
+  "steps": [
+    {
+      "id": "1",
+      "agent": "@rust-expert",
+      "task": "Implement WebSocket handler",
+      "dependencies": [],
+      "parallel_group": "A",
+      "priority": "high",
+      "estimated_tokens": 2000,
+      "context_needed": [{"type": "knowledge", "query": "websocket patterns"}],
+      "mcp_tools": ["filesystem"],
+      "status": "pending"
+    }
+  ]
+}
 ```
 
-## Cross-Stack Coordination
+Key v2.0 features: parallel execution groups, priority-based scheduling, token budgeting, context resolution, step output capture, and Batch API support.
 
-When working across stacks, agents delegate to each other:
+## Creating a Stack
 
-**Example: Adding a feature spanning Rust + Python**
+```
+# 1. Analyze your project
+@analyzer /path/to/your/project
 
-1. Open `rust-ebee.code-workspace`
-2. Ask `@coordinator I need to add diagnostics in Rust and test it in Python`
-3. Follow the step-by-step routing:
-   - `@grpc-integration` defines the protobuf
-   - `@async-tokio` implements the service
-   - Switch to `python-test.code-workspace`
-   - `@pytest-integration` creates integration tests
+# 2. Generate the stack
+@writer create-stack stacks/my-stack from /path with agents: @agent1, @agent2
 
-Agents reference `shared-context.md` for common protocols, message formats, and interfaces.
+# 3. Open the workspace
+code stacks/my-stack/my-stack.code-workspace
 
-## Best Practices from 2,500+ Repositories
+# 4. Validate
+python framework/scripts/validate-agent.py --stack my-stack
+```
 
-This agent library follows proven patterns:
+## Multi-Clone Support
 
-✅ **Specialists over generalists** - Each agent has a focused role
-✅ **Commands early** - Executable commands with flags
-✅ **Code examples over descriptions** - Real snippets showing patterns
-✅ **Three-tier boundaries** - Always/Ask/Never prevents accidents
-✅ **Specific stack details** - Exact versions and dependencies
+Each stack has a `monorepo` symlink pointing at the active clone. Switch clones with:
 
-❌ **Avoid vague helpers** - No "helpful coding assistant" agents
-❌ **No abstract descriptions** - Always include concrete examples
-❌ **Never skip boundaries** - Define what agents should never touch
+```bash
+ln -snf /path/to/other/clone stacks/my-stack/monorepo
+```
 
-## Shared Context
+See [docs/multi-clone-setup.md](docs/multi-clone-setup.md) for details.
 
-All agents read `shared-context.md` for:
-- ebee monorepo structure
-- Cross-stack code style rules (from `/monorepo/AGENTS.md`)
-- Protobuf/gRPC interfaces
-- OCPP 2.0 domain knowledge
-- Actor pattern conventions
-- Build commands per stack
+## Knowledge System
 
-## Git Integration
+The framework automatically captures and indexes knowledge from plan execution:
 
-This repository is separate from the ebee monorepo:
-- **ebee monorepo**: `/home/anton.kress/0_git/0_ebee_meta_projects/monorepo/`
-- **Agent library**: `~/copilot-agents/` (this repository)
-
-Agents cannot modify the ebee monorepo's `.gitignore`, workspace files, or `.github/` directory.
-
-Workspace files in this repository reference monorepo paths, allowing agents to work with code while staying outside the monorepo's git control.
-
-## Next Steps
-
-### Immediate
-1. ✅ Meta-agents created (analyzer, writer, coordinator)
-2. ✅ Workspace files created for each stack
-3. ✅ Shared context documented
-
-### To generate
-1. Open `rust-ebee.code-workspace`
-2. Run `@meta-analyzer` to get recommendations
-3. Use `@meta-writer` to generate recommended agents
-4. Save agents to `.github/agents/`
-
-### Recommended first agents
-- `@rust-expert` - Rust ownership, traits, error handling
-- `@async-tokio` - Async patterns, cancellation safety
-- `@ocpp-protocol` - OCPP 2.0 domain knowledge
-- `@pytest-integration` - Python integration testing
+- **Extraction**: Decisions, learnings, blockers, and notes are pulled from completed plan steps
+- **Indexing**: Cross-stack JSONL index with TF-IDF search (no external dependencies)
+- **Compression**: Old knowledge is grouped by topic and compressed into hierarchical summaries
+- **Integration**: Plans reference knowledge via `context_needed` fields, resolved at execution time
 
 ## Learn More
 
-### User Guides (docs/)
+- [GETTING_STARTED.md](GETTING_STARTED.md) — Setup walkthrough and first steps
+- [docs/usage-guide.md](docs/usage-guide.md) — Agent usage patterns and workflows
+- [docs/coordinator-usage.md](docs/coordinator-usage.md) — Cross-stack coordination guide
+- [framework/architecture/stack-architecture.md](framework/architecture/stack-architecture.md) — Architecture overview
+- [TODO.md](TODO.md) — Implementation history (Phases 1-5 complete)
 
-- [docs/usage-guide.md](docs/usage-guide.md) - Agent usage patterns and workflows
-- [docs/coordinator-usage.md](docs/coordinator-usage.md) - Cross-stack coordination guide
-- [docs/multi-clone-setup.md](docs/multi-clone-setup.md) - Multi-clone configuration
-- [docs/stack-map.md](docs/stack-map.md) - Monorepo structure reference
-
-### Architecture Documentation (architecture/)
-
-- [architecture/stack-architecture.md](architecture/stack-architecture.md) - Complete architecture overview
-- [architecture/structure.md](architecture/structure.md) - Repository structure details
-- [architecture/migration.md](architecture/migration.md) - Migration guides and patterns
-- [architecture/symlink-reference.md](architecture/symlink-reference.md) - Symlink quick reference
-- [architecture/README.md](architecture/README.md) - Navigation guide for maintainers
-
-### Templates and Boilerplate (templates/)
-
-- [templates/stack-creation-template.md](templates/stack-creation-template.md) - Template for new stacks
-- [templates/README.md](templates/README.md) - Template usage conventions
-
-### Additional Resources
-
-
-- [GitHub Blog: How to write a great agents.md](https://github.blog/ai-and-ml/github-copilot/how-to-write-a-great-agents-md-lessons-from-over-2500-repositories/)
-- [shared-context.md](.github/agents/shared-context.md) - ebee-specific knowledge
 ## License
 
 SPDX-License-Identifier: LicenseRef-ebee-proprietary
 Copyright: Bender Industries GmbH & co. KG and affiliates
-
----
-
-## Stack Creation Flow (Complete Process)
-
-This section clarifies the **full lifecycle** of creating a new stack, ensuring agents are properly discoverable.
-
-### Step 1: Analyze the Target Codebase
-
-```bash
-@analyzer ${env:EBEE_MONOREPO_ROOT}/path/to/service
-```
-
-The analyzer examines the codebase and outputs a complete `@writer` command with recommended agents.
-
-### Step 2: Execute Stack Creation
-
-Execute the command provided by analyzer:
-
-```bash
-@writer create-stack stacks/my-stack from /path/to/service with agents: @agent1, @agent2, @agent3
-```
-
-### Step 3: Execute Generated Commands
-
-The @writer outputs shell commands. Execute them:
-
-```bash
-# Create directory structure
-mkdir -p stacks/my-stack/{.github/agents,docs}
-
-# Create agent files (examples provided)
-cat > stacks/my-stack/.github/agents/agent1.agent.md << 'AGENT'
-# ... agent content ...
-AGENT
-
-# Create stack-local monorepo symlink (stable workspace paths)
-ln -s "${EBEE_MONOREPO_ROOT}" stacks/my-stack/monorepo
-
-# Create workspace file
-cat > ~/copilot-agents/stacks/my-stack/my-stack.code-workspace << 'WS'
-{
-  "folders": [
-    {
-      "name": "🤖 Agents (my-stack)",
-      "path": ".github/agents"
-    },
-    {
-      "name": "📦 Service Code",
-      "path": "monorepo/path/to/service"
-    },
-    {
-      "name": "📚 Stack (my-stack)",
-      "path": "."
-    }
-  ]
-}
-WS
-
-# Create documentation
-cat > stacks/my-stack/README.md << 'README'
-# My Stack
-...
-README
-
-cat > stacks/my-stack/docs/SHARED_KNOWLEDGE.md << 'SHARED'
-# Shared Knowledge
-...
-SHARED
-```
-
-### Step 4: Verify and Open Workspace
-
-```bash
-# Verify agents exist
-ls -la stacks/my-stack/.github/agents/ | grep agent1
-
-# Open the workspace
-code ~/copilot-agents/stacks/my-stack/my-stack.code-workspace
-```
-
-### Step 5: Confirm Agents Are Discoverable
-
-In VS Code with the workspace open:
-1. Open Copilot chat (@)
-2. Type `@agent1` - should autocomplete
-3. Type `@gitlab` - should show common agent
-4. Type `@ocpp-protocol` - should show shared agent
-
-If agents don't appear, troubleshoot:
-- [ ] Agent files exist: `ls -la stacks/my-stack/.github/agents/`
-- [ ] Workspace includes stack root `.` and `.github/agents`
-- [ ] `stacks/my-stack/monorepo` symlink points to the correct clone
-
-## FAQ: Symlinks and Discovery
-
-**Q: Do I need symlinks for agents?**
-A: No. Store agents directly in `stacks/STACKNAME/.github/agents/`.
-
-**Q: Can I use local `agents/` folder?**
-A: Only if it is `.github/agents/` under a workspace folder root. We standardize on `stacks/STACKNAME/.github/agents/`.
-
-**Q: What if I have multiple monorepo clones?**
-A: Point `stacks/STACKNAME/monorepo` at the clone you want to work on (update with `ln -snf /path/to/clone stacks/STACKNAME/monorepo`).
-
-**Q: How do I make agents stack-specific?**
-A: Store them in `stacks/STACKNAME/agents/`. Only symlink them in the monorepo if you want that stack to use them. Other stacks won't have symlinks, so agents won't appear in their workspaces.
-
-**Q: Can I symlink agents from one stack to another?**
-A: Yes! If two stacks share agents, symlink the same agent in both stack directories. It's still one source file, multiple discovery paths.
-
-## Troubleshooting
-
-### Agents not appearing in Copilot chat
-
-**Check 1: Agent files exist**
-```bash
-ls -la stacks/my-stack/.github/agents/
-```
-
-**Check 2: Workspace paths are relative**
-```bash
-cat stacks/my-stack/my-stack.code-workspace | grep -E '"path": "\.github/agents"|"path": "monorepo/'
-```
-
-**Check 3: `monorepo/` symlink points to the correct clone**
-```bash
-ls -la stacks/my-stack/monorepo
-```
-
-**Check 4: Reload VS Code**
-- Command Palette → "Developer: Reload Window"
-
-### Symlink creation failed
-
-**Issue: "monorepo symlink not found"**
-```bash
-ln -snf "${EBEE_MONOREPO_ROOT}" stacks/my-stack/monorepo
-```
-
-## References
-
-> For complete documentation navigation, see the [Learn More](#learn-more) section above.
-
-
-- [architecture/stack-architecture.md](architecture/stack-architecture.md) - Complete architecture overview
-- [templates/stack-creation-template.md](templates/stack-creation-template.md) - Template for new stacks
-- [writer.agent.md](writer.agent.md) - Meta-agent that generates stacks
-- [analyzer.agent.md](analyzer.agent.md) - Meta-agent that analyzes codebases

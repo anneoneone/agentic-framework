@@ -1,121 +1,247 @@
-# Getting Started with Copilot Agents Framework
+# Getting Started
 
-## Which Workspace Should I Open?
+## Prerequisites
 
-### 🔧 I want to USE the framework (create new stacks)
+- VS Code with GitHub Copilot extension
+- Python 3.10+ (for framework scripts and MCP servers)
+- Optional: `ANTHROPIC_API_KEY` environment variable (for autonomous plan execution)
+
+## 1. Choose Your Workspace
+
+### Creating stacks (most users)
+
+Open the main workspace to access `@analyzer` and `@writer`:
 
 ```bash
 code copilot-agents.code-workspace
 ```
 
-**Agents available:**
-- `@analyzer` - Analyze code and recommend agents
-- `@writer` - Generate complete stack directories
+### Working within a stack
 
-**Use case:** Creating specialized agent stacks for your projects
-
----
-
-### 🛠️ I want to DEVELOP the framework (maintain agents)
+Open a stack workspace for domain-specific agents:
 
 ```bash
-code stacks/meta-agents/meta-agents.code-workspace
+code stacks/live-moafunk/live-moafunk.code-workspace
 ```
 
-**Agents available:**
-- `@meta-maintainer` - Update framework components
-- `@stack-validator` - Validate stack integrity
-- `@template-generator` - Create agent templates
-- `@migration-assistant` - Migrate legacy patterns
-- `@documentation-syncer` - Sync documentation
-- `@coordinator` - Route between agents
-- `@gitlab` - GitLab workflows
+Only agents relevant to that stack appear in Copilot chat.
 
-**Use case:** Maintaining the agent framework itself
+## 2. Create Your First Stack
 
----
+### Step 1: Analyze your project
 
-## Quick Workflow Examples
+```
+@analyzer /path/to/your/project
+```
 
-### Creating a New Stack (USING)
+The analyzer scans the codebase, detects patterns (languages, frameworks, domain concepts), and outputs a `@writer` command with recommended agents.
 
-1. Open `copilot-agents.code-workspace`
-2. Analyze your code:
-   ```
-   @analyzer /path/to/your/project
-   ```
-3. Generate stack:
-   ```
-   @writer create-stack stacks/my-stack from /path with agents: @agent1, @agent2
-   ```
-4. Open the new stack workspace
+### Step 2: Generate the stack
 
-### Updating Framework Agents (DEVELOPING)
+Execute the command from the analyzer output:
 
-1. Open `stacks/meta-agents/meta-agents.code-workspace`
-2. Make changes:
-   ```
-   @meta-maintainer update @coordinator to version 1.2 across all stacks
-   ```
-3. Validate:
-   ```
-   @stack-validator check all stacks
-   ```
+```
+@writer create-stack stacks/my-stack from /path/to/project with agents: @agent1, @agent2
+```
 
----
+This creates the full directory structure: agents, workspace file, docs, and knowledge directory.
+
+### Step 3: Set up monorepo symlink
+
+```bash
+ln -snf /path/to/your/project stacks/my-stack/monorepo
+```
+
+### Step 4: Validate
+
+```bash
+python framework/scripts/validate-agent.py --stack my-stack
+```
+
+Expects 0 errors. Warnings about optional fields are fine.
+
+### Step 5: Open and verify
+
+```bash
+code stacks/my-stack/my-stack.code-workspace
+```
+
+In Copilot chat, type `@` — your stack agents should autocomplete.
+
+## 3. Plan and Execute Tasks
+
+The framework provides structured task planning and execution.
+
+### Create a plan
+
+```
+@coordinator plan: Add WebSocket handler for live updates
+```
+
+This delegates to `@planner`, which creates a JSON plan with steps, agents, dependencies, and parallel groups.
+
+### View the plan
+
+```
+@coordinator show-plan
+```
+
+### Execute steps
+
+**Manual** (step by step):
+
+```
+@coordinator step 1 completed --summary "Implemented handler"
+```
+
+**Autonomous** (via API):
+
+```bash
+# Dry-run first
+python framework/scripts/plan-executor.py stacks/my-stack/.copilot-agents/plans/my-plan.json
+
+# Execute for real
+python framework/scripts/plan-executor.py my-plan.json --mode sequential
+
+# Or parallel via Batch API
+python framework/scripts/plan-executor.py my-plan.json --mode batch
+```
+
+Steps with `priority: "critical"` or `"high"` pause for human approval unless `--auto-approve` is set.
+
+### Review and replan
+
+```
+@planner --review my-plan.json     # 6-item quality checklist
+@planner --replan my-plan.json     # Rework plan preserving completed steps
+```
+
+## 4. MCP Server Setup
+
+Three MCP servers provide tool integration for agents. Add them to your MCP client config:
+
+```json
+{
+  "mcpServers": {
+    "agent-registry": {
+      "command": "python",
+      "args": ["framework/mcp-servers/agent-registry/server.py"],
+      "cwd": "/path/to/copilot-agents"
+    },
+    "knowledge-search": {
+      "command": "python",
+      "args": ["framework/mcp-servers/knowledge-search/server.py"],
+      "cwd": "/path/to/copilot-agents"
+    },
+    "plan-execution": {
+      "command": "python",
+      "args": ["framework/mcp-servers/plan-execution/server.py"],
+      "cwd": "/path/to/copilot-agents",
+      "env": { "ANTHROPIC_API_KEY": "sk-ant-..." }
+    }
+  }
+}
+```
+
+Install dependencies:
+
+```bash
+pip install fastmcp anthropic
+```
+
+## 5. Knowledge Management
+
+Knowledge is automatically captured from plan execution and stored as atomic JSONL entries.
+
+### Search knowledge
+
+```
+@coordinator search-knowledge "database migration patterns"
+```
+
+Or via MCP: `knowledge-search.search_knowledge(query="...", stack="my-stack")`
+
+### Build the cross-stack index
+
+```bash
+python framework/scripts/build-knowledge-index.py
+```
+
+Creates a unified index at `framework/knowledge/cross-stack-index.jsonl`.
+
+### Compress old knowledge
+
+```bash
+python framework/scripts/compress-knowledge.py my-stack --report
+python framework/scripts/compress-knowledge.py my-stack          # Actually compress
+```
+
+Groups related entries and creates topic-level summaries to reduce token costs.
+
+## 6. Monitoring and Optimization
+
+### Token telemetry
+
+```bash
+python framework/scripts/token-telemetry.py collect my-stack
+python framework/scripts/token-telemetry.py dashboard
+python framework/scripts/token-telemetry.py agent-stats
+```
+
+### Agent performance scoring
+
+```bash
+python framework/scripts/agent-scoring.py leaderboard
+python framework/scripts/agent-scoring.py profile @rust-expert
+python framework/scripts/agent-scoring.py recommend my-stack
+```
+
+### Cache tuning
+
+```bash
+python framework/scripts/adaptive-cache.py analyze
+python framework/scripts/adaptive-cache.py recommend
+python framework/scripts/adaptive-cache.py apply
+```
 
 ## Architecture Overview
 
 ```
-copilot-agents/
-├── copilot-agents.code-workspace    ← USING (has @analyzer, @writer)
-│
-├── .github/agents/                   ← Framework-level agents
-│   ├── analyzer.agent.md            (for analyzing projects)
-│   └── writer.agent.md              (for creating stacks)
-│
-├── _common/                          ← Agents shared across stacks
-│   ├── coordinator.agent.md
-│   └── gitlab.agent.md
-│
-├── _shared/                          ← Domain knowledge agents
-│   └── ...
-│
-└── stacks/
-    ├── meta-agents/
-    │   ├── meta-agents.code-workspace  ← DEVELOPING (framework maintenance)
-    │   └── .github/agents/
-    │       ├── meta-maintainer.agent.md
-    │       ├── stack-validator.agent.md
-    │       ├── template-generator.agent.md
-    │       ├── migration-assistant.agent.md
-    │       ├── documentation-syncer.agent.md
-    │       ├── coordinator.agent.md     (symlink to _common)
-    │       └── gitlab.agent.md          (symlink to _common)
-    │
-    ├── ocpp20-rust/
-    │   ├── ocpp20-rust.code-workspace  ← USER STACK
-    │   └── .github/agents/
-    │       ├── rust-expert.agent.md
-    │       ├── ocpp-protocol.agent.md   (symlink to _shared)
-    │       └── ...
-    │
-    └── systemtests-python/
-        ├── systemtests-python.code-workspace  ← USER STACK
-        └── .github/agents/
-            ├── python-expert.agent.md
-            ├── pytest-expert.agent.md
-            └── ...
+                    ┌──────────────┐
+                    │  @analyzer   │  Scans codebase
+                    └──────┬───────┘
+                           ↓
+                    ┌──────────────┐
+                    │   @writer    │  Generates stack
+                    └──────┬───────┘
+                           ↓
+    ┌──────────────────────────────────────────┐
+    │              Stack                        │
+    │  .github/agents/ → domain specialists    │
+    │  .copilot-agents/plans/ → JSON plans     │
+    │  docs/knowledge/ → JSONL entries         │
+    └──────────────┬───────────────────────────┘
+                   ↓
+    ┌──────────────────────────────────────────┐
+    │          Planning & Execution             │
+    │  @planner → creates v2.0 plans           │
+    │  @coordinator → routes & tracks          │
+    │  plan-executor.py → autonomous execution │
+    └──────────────┬───────────────────────────┘
+                   ↓
+    ┌──────────────────────────────────────────┐
+    │          Knowledge & Optimization         │
+    │  post-step-hook → auto-extract           │
+    │  knowledge-search MCP → semantic queries │
+    │  token-telemetry → usage tracking        │
+    │  agent-scoring → performance metrics     │
+    └──────────────────────────────────────────┘
 ```
-
-**Key points:**
-- **Top-level workspace** → agents for creating/analyzing (@analyzer, @writer)
-- **meta-agents workspace** → agents for framework maintenance
-- **User stack workspaces** → domain-specific agents for actual development
 
 ## See Also
 
-- [README.md](README.md) - Framework overview
-- [docs/usage-guide.md](docs/usage-guide.md) - Detailed usage instructions
-- [stacks/meta-agents/README.md](stacks/meta-agents/README.md) - Framework development guide
-- [framework/architecture/stack-architecture.md](framework/architecture/stack-architecture.md) - Architecture details
+- [README.md](README.md) — Framework overview and full structure
+- [docs/usage-guide.md](docs/usage-guide.md) — Detailed agent usage patterns
+- [docs/coordinator-usage.md](docs/coordinator-usage.md) — Cross-stack coordination
+- [docs/multi-clone-setup.md](docs/multi-clone-setup.md) — Multi-clone configuration
+- [TODO.md](TODO.md) — Implementation history (Phases 1-5)

@@ -1,208 +1,111 @@
-# Stack-Based Agent Architecture: Implementation Checklist
+# Implementation Checklist
 
-**Status:** ✅ COMPLETE - All components implemented and documented
+**Status:** ✅ ALL PHASES COMPLETE — Architecture foundation through optimization fully implemented.
 
-## Phase 1: Architecture Foundation ✅
+## Architecture Foundation (Original Phases 1-6) ✅
 
-- [x] Directory structure created:
-  - `stacks/` - Stack-specific agents and configuration
-  - `framework/core/common-agents/` - Agents for all stacks (gitlab, coordinator)
-  - `framework/core/shared-agents/` - Domain knowledge agents (ocpp-protocol, documentation, integration-flows)
-  - `framework/core/meta-agents/` - Meta-agents (analyzer.agent.md, writer.agent.md)
+- [x] Directory structure: `stacks/`, `framework/core/`, `framework/architecture/`, `framework/templates/`
+- [x] Meta-agents: `@analyzer` (codebase analysis), `@writer` (stack generation)
+- [x] Agent discovery: `stacks/STACKNAME/.github/agents/*.agent.md`
+- [x] Stack-local workspace pattern with relative paths
+- [x] Multi-clone support via `monorepo` symlinks
+- [x] Documentation: architecture, templates, symlink reference
+- [x] First stacks created and verified
 
-- [x] Meta-agents implemented:
-  - `analyzer.agent.md` - Analyzes codebases, recommends agents
-  - `writer.agent.md` - Generates complete stack structures with all agents
+## Framework Improvement Phase 1: Foundation ✅
 
-- [x] Environment variable support (optional):
-  - `${env:EBEE_MONOREPO_ROOT}` can be used in chat commands and to update `stacks/STACKNAME/monorepo`
+- [x] Agent frontmatter JSON Schema (`framework/schemas/agent-frontmatter.schema.json`)
+- [x] YAML frontmatter added to all agents (name, description, version, keywords, scope)
+- [x] Agent validation script (`framework/scripts/validate-agent.py`)
+- [x] GENERAL_RULES.md with ALWAYS DO / ASK FIRST / NEVER DO guidelines
+- [x] Atomic knowledge files (split monolithic SHARED_KNOWLEDGE.md into JSONL entries)
+- [x] Plan status normalization: `done` → `completed` across 31 plans (141 fixes)
+- [x] Specialist agent template v2.0 with validation pipeline
+- [x] Writer agent `--update STACK` workflow
 
-## Phase 2: Agent Discovery (Critical) ✅
+## Framework Improvement Phase 2: MCP Integration ✅
 
-- [x] GitHub Copilot discovery requirement understood:
-  - Agents MUST be in a workspace folder root’s `.github/agents/`
-  - Stack-local discovery: `stacks/STACKNAME/.github/agents/*.agent.md`
+- [x] Plan Schema v2.0 (`framework/schemas/plan-v2.schema.json`) with `parallel_group`, `priority`, `estimated_tokens`, `context_needed`, `mcp_tools`, `output`, `execution_mode`, `batch_config`, `token_budget`
+- [x] Agent Registry MCP server (5 tools: `list_agents`, `get_agent`, `find_agents_for_task`, `validate_agent`, `get_capability_map`)
+- [x] `mcp_servers` field added to all 21 agent frontmatters
+- [x] Planner and coordinator agents updated to v2.0
+- [x] Knowledge extraction pipeline (`extract-knowledge.py`) — 598 items from 31 plans
+- [x] All 31 plans migrated from v1.1 to v2.0 with backup files
+- [x] Plan executor scaffold with dependency resolver
 
-- [x] Stack-local pattern established:
-  - Stack agents: `stacks/STACKNAME/.github/agents/*.agent.md`
-  - Workspace uses only relative paths (`.`, `.github/agents`, `monorepo/...`)
-  - Stack contains `monorepo -> /path/to/clone` symlink for stable service paths
+## Framework Improvement Phase 3: Knowledge Evolution ✅
 
-## Phase 3: First Stack Creation ✅
+- [x] Knowledge Search MCP server with TF-IDF/BM25 scoring (6 tools: `search_knowledge`, `get_knowledge_entry`, `list_knowledge_files`, `search_decisions`, `search_cross_stack`, `resolve_context`)
+- [x] Cross-stack knowledge index aggregator (`build-knowledge-index.py`) — 2 stacks, 24 files, 674 entries
+- [x] Post-step hook for automated knowledge extraction (`post-step-hook.py`)
+- [x] Plan executor updated with context resolution for file, knowledge, plan_output, mcp_query types
+- [x] Planner `--review` (6-item checklist) and `--replan` (8-step workflow with preservation rules) subcommands
+- [x] Generated knowledge index.md files for both stacks
 
-- [x] `ocpp20-rust` stack created with:
-  - 5 stack-specific agents: transaction-lifecycle, actor-patterns, charging-station-state, grpc-service-integration, async-tokio-expert
-  - (Optional) common/shared agents can be added per stack if desired
-  - Workspace file: `ocpp20-rust.code-workspace`
-  - Documentation: README.md, SHARED_KNOWLEDGE.md
+## Framework Improvement Phase 4: Autonomous Execution ✅
 
-- [x] Stack-local agent discovery verified:
-  - Agents discoverable via `stacks/ocpp20-rust/.github/agents/`
+- [x] Plan executor rewritten as full execution engine (sequential, batch, dry-run modes)
+- [x] Anthropic Messages API integration for sequential step execution
+- [x] Anthropic Batch API integration for parallel wave execution with polling
+- [x] Human approval gates for critical/high priority steps (`[y]es/[n]o/[s]kip/[a]bort`)
+- [x] Plan Execution MCP server (6 tools: `execute_step`, `execute_wave`, `get_execution_schedule`, `get_execution_status`, `resume_execution`, `validate_plan_for_execution`)
+- [x] Real-time progress monitoring with wave/step display
+- [x] Resume support for interrupted executions
+- [x] Coordinator agent updated with autonomous execution commands
 
-## Phase 4: Documentation ✅
+## Framework Improvement Phase 5: Optimization ✅
 
-- [x] `architecture/stack-architecture.md`
-  - Complete architecture overview
-  - Three-tier agent system explanation
-  - Critical agent discovery section
-  - Symlink requirement with examples
-
-- [x] `templates/stack-creation-template.md`
-  - Step-by-step template for creating new stacks
-  - Directory structure examples
-  - Symlink pattern documentation
-  - Workspace configuration examples
-  - Checklist for new stacks
-
-- [x] `architecture/symlink-reference.md`
-  - TL;DR symlink setup
-  - One-time setup vs. per-stack setup
-  - Troubleshooting guide
-  - Architecture diagram
-  - Commands reference
-
-- [x] `README.md` enhanced with:
-  - Stack creation flow (Steps 1-5)
-  - FAQ section
-  - Troubleshooting guide
-  - References to other documentation
-
-- [x] `writer.agent.md` enhanced with:
-  - "Critical: Agent Discovery in .github/agents/" section
-  - Five-step agent setup pattern
-  - Concrete ocpp20-rust example
-  - Commands providing explicit symlink creation steps
-
-- [x] `analyzer.agent.md`
-  - Complete implementation
-  - Ready for analyzing new codebases
-
-## Phase 5: Multi-Clone Support ✅
-
-- [x] Stack-local clone switching:
-  - Each stack contains a `monorepo` symlink pointing at the desired clone
-  - Switch clones by updating the symlink: `ln -snf /path/to/clone stacks/STACKNAME/monorepo`
-
-## Phase 6: Testing and Verification ✅
-
-- [x] ocpp20-rust stack verified:
-  - Agents discoverable: ✅
-  - Workspace opens correctly: ✅
-  - Symlinks point to correct files: ✅
-  - Multi-clone support works: ✅
-
-- [x] Documentation reviewed:
-  - All files syntactically correct: ✅
-  - Examples match actual structure: ✅
-  - Troubleshooting covers common issues: ✅
-
-## Next Steps (For New Stack Creation)
-
-### When Creating a New Stack:
-
-1. **Analyze** the target codebase:
-   ```bash
-   @analyzer ${env:EBEE_MONOREPO_ROOT}/path/to/service
-   ```
-
-2. **Create** the stack with @writer:
-   ```bash
-   @writer create-stack stacks/my-stack from /path/to/service with agents: @agent1, @agent2
-   ```
-
-3. **Execute** generated commands:
-   - Creates directory structure
-   - Creates agent files
-  - Creates stack-local `monorepo` symlink
-   - Creates workspace file
-   - Creates documentation
-
-4. **Verify** agent files:
-   ```bash
-  ls -la stacks/my-stack/.github/agents/
-   ```
-
-5. **Test** agents are discoverable:
-   - Open workspace
-   - Open Copilot chat (@)
-   - Type `@agentname` - should autocomplete
-
-## File Inventory
-
-### Core Files
-- `analyzer.agent.md` - Meta-agent (complete)
-- `writer.agent.md` - Meta-agent (enhanced with symlink pattern)
-
-### Common Agents (in `framework/core/common-agents/`)
-- `gitlab.agent.md` - GitLab workflow, commits, MRs
-- `coordinator.agent.md` - Routes queries across stacks
-
-### Shared Agents (in `framework/core/shared-agents/`)
-- `ocpp-protocol.agent.md` - OCPP protocol knowledge
-- `documentation.agent.md` - Technical documentation
-- `integration-flows.agent.md` - Integration patterns
-
-### Stacks
-- `stacks/ocpp20-rust/.github/agents/` - 5 specialized agents
-- `stacks/ocpp20-rust/ocpp20-rust.code-workspace` - Workspace configuration
-- `stacks/ocpp20-rust/README.md` - Stack overview
-- `stacks/ocpp20-rust/docs/SHARED_KNOWLEDGE.md` - Integration documentation
-
-### Documentation
-- `README.md` - Main documentation (enhanced)
-- `architecture/stack-architecture.md` - Architecture overview (enhanced)
-- `templates/stack-creation-template.md` - Template for new stacks (NEW)
-- `architecture/symlink-reference.md` - Quick reference (NEW)
-- `IMPLEMENTATION_CHECKLIST.md` - This file (NEW)
-
-### Scripts
-- `setup-ebee-agents.sh` - Legacy helper (not required for stack-local workspaces)
+- [x] Token telemetry (`token-telemetry.py`): collect, report, dashboard (sparkline), agent-stats, budget-accuracy
+- [x] Knowledge compression (`compress-knowledge.py`): TF-IDF clustering, hierarchical summaries (detail → topic → overview), token savings reports
+- [x] Agent performance scoring (`agent-scoring.py`): composite scoring (success 40%, efficiency 30%, consistency 20%, speed 10%), leaderboard, profiles, recommendations
+- [x] Adaptive cache manager (`adaptive-cache.py`): change frequency analysis, TTL tuning (hot/warm/cold/frozen), continuous monitoring, MCP-readable config output
+- [x] Cross-stack plan orchestrator (`cross-stack-orchestrator.py`): dependency discovery, unified scheduling, ASCII visualization, coordinated multi-plan execution
 
 ## Key Metrics
 
 | Metric | Value |
 |--------|-------|
+| Total agents | 27 |
 | Meta-agents | 2 (analyzer, writer) |
-| Common agents | 2 |
-| Shared agents | 3 |
-| Stack templates | 1 (ocpp20-rust) |
-| Stack agents | 5 |
-| Total discoverable agents (ocpp20-rust) | 5 |
-| Documentation files | 4 (enhanced) + 2 (new) = 6 |
-| Monorepo path mapping | stacks/STACKNAME/monorepo -> /path/to/clone |
+| Common agents | 3 (coordinator, gitlab, planner) |
+| Shared agents | 3+ (ocpp-protocol, documentation, integration-flows) |
+| Stacks | 2 (live-moafunk, gartenroboter3000) |
+| MCP servers | 3 (agent-registry, knowledge-search, plan-execution) |
+| Framework scripts | 12 |
+| JSON schemas | 2 (agent frontmatter, plan v2.0) |
+| Plans migrated | 31 (v1.1 → v2.0) |
+| Knowledge entries | 674+ (cross-stack index) |
 
-## Success Criteria (All Met ✅)
+## File Inventory
 
-- [x] Agents named correctly: `AGENTNAME.agent.md`
-- [x] Agents stored correctly: `stacks/STACKNAME/.github/agents/`, `framework/core/common-agents/`, `framework/core/shared-agents/`
-- [x] Agents discoverable by Copilot: Present under stack `.github/agents/`
-- [x] Multi-clone support: Stack-local `monorepo` symlink based
-- [x] Stack filtering: Each workspace only includes relevant agents
-- [x] Documentation: Comprehensive and examples-based
-- [x] Writer agent: Updated with symlink pattern
-- [x] First stack: Complete and tested
-- [x] Symlinks in monorepo: Created and verified
+### MCP Servers (`framework/mcp-servers/`)
+| Server | Tools | Purpose |
+|--------|-------|---------|
+| `agent-registry/` | 5 | Agent discovery, capability mapping, keyword scoring |
+| `knowledge-search/` | 6 | Semantic search, TF-IDF/BM25, cross-stack queries |
+| `plan-execution/` | 6 | Autonomous execution, Batch API, approval gates |
 
-## Known Limitations
+### Scripts (`framework/scripts/`)
+| Script | Category | Purpose |
+|--------|----------|---------|
+| `validate-agent.py` | Foundation | Agent frontmatter validation |
+| `migrate-plans-v2.py` | Migration | Plan schema v1.1 → v2.0 |
+| `normalize-plan-status.py` | Migration | Status value normalization |
+| `extract-knowledge.py` | Knowledge | Extract from completed plans |
+| `build-knowledge-index.py` | Knowledge | Cross-stack JSONL index |
+| `compress-knowledge.py` | Knowledge | Hierarchical summaries |
+| `post-step-hook.py` | Automation | Post-step knowledge extraction |
+| `plan-executor.py` | Execution | Full execution engine |
+| `cross-stack-orchestrator.py` | Execution | Multi-stack coordination |
+| `token-telemetry.py` | Optimization | Token usage tracking |
+| `agent-scoring.py` | Optimization | Agent performance metrics |
+| `adaptive-cache.py` | Optimization | Cache TTL tuning |
 
-1. **Stack-local monorepo symlink required**: `stacks/STACKNAME/monorepo` must point at a valid clone
-  - Fix: `ln -snf /path/to/clone stacks/STACKNAME/monorepo`
-
-## References
-
-- [README.md](README.md) - Main documentation with stack creation flow
-- [architecture/stack-architecture.md](architecture/stack-architecture.md) - Architecture details
-- [templates/stack-creation-template.md](templates/stack-creation-template.md) - Template for new stacks
-- [architecture/symlink-reference.md](architecture/symlink-reference.md) - Quick setup guide
-- [writer.agent.md](writer.agent.md) - Stack creation agent
-- [analyzer.agent.md](analyzer.agent.md) - Stack analysis agent
+### Schemas (`framework/schemas/`)
+- `agent-frontmatter.schema.json` — Required and optional frontmatter fields
+- `plan-v2.schema.json` — Full plan structure with parallel groups, context, batch config
 
 ## Version History
 
-- **v1.0** (Jan 15, 2025): Initial implementation complete
-  - Architecture established
-  - First stack created
-  - All documentation provided
-  - Symlink pattern documented
-  - Ready for new stack creation
-
+- **v1.0** (Jan 2025): Architecture foundation — stacks, meta-agents, multi-clone
+- **v2.0** (Mar 2026): Framework improvements — MCP servers, plan v2.0, knowledge system, autonomous execution, optimization tooling
