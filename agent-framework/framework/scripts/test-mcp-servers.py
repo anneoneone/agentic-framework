@@ -145,7 +145,7 @@ def check_server_starts(name: str, path: Path, needs_api_key: bool, verbose: boo
         if proc.poll() is not None:
             stderr = proc.stderr.read().decode("utf-8", errors="replace").strip()
             if stderr:
-                fail(f"Server exited immediately: {stderr[:300]}")
+                fail(f"Server exited immediately:\n{stderr[:1500]}")
             else:
                 fail("Server exited immediately with no output")
             return False
@@ -276,6 +276,15 @@ def main():
     print(f"{Colors.BOLD}MCP Server Test Suite{Colors.RESET}")
     print(f"Root: {ROOT}")
     print(f"Config: {CONFIG_PATH}")
+
+    # Show installed package versions
+    for pkg in ["mcp", "anthropic", "fastmcp"]:
+        result = subprocess.run(
+            [sys.executable, "-c", f"import {pkg}; print(getattr({pkg}, '__version__', 'installed (no __version__)'))"],
+            capture_output=True, text=True, timeout=5
+        )
+        ver = result.stdout.strip() if result.returncode == 0 else "not installed"
+        print(f"  {pkg}: {ver}")
 
     # Load config to verify servers match
     if CONFIG_PATH.exists():

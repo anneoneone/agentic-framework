@@ -12,19 +12,14 @@ Tools:
   - get_capability_map: Build capability index for a stack
 """
 
-import asyncio
 import json
 import re
 import time
-from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
 from dataclasses import dataclass, asdict
 
-from mcp.server import Server
-from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent
-from mcp.server.models import InitializationOptions
+from fastmcp import FastMCP
 
 
 # ============================================================================
@@ -558,7 +553,7 @@ class AgentRegistry:
 
 
 # ============================================================================
-# MCP Server
+# MCP Server (FastMCP 3.x)
 # ============================================================================
 
 
@@ -574,206 +569,100 @@ def get_registry() -> AgentRegistry:
     return _registry
 
 
-# Create MCP server
-server = Server("agent-registry")
+# Create FastMCP server
+mcp = FastMCP("agent-registry")
 
 
-@server.list_tools()
-async def list_tools() -> list[Tool]:
-    """List available tools."""
-    return [
-        Tool(
-            name="list_agents",
-            description="List all agents with optional stack filter. Returns agent summaries with name, description, version, keywords, and stack.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "stack": {
-                        "type": "string",
-                        "description": "Optional stack name to filter agents (e.g., 'live-moafunk', 'gartenroboter3000')",
-                    }
-                },
-            },
-        ),
-        Tool(
-            name="get_agent",
-            description="Retrieve full agent metadata including frontmatter, body sections, and file info.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "name": {
-                        "type": "string",
-                        "description": "Agent name in kebab-case (e.g., 'documentation', 'planner')",
-                    }
-                },
-                "required": ["name"],
-            },
-        ),
-        Tool(
-            name="find_agents_for_task",
-            description="Find agents matching a task description. Extracts keywords from task and returns ranked agents based on keyword overlap (exact=5pts, partial=2pts, category=1pt).",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "task_description": {
-                        "type": "string",
-                        "description": "Description of the task to find agents for",
-                    },
-                    "stack": {
-                        "type": "string",
-                        "description": "Optional stack name to limit search",
-                    },
-                },
-                "required": ["task_description"],
-            },
-        ),
-        Tool(
-            name="validate_agent",
-            description="Validate an agent file for correctness. Checks frontmatter, required fields, section structure, and naming conventions.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "path": {
-                        "type": "string",
-                        "description": "Path to agent file (relative to copilot-agents root)",
-                    }
-                },
-                "required": ["path"],
-            },
-        ),
-        Tool(
-            name="get_capability_map",
-            description="Get capability index for a stack. Returns mapping of keywords to agent names.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "stack": {
-                        "type": "string",
-                        "description": "Stack name",
-                    }
-                },
-                "required": ["stack"],
-            },
-        ),
-    ]
+@mcp.tool()
+def list_agents(stack: str = None) -> str:
+    """List all agents with optional stack filter.
 
+    Returns agent summaries with name, description, version, keywords, and stack.
 
-@server.call_tool()
-async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
-    """Handle tool calls."""
+    Args:
+        stack: Optional stack name to filter agents (e.g., 'live-moafunk', 'gartenroboter3000')
+    """
     registry = get_registry()
-
-    try:
-        if name == "list_agents":
-            stack = arguments.get("stack")
-            agents = registry.list_agents(stack)
-            return [
-                TextContent(
-                    type="text",
-                    text=json.dumps(
-                        [asdict(agent) for agent in agents],
-                        indent=2,
-                        default=str,
-                    ),
-                )
-            ]
-
-        elif name == "get_agent":
-            agent_name = arguments.get("name")
-            if not agent_name:
-                return [TextContent(type="text", text="Error: 'name' parameter required")]
-
-            agent = registry.get_agent(agent_name)
-            if not agent:
-                return [TextContent(type="text", text=f"Agent not found: {agent_name}")]
-
-            return [TextContent(type="text", text=json.dumps(asdict(agent), indent=2, default=str))]
-
-        elif name == "find_agents_for_task":
-            task_desc = arguments.get("task_description")
-            stack = arguments.get("stack")
-
-            if not task_desc:
-                return [
-                    TextContent(
-                        type="text",
-                        text="Error: 'task_description' parameter required",
-                    )
-                ]
-
-            results = registry.find_agents_for_task(task_desc, stack)
-            output = [
-                {
-                    "agent": asdict(agent_summary),
-                    "score": score,
-                    "match_quality": (
-                        "excellent" if score >= 10 else "good" if score >= 5 else "fair"
-                    ),
-                }
-                for agent_summary, score in results
-            ]
-
-            return [TextContent(type="text", text=json.dumps(output, indent=2, default=str))]
-
-        elif name == "validate_agent":
-            path = arguments.get("path")
-            if not path:
-                return [TextContent(type="text", text="Error: 'path' parameter required")]
-
-            full_path = registry.root / path
-            result = registry.validate_agent(str(full_path))
-
-            return [
-                TextContent(
-                    type="text",
-                    text=json.dumps(
-                        {
-                            "path": result.path,
-                            "valid": result.valid,
-                            "errors": result.errors,
-                            "warnings": result.warnings,
-                            "info": result.info,
-                        },
-                        indent=2,
-                    ),
-                )
-            ]
-
-        elif name == "get_capability_map":
-            stack = arguments.get("stack")
-            if not stack:
-                return [
-                    TextContent(
-                        type="text",
-                        text="Error: 'stack' parameter required",
-                    )
-                ]
-
-            cap_map = registry.get_capability_map(stack)
-            # Convert sets to lists for JSON serialization
-            output = {k: sorted(list(v)) for k, v in cap_map.items()}
-
-            return [TextContent(type="text", text=json.dumps(output, indent=2))]
-
-        else:
-            return [TextContent(type="text", text=f"Unknown tool: {name}")]
-
-    except Exception as e:
-        return [TextContent(type="text", text=f"Error: {str(e)}")]
+    agents = registry.list_agents(stack)
+    return json.dumps([asdict(agent) for agent in agents], indent=2, default=str)
 
 
-async def main():
-    """Run the MCP server with stdio transport."""
-    async with stdio_server() as (read_stream, write_stream):
-        await server.run(
-            read_stream,
-            write_stream,
-            InitializationOptions(
-                server_name="agent-registry",
-                server_version="1.0.0",
+@mcp.tool()
+def get_agent(name: str) -> str:
+    """Retrieve full agent metadata including frontmatter, body sections, and file info.
+
+    Args:
+        name: Agent name in kebab-case (e.g., 'documentation', 'planner')
+    """
+    registry = get_registry()
+    agent = registry.get_agent(name)
+    if not agent:
+        return f"Agent not found: {name}"
+    return json.dumps(asdict(agent), indent=2, default=str)
+
+
+@mcp.tool()
+def find_agents_for_task(task_description: str, stack: str = None) -> str:
+    """Find agents matching a task description.
+
+    Extracts keywords from task and returns ranked agents based on keyword
+    overlap (exact=5pts, partial=2pts, category=1pt).
+
+    Args:
+        task_description: Description of the task to find agents for
+        stack: Optional stack name to limit search
+    """
+    registry = get_registry()
+    results = registry.find_agents_for_task(task_description, stack)
+    output = [
+        {
+            "agent": asdict(agent_summary),
+            "score": score,
+            "match_quality": (
+                "excellent" if score >= 10 else "good" if score >= 5 else "fair"
             ),
-        )
+        }
+        for agent_summary, score in results
+    ]
+    return json.dumps(output, indent=2, default=str)
+
+
+@mcp.tool()
+def validate_agent(path: str) -> str:
+    """Validate an agent file for correctness.
+
+    Checks frontmatter, required fields, section structure, and naming conventions.
+
+    Args:
+        path: Path to agent file (relative to agent-framework root)
+    """
+    registry = get_registry()
+    full_path = registry.root / path
+    result = registry.validate_agent(str(full_path))
+    return json.dumps(
+        {
+            "path": result.path,
+            "valid": result.valid,
+            "errors": result.errors,
+            "warnings": result.warnings,
+            "info": result.info,
+        },
+        indent=2,
+    )
+
+
+@mcp.tool()
+def get_capability_map(stack: str) -> str:
+    """Get capability index for a stack. Returns mapping of keywords to agent names.
+
+    Args:
+        stack: Stack name (e.g., 'live-moafunk')
+    """
+    registry = get_registry()
+    cap_map = registry.get_capability_map(stack)
+    output = {k: sorted(list(v)) for k, v in cap_map.items()}
+    return json.dumps(output, indent=2)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    mcp.run(transport="stdio")

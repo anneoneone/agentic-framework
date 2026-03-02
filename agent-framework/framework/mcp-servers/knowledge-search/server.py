@@ -1,26 +1,20 @@
 """
 Knowledge Search MCP Server
 
-Provides semantic knowledge search across copilot-agents stacks using TF-IDF scoring.
+Provides semantic knowledge search across agent-framework stacks using TF-IDF/BM25 scoring.
 No external vector database required - all indexing is self-contained.
 """
 
-import asyncio
 import json
 import math
-import os
 import re
 import time
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional
-from urllib.parse import quote
+from typing import Optional
 
-import mcp.server.models as mcp_types
-from mcp.server import Server
-from mcp.server.stdio import stdio_server
-from mcp.types import TextContent, Tool
+from fastmcp import FastMCP
 
 
 @dataclass
@@ -63,7 +57,6 @@ class TFIDFIndex:
     def tokenize(self, text: str) -> list[str]:
         """Tokenize text: lowercase, split, remove stopwords"""
         text = text.lower()
-        # Split on whitespace and punctuation
         tokens = re.findall(r'\b[a-z0-9_]+\b', text)
         return [t for t in tokens if t not in self.STOPWORDS and len(t) > 1]
 
@@ -90,13 +83,11 @@ class TFIDFIndex:
             self.built = True
             return
 
-        # Calculate IDF scores
         for term, doc_freqs in self.term_frequencies.items():
-            df = len(doc_freqs)  # Document frequency
+            df = len(doc_freqs)
             idf = math.log(1 + (num_docs - df + 0.5) / (df + 0.5))
             self.idf_scores[term] = idf
 
-        # Calculate average document length
         if self.document_lengths:
             self.avg_doc_length = sum(self.document_lengths) / len(self.document_lengths)
 
@@ -115,7 +106,6 @@ class TFIDFIndex:
             idf = self.idf_scores[token]
             tf = self.term_frequencies[token].get(doc_id, 0)
 
-            # BM25 formula
             numerator = tf * (self.BM25_K1 + 1)
             denominator = tf + self.BM25_K1 * (
                 1 - self.BM25_B + self.BM25_B * (doc_length / max(self.avg_doc_length, 1))
@@ -140,244 +130,44 @@ class TFIDFIndex:
             if score > 0:
                 results.append((score, metadata, content))
 
-        # Sort by score descending
         results.sort(key=lambda x: x[0], reverse=True)
         return results[:limit]
 
 
-class KnowledgeSearchServer:
-    """MCP server for semantic knowledge search"""
+# ============================================================================
+# Knowledge Search Engine (state)
+# ============================================================================
+
+
+class KnowledgeEngine:
+    """Manages indexing and searching across stacks"""
 
     def __init__(self):
-        self.server = Server("knowledge-search")
-        self.index = TFIDFIndex()
         self.index_cache = {}
         self.cache_expiry = {}
         self.root_path = self._find_root_path()
-        self._register_tools()
 
     def _find_root_path(self) -> Path:
-        """Find copilot-agents root path"""
-        current = Path(__file__).parent
-        while current != current.parent:
-            if (current / 'copilot-agents').exists():
-                return current / 'copilot-agents'
-            current = current.parent
-
-        # Fallback: look for common patterns
-        possible_paths = [
-            Path('/sessions/serene-happy-dijkstra/mnt/agentic-framework/copilot-agents'),
-            Path.cwd() / 'copilot-agents',
-        ]
-        for path in possible_paths:
-            if path.exists():
-                return path
-
-        # Last resort: use the structure from __file__
-        return Path(__file__).parent.parent.parent.parent.parent / 'copilot-agents'
-
-    def _register_tools(self) -> None:
-        """Register all MCP tools"""
-        self.server.add_tool(
-            Tool(
-                name="search_knowledge",
-                description="Search for knowledge across stacks using semantic similarity (TF-IDF)",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "query": {
-                            "type": "string",
-                            "description": "Search query"
-                        },
-                        "stack": {
-                            "type": "string",
-                            "description": "Optional stack name to filter results"
-                        },
-                        "limit": {
-                            "type": "integer",
-                            "description": "Maximum number of results (default: 10)",
-                            "default": 10
-                        }
-                    },
-                    "required": ["query"]
-                }
-            ),
-            self._search_knowledge
-        )
-
-        self.server.add_tool(
-            Tool(
-                name="get_knowledge_entry",
-                description="Get full content of a specific knowledge entry",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "file": {
-                            "type": "string",
-                            "description": "Relative path to knowledge file"
-                        },
-                        "stack": {
-                            "type": "string",
-                            "description": "Stack name"
-                        },
-                        "index": {
-                            "type": "integer",
-                            "description": "Index for JSONL entry (if applicable)"
-                        }
-                    },
-                    "required": ["file", "stack"]
-                }
-            ),
-            self._get_knowledge_entry
-        )
-
-        self.server.add_tool(
-            Tool(
-                name="list_knowledge_files",
-                description="List all knowledge files in stacks",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "stack": {
-                            "type": "string",
-                            "description": "Optional stack name to filter"
-                        }
-                    }
-                }
-            ),
-            self._list_knowledge_files
-        )
-
-        self.server.add_tool(
-            Tool(
-                name="search_decisions",
-                description="Search for decisions across stacks",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "query": {
-                            "type": "string",
-                            "description": "Search query"
-                        },
-                        "stack": {
-                            "type": "string",
-                            "description": "Optional stack name to filter"
-                        },
-                        "plan_id": {
-                            "type": "string",
-                            "description": "Optional plan ID to filter decisions"
-                        },
-                        "limit": {
-                            "type": "integer",
-                            "description": "Maximum results (default: 10)",
-                            "default": 10
-                        }
-                    },
-                    "required": ["query"]
-                }
-            ),
-            self._search_decisions
-        )
-
-        self.server.add_tool(
-            Tool(
-                name="search_cross_stack",
-                description="Search across all stacks with results labeled by stack",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "query": {
-                            "type": "string",
-                            "description": "Search query"
-                        },
-                        "limit": {
-                            "type": "integer",
-                            "description": "Maximum results per stack (default: 5)",
-                            "default": 5
-                        }
-                    },
-                    "required": ["query"]
-                }
-            ),
-            self._search_cross_stack
-        )
-
-        self.server.add_tool(
-            Tool(
-                name="resolve_context",
-                description="Resolve context from multiple sources for plan execution",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "context_sources": {
-                            "type": "array",
-                            "description": "List of context sources to resolve",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "type": {
-                                        "type": "string",
-                                        "enum": ["knowledge", "file", "mcp_query", "plan_output"],
-                                        "description": "Type of context source"
-                                    },
-                                    "query": {
-                                        "type": "string",
-                                        "description": "For 'knowledge' type: search query"
-                                    },
-                                    "source": {
-                                        "type": "string",
-                                        "description": "For 'knowledge' type: stack name"
-                                    },
-                                    "path": {
-                                        "type": "string",
-                                        "description": "For 'file' type: file path to read"
-                                    },
-                                    "mcp_server": {
-                                        "type": "string",
-                                        "description": "For 'mcp_query' type: MCP server name"
-                                    },
-                                    "mcp_tool": {
-                                        "type": "string",
-                                        "description": "For 'mcp_query' type: tool name"
-                                    },
-                                    "plan_id": {
-                                        "type": "string",
-                                        "description": "For 'plan_output' type: plan ID"
-                                    },
-                                    "step_id": {
-                                        "type": "string",
-                                        "description": "For 'plan_output' type: step ID"
-                                    }
-                                },
-                                "required": ["type"]
-                            }
-                        }
-                    },
-                    "required": ["context_sources"]
-                }
-            ),
-            self._resolve_context
-        )
+        """Find agent-framework root path"""
+        # Auto-detect: server is in framework/mcp-servers/knowledge-search/
+        return Path(__file__).parent.parent.parent.parent.resolve()
 
     def _get_or_build_index(self, stack: Optional[str] = None) -> TFIDFIndex:
         """Get or build index for a stack"""
         cache_key = stack or "all"
 
-        # Check cache
         if cache_key in self.index_cache:
             if time.time() < self.cache_expiry.get(cache_key, 0):
                 return self.index_cache[cache_key]
 
-        # Build new index
         index = TFIDFIndex()
 
         stacks_to_index = []
         if stack:
-            stack_path = self.root_path / stack / 'docs' / 'knowledge'
+            stack_path = self.root_path / 'stacks' / stack / 'docs' / 'knowledge'
             if stack_path.exists():
                 stacks_to_index = [stack_path]
         else:
-            # Index all stacks
             stacks_dir = self.root_path / 'stacks'
             if stacks_dir.exists():
                 stacks_to_index = [
@@ -386,14 +176,11 @@ class KnowledgeSearchServer:
                     if p.is_dir() and (p / 'docs' / 'knowledge').exists()
                 ]
 
-        # Add documents to index
         for knowledge_dir in stacks_to_index:
-            self._index_directory(index, knowledge_dir, knowledge_dir.parent.parent.parent.name)
+            self._index_directory(index, knowledge_dir, knowledge_dir.parent.parent.name)
 
-        # Build the index
         index.build()
 
-        # Cache it
         self.index_cache[cache_key] = index
         self.cache_expiry[cache_key] = time.time() + TFIDFIndex.CACHE_TTL
 
@@ -407,7 +194,6 @@ class KnowledgeSearchServer:
         for file_path in directory.rglob('*'):
             if file_path.is_dir():
                 continue
-
             if file_path.suffix == '.jsonl':
                 self._index_jsonl(index, file_path, stack_name)
             elif file_path.suffix == '.md':
@@ -440,15 +226,9 @@ class KnowledgeSearchServer:
     def _extract_jsonl_content(self, entry: dict) -> str:
         """Extract searchable content from JSONL entry"""
         parts = []
-        if 'title' in entry:
-            parts.append(entry['title'])
-        if 'content' in entry:
-            parts.append(entry['content'])
-        if 'description' in entry:
-            parts.append(entry['description'])
-        if 'text' in entry:
-            parts.append(entry['text'])
-        # Include all string values
+        for key in ('title', 'content', 'description', 'text'):
+            if key in entry:
+                parts.append(entry[key])
         for value in entry.values():
             if isinstance(value, str):
                 parts.append(value)
@@ -460,14 +240,12 @@ class KnowledgeSearchServer:
             with open(file_path, 'r') as f:
                 content = f.read()
 
-            # Split by H2 headers
             sections = re.split(r'\n## ', content)
 
             for section_idx, section in enumerate(sections):
                 if not section.strip():
                     continue
 
-                # First line is the section title
                 lines = section.split('\n')
                 title = lines[0] if lines else 'Section'
                 section_content = '\n'.join(lines[1:])
@@ -484,257 +262,290 @@ class KnowledgeSearchServer:
         except (IOError, OSError):
             pass
 
-    async def _search_knowledge(
-        self,
-        query: str,
-        stack: Optional[str] = None,
-        limit: int = 10
-    ) -> TextContent:
-        """Tool: search_knowledge"""
-        index = self._get_or_build_index(stack)
-        results = index.search(query, limit)
 
-        formatted_results = []
-        for score, metadata, content in results:
-            preview = content[:200].replace('\n', ' ') + '...' if len(content) > 200 else content
-            formatted_results.append({
-                'score': round(score, 4),
-                'stack': metadata['stack'],
-                'file': metadata['file'],
-                'type': metadata['type'],
-                'title': metadata.get('section_title') or metadata.get('title'),
-                'preview': preview
-            })
+# ============================================================================
+# MCP Server (FastMCP 3.x)
+# ============================================================================
 
-        return TextContent(
-            type="text",
-            text=json.dumps(formatted_results, indent=2)
-        )
 
-    async def _get_knowledge_entry(
-        self,
-        file: str,
-        stack: str,
-        index: Optional[int] = None
-    ) -> TextContent:
-        """Tool: get_knowledge_entry"""
-        file_path = self.root_path / file
+mcp = FastMCP("knowledge-search")
 
-        if not file_path.exists():
-            return TextContent(type="text", text=json.dumps({"error": "File not found"}))
+# Global engine instance
+_engine: Optional[KnowledgeEngine] = None
 
-        try:
-            if file.endswith('.jsonl'):
-                with open(file_path, 'r') as f:
-                    for line_num, line in enumerate(f):
-                        if line_num == index:
-                            entry = json.loads(line.strip())
-                            return TextContent(type="text", text=json.dumps(entry, indent=2))
-                return TextContent(type="text", text=json.dumps({"error": "Entry index not found"}))
 
-            elif file.endswith('.md'):
-                with open(file_path, 'r') as f:
-                    content = f.read()
-                return TextContent(type="text", text=content)
+def get_engine() -> KnowledgeEngine:
+    global _engine
+    if _engine is None:
+        _engine = KnowledgeEngine()
+    return _engine
 
-            else:
-                with open(file_path, 'r') as f:
-                    content = f.read()
-                return TextContent(type="text", text=content)
 
-        except (IOError, OSError, json.JSONDecodeError) as e:
-            return TextContent(type="text", text=json.dumps({"error": str(e)}))
+@mcp.tool()
+def search_knowledge(query: str, stack: str = None, limit: int = 10) -> str:
+    """Search for knowledge across stacks using semantic similarity (TF-IDF/BM25).
 
-    async def _list_knowledge_files(self, stack: Optional[str] = None) -> TextContent:
-        """Tool: list_knowledge_files"""
-        files_info = []
+    Args:
+        query: Search query
+        stack: Optional stack name to filter results
+        limit: Maximum number of results (default: 10)
+    """
+    engine = get_engine()
+    index = engine._get_or_build_index(stack)
+    results = index.search(query, limit)
 
-        stacks_to_scan = []
-        if stack:
-            stack_path = self.root_path / stack / 'docs' / 'knowledge'
-            if stack_path.exists():
-                stacks_to_scan = [(stack, stack_path)]
+    formatted_results = []
+    for score, metadata, content in results:
+        preview = content[:200].replace('\n', ' ') + '...' if len(content) > 200 else content
+        formatted_results.append({
+            'score': round(score, 4),
+            'stack': metadata['stack'],
+            'file': metadata['file'],
+            'type': metadata['type'],
+            'title': metadata.get('section_title') or metadata.get('title'),
+            'preview': preview
+        })
+
+    return json.dumps(formatted_results, indent=2)
+
+
+@mcp.tool()
+def get_knowledge_entry(file: str, stack: str, index: int = None) -> str:
+    """Get full content of a specific knowledge entry.
+
+    Args:
+        file: Relative path to knowledge file
+        stack: Stack name
+        index: Index for JSONL entry (if applicable)
+    """
+    engine = get_engine()
+    file_path = engine.root_path / file
+
+    if not file_path.exists():
+        return json.dumps({"error": "File not found"})
+
+    try:
+        if file.endswith('.jsonl') and index is not None:
+            with open(file_path, 'r') as f:
+                for line_num, line in enumerate(f):
+                    if line_num == index:
+                        entry = json.loads(line.strip())
+                        return json.dumps(entry, indent=2)
+            return json.dumps({"error": "Entry index not found"})
         else:
-            stacks_dir = self.root_path / 'stacks'
-            if stacks_dir.exists():
-                for stack_dir in stacks_dir.iterdir():
-                    if stack_dir.is_dir():
-                        knowledge_dir = stack_dir / 'docs' / 'knowledge'
-                        if knowledge_dir.exists():
-                            stacks_to_scan.append((stack_dir.name, knowledge_dir))
+            with open(file_path, 'r') as f:
+                return f.read()
+    except (IOError, OSError, json.JSONDecodeError) as e:
+        return json.dumps({"error": str(e)})
 
-        for stack_name, knowledge_dir in stacks_to_scan:
-            for file_path in knowledge_dir.rglob('*'):
-                if file_path.is_file():
-                    size = file_path.stat().st_size
 
-                    entry_count = 0
-                    if file_path.suffix == '.jsonl':
-                        try:
-                            with open(file_path, 'r') as f:
-                                entry_count = sum(1 for line in f if line.strip())
-                        except IOError:
-                            pass
-                    elif file_path.suffix == '.md':
-                        try:
-                            with open(file_path, 'r') as f:
-                                entry_count = len(re.findall(r'\n## ', f.read()))
-                        except IOError:
-                            pass
+@mcp.tool()
+def list_knowledge_files(stack: str = None) -> str:
+    """List all knowledge files in stacks.
 
-                    files_info.append({
-                        'stack': stack_name,
-                        'file': str(file_path.relative_to(self.root_path)),
-                        'type': file_path.suffix,
-                        'size_bytes': size,
-                        'entries': entry_count
-                    })
+    Args:
+        stack: Optional stack name to filter
+    """
+    engine = get_engine()
+    files_info = []
 
-        return TextContent(type="text", text=json.dumps(files_info, indent=2))
+    stacks_to_scan = []
+    if stack:
+        stack_path = engine.root_path / 'stacks' / stack / 'docs' / 'knowledge'
+        if stack_path.exists():
+            stacks_to_scan = [(stack, stack_path)]
+    else:
+        stacks_dir = engine.root_path / 'stacks'
+        if stacks_dir.exists():
+            for stack_dir in stacks_dir.iterdir():
+                if stack_dir.is_dir():
+                    knowledge_dir = stack_dir / 'docs' / 'knowledge'
+                    if knowledge_dir.exists():
+                        stacks_to_scan.append((stack_dir.name, knowledge_dir))
 
-    async def _search_decisions(
-        self,
-        query: str,
-        stack: Optional[str] = None,
-        plan_id: Optional[str] = None,
-        limit: int = 10
-    ) -> TextContent:
-        """Tool: search_decisions"""
-        decisions = []
+    for stack_name, knowledge_dir in stacks_to_scan:
+        for file_path in knowledge_dir.rglob('*'):
+            if file_path.is_file():
+                size = file_path.stat().st_size
 
-        stacks_to_search = []
-        if stack:
-            stacks_to_search = [self.root_path / stack]
-        else:
-            stacks_dir = self.root_path / 'stacks'
-            if stacks_dir.exists():
-                stacks_to_search = [p for p in stacks_dir.iterdir() if p.is_dir()]
-
-        for stack_dir in stacks_to_search:
-            decisions_dir = stack_dir / 'decisions'
-            if decisions_dir.exists():
-                for decision_file in decisions_dir.glob('*.md'):
+                entry_count = 0
+                if file_path.suffix == '.jsonl':
                     try:
-                        with open(decision_file, 'r') as f:
-                            content = f.read()
-
-                        # Basic matching
-                        if query.lower() in content.lower():
-                            decisions.append({
-                                'file': str(decision_file.relative_to(self.root_path)),
-                                'stack': stack_dir.name,
-                                'title': decision_file.stem,
-                                'preview': content[:150]
-                            })
+                        with open(file_path, 'r') as f:
+                            entry_count = sum(1 for line in f if line.strip())
+                    except IOError:
+                        pass
+                elif file_path.suffix == '.md':
+                    try:
+                        with open(file_path, 'r') as f:
+                            entry_count = len(re.findall(r'\n## ', f.read()))
                     except IOError:
                         pass
 
-        return TextContent(type="text", text=json.dumps(decisions[:limit], indent=2))
-
-    async def _search_cross_stack(self, query: str, limit: int = 5) -> TextContent:
-        """Tool: search_cross_stack"""
-        all_results = {}
-
-        stacks_dir = self.root_path / 'stacks'
-        if not stacks_dir.exists():
-            return TextContent(type="text", text=json.dumps({"error": "No stacks found"}))
-
-        for stack_dir in stacks_dir.iterdir():
-            if not stack_dir.is_dir():
-                continue
-
-            stack_name = stack_dir.name
-            index = self._get_or_build_index(stack_name)
-            results = index.search(query, limit)
-
-            stack_results = []
-            for score, metadata, content in results:
-                preview = content[:150].replace('\n', ' ') + '...'
-                stack_results.append({
-                    'score': round(score, 4),
-                    'file': metadata['file'],
-                    'preview': preview
+                files_info.append({
+                    'stack': stack_name,
+                    'file': str(file_path.relative_to(engine.root_path)),
+                    'type': file_path.suffix,
+                    'size_bytes': size,
+                    'entries': entry_count
                 })
 
-            if stack_results:
-                all_results[stack_name] = stack_results
+    return json.dumps(files_info, indent=2)
 
-        return TextContent(type="text", text=json.dumps(all_results, indent=2))
 
-    async def _resolve_context(self, context_sources: list[dict]) -> TextContent:
-        """Tool: resolve_context - Load context from multiple sources"""
-        resolved = []
+@mcp.tool()
+def search_decisions(query: str, stack: str = None, plan_id: str = None, limit: int = 10) -> str:
+    """Search for decisions across stacks.
 
-        for source in context_sources:
-            source_type = source.get('type')
+    Args:
+        query: Search query
+        stack: Optional stack name to filter
+        plan_id: Optional plan ID to filter decisions
+        limit: Maximum results (default: 10)
+    """
+    engine = get_engine()
+    decisions = []
 
-            if source_type == 'knowledge':
-                query = source.get('query')
-                stack = source.get('source')
-                results = await self._search_knowledge(query, stack, limit=3)
-                resolved.append({
-                    'type': 'knowledge',
-                    'query': query,
-                    'results': json.loads(results.text)
-                })
+    stacks_to_search = []
+    if stack:
+        stacks_to_search = [engine.root_path / 'stacks' / stack]
+    else:
+        stacks_dir = engine.root_path / 'stacks'
+        if stacks_dir.exists():
+            stacks_to_search = [p for p in stacks_dir.iterdir() if p.is_dir()]
 
-            elif source_type == 'file':
-                path = source.get('path')
+    for stack_dir in stacks_to_search:
+        decisions_dir = stack_dir / 'decisions'
+        if decisions_dir.exists():
+            for decision_file in decisions_dir.glob('*.md'):
                 try:
-                    file_path = Path(path)
-                    if not file_path.is_absolute():
-                        file_path = self.root_path / path
-
-                    with open(file_path, 'r') as f:
+                    with open(decision_file, 'r') as f:
                         content = f.read()
-                    resolved.append({
-                        'type': 'file',
-                        'path': path,
-                        'content': content
-                    })
-                except (IOError, OSError) as e:
-                    resolved.append({
-                        'type': 'file',
-                        'path': path,
-                        'error': str(e)
-                    })
 
-            elif source_type == 'mcp_query':
+                    if query.lower() in content.lower():
+                        decisions.append({
+                            'file': str(decision_file.relative_to(engine.root_path)),
+                            'stack': stack_dir.name,
+                            'title': decision_file.stem,
+                            'preview': content[:150]
+                        })
+                except IOError:
+                    pass
+
+    return json.dumps(decisions[:limit], indent=2)
+
+
+@mcp.tool()
+def search_cross_stack(query: str, limit: int = 5) -> str:
+    """Search across all stacks with results labeled by stack.
+
+    Args:
+        query: Search query
+        limit: Maximum results per stack (default: 5)
+    """
+    engine = get_engine()
+    all_results = {}
+
+    stacks_dir = engine.root_path / 'stacks'
+    if not stacks_dir.exists():
+        return json.dumps({"error": "No stacks found"})
+
+    for stack_dir in stacks_dir.iterdir():
+        if not stack_dir.is_dir():
+            continue
+
+        stack_name = stack_dir.name
+        index = engine._get_or_build_index(stack_name)
+        results = index.search(query, limit)
+
+        stack_results = []
+        for score, metadata, content in results:
+            preview = content[:150].replace('\n', ' ') + '...'
+            stack_results.append({
+                'score': round(score, 4),
+                'file': metadata['file'],
+                'preview': preview
+            })
+
+        if stack_results:
+            all_results[stack_name] = stack_results
+
+    return json.dumps(all_results, indent=2)
+
+
+@mcp.tool()
+def resolve_context(context_sources: list[dict]) -> str:
+    """Resolve context from multiple sources for plan execution.
+
+    Args:
+        context_sources: List of context source objects with 'type' field
+            (knowledge, file, mcp_query, plan_output)
+    """
+    engine = get_engine()
+    resolved = []
+
+    for source in context_sources:
+        source_type = source.get('type')
+
+        if source_type == 'knowledge':
+            query = source.get('query')
+            stack = source.get('source')
+            index = engine._get_or_build_index(stack)
+            results = index.search(query, limit=3)
+            formatted = []
+            for score, metadata, content in results:
+                preview = content[:200].replace('\n', ' ') + '...'
+                formatted.append({
+                    'score': round(score, 4),
+                    'stack': metadata['stack'],
+                    'file': metadata['file'],
+                    'preview': preview,
+                })
+            resolved.append({
+                'type': 'knowledge',
+                'query': query,
+                'results': formatted,
+            })
+
+        elif source_type == 'file':
+            path = source.get('path')
+            try:
+                file_path = Path(path)
+                if not file_path.is_absolute():
+                    file_path = engine.root_path / path
+
+                with open(file_path, 'r') as f:
+                    content = f.read()
                 resolved.append({
-                    'type': 'mcp_query',
-                    'server': source.get('mcp_server'),
-                    'tool': source.get('mcp_tool'),
-                    'note': 'MCP delegation not implemented in this context'
+                    'type': 'file',
+                    'path': path,
+                    'content': content
+                })
+            except (IOError, OSError) as e:
+                resolved.append({
+                    'type': 'file',
+                    'path': path,
+                    'error': str(e)
                 })
 
-            elif source_type == 'plan_output':
-                resolved.append({
-                    'type': 'plan_output',
-                    'plan_id': source.get('plan_id'),
-                    'step_id': source.get('step_id'),
-                    'note': 'Plan output resolution not implemented in this context'
-                })
+        elif source_type == 'mcp_query':
+            resolved.append({
+                'type': 'mcp_query',
+                'server': source.get('mcp_server'),
+                'tool': source.get('mcp_tool'),
+                'note': 'MCP delegation not implemented in this context'
+            })
 
-        return TextContent(type="text", text=json.dumps(resolved, indent=2))
+        elif source_type == 'plan_output':
+            resolved.append({
+                'type': 'plan_output',
+                'plan_id': source.get('plan_id'),
+                'step_id': source.get('step_id'),
+                'note': 'Plan output resolution not implemented in this context'
+            })
 
-    async def run(self) -> None:
-        """Run the MCP server with stdio transport."""
-        async with stdio_server() as (read_stream, write_stream):
-            await self.server.run(
-                read_stream,
-                write_stream,
-                mcp_types.InitializationOptions(
-                    server_name="knowledge-search",
-                    server_version="1.0.0",
-                ),
-            )
-
-
-def main():
-    """Main entry point"""
-    server = KnowledgeSearchServer()
-    asyncio.run(server.run())
+    return json.dumps(resolved, indent=2)
 
 
 if __name__ == '__main__':
-    main()
+    mcp.run(transport="stdio")

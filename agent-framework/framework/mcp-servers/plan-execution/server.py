@@ -13,7 +13,6 @@ Tools:
   - validate_plan_for_execution: Check if a plan is ready for execution
 """
 
-import asyncio
 import json
 import os
 import re
@@ -25,10 +24,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 import anthropic
-from mcp.server import Server
-from mcp.server.stdio import stdio_server
-from mcp.server.models import InitializationOptions
-from mcp.types import TextContent, Tool
+from fastmcp import FastMCP
 
 
 # ============================================================================
@@ -457,11 +453,11 @@ def update_plan_step(plan: dict, step_id: str, result: StepResult) -> dict:
 
 
 # ============================================================================
-# MCP Server
+# MCP Server (FastMCP 3.x)
 # ============================================================================
 
 
-server = Server("plan-execution")
+mcp = FastMCP("plan-execution")
 
 
 def get_anthropic_api_key() -> str:
@@ -472,425 +468,276 @@ def get_anthropic_api_key() -> str:
     return api_key
 
 
-@server.list_tools()
-async def list_tools() -> list[Tool]:
-    """List available tools."""
-    return [
-        Tool(
-            name="execute_step",
-            description="Execute a single plan step via the Anthropic Messages API. Returns step result with status, summary, tokens used, and file modifications.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "plan_path": {
-                        "type": "string",
-                        "description": "Path to plan JSON file",
-                    },
-                    "step_id": {
-                        "type": "string",
-                        "description": "Step ID to execute",
-                    },
-                    "model": {
-                        "type": "string",
-                        "description": "Model override (default: from plan's batch_config or claude-sonnet-4-5-20250929)",
-                    },
-                    "max_tokens": {
-                        "type": "integer",
-                        "description": "Max tokens for response (default: 4096)",
-                    },
-                    "dry_run": {
-                        "type": "boolean",
-                        "description": "If true, show what would be sent without calling API",
-                    },
-                },
-                "required": ["plan_path", "step_id"],
+@mcp.tool()
+def execute_step(
+    plan_path: str,
+    step_id: str,
+    model: str = None,
+    max_tokens: int = 4096,
+    dry_run: bool = False,
+) -> str:
+    """Execute a single plan step via the Anthropic Messages API.
+
+    Returns step result with status, summary, tokens used, and file modifications.
+
+    Args:
+        plan_path: Path to plan JSON file
+        step_id: Step ID to execute
+        model: Model override (default: from plan's batch_config or claude-sonnet-4-5-20250929)
+        max_tokens: Max tokens for response (default: 4096)
+        dry_run: If true, show what would be sent without calling API
+    """
+    plan = load_plan(plan_path)
+    step = find_step_by_id(plan.get("steps", []), step_id)
+
+    if not step:
+        return f"Error: Step {step_id} not found"
+
+    agent_name = step.get("agent")
+    if not agent_name:
+        return "Error: Step has no agent assigned"
+
+    root = get_root_path()
+    agent_path = find_agent_file(agent_name, root)
+
+    if not agent_path:
+        return f"Error: Agent file not found: {agent_name}"
+
+    system_prompt = get_agent_system_prompt(agent_path)
+
+    if not model:
+        model = plan.get("batch_config", {}).get("model", "claude-sonnet-4-5-20250929")
+
+    if dry_run:
+        return json.dumps(
+            {
+                "dry_run": True,
+                "step_id": step_id,
+                "task": step.get("task", "")[:100],
+                "agent": agent_name,
+                "model": model,
+                "max_tokens": max_tokens,
+                "system_prompt_length": len(system_prompt),
             },
-        ),
-        Tool(
-            name="execute_wave",
-            description="Execute a parallel group of steps via Batch API. Returns wave result with all step results and batch ID.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "plan_path": {
-                        "type": "string",
-                        "description": "Path to plan JSON",
-                    },
-                    "parallel_group": {
-                        "type": "string",
-                        "description": "Execute specific parallel group",
-                    },
-                    "wave_number": {
-                        "type": "integer",
-                        "description": "Execute specific wave number",
-                    },
-                    "model": {
-                        "type": "string",
-                        "description": "Model override",
-                    },
-                    "dry_run": {
-                        "type": "boolean",
-                        "description": "Show batch request without submitting",
-                    },
-                },
-                "required": ["plan_path"],
-            },
-        ),
-        Tool(
-            name="get_execution_schedule",
-            description="Show the planned execution order without running anything. Returns waves with step metadata and dependencies.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "plan_path": {
-                        "type": "string",
-                        "description": "Path to plan JSON file",
-                    },
-                    "include_context": {
-                        "type": "boolean",
-                        "description": "Include resolved context info",
-                    },
-                    "include_completed": {
-                        "type": "boolean",
-                        "description": "Include already-completed steps",
-                    },
-                },
-                "required": ["plan_path"],
-            },
-        ),
-        Tool(
-            name="get_execution_status",
-            description="Get current execution progress for a plan. Returns status, progress percentage, completed/pending/blocked steps, and next executable steps.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "plan_path": {
-                        "type": "string",
-                        "description": "Path to plan JSON file",
-                    }
-                },
-                "required": ["plan_path"],
-            },
-        ),
-        Tool(
-            name="resume_execution",
-            description="Resume plan execution from where it left off. Executes all remaining steps.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "plan_path": {
-                        "type": "string",
-                        "description": "Path to plan JSON file",
-                    },
-                    "mode": {
-                        "type": "string",
-                        "enum": ["sequential", "batch"],
-                        "description": "Execution mode (default: from plan)",
-                    },
-                    "auto_approve": {
-                        "type": "boolean",
-                        "description": "Skip approval for all steps",
-                    },
-                },
-                "required": ["plan_path"],
-            },
-        ),
-        Tool(
-            name="validate_plan_for_execution",
-            description="Check if a plan is ready for execution. Validates plan structure, finds agents, and estimates cost.",
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "plan_path": {
-                        "type": "string",
-                        "description": "Path to plan JSON file",
-                    }
-                },
-                "required": ["plan_path"],
-            },
-        ),
-    ]
-
-
-@server.call_tool()
-async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
-    """Handle tool calls."""
-    try:
-        if name == "execute_step":
-            plan_path = arguments.get("plan_path")
-            step_id = arguments.get("step_id")
-            model = arguments.get("model")
-            max_tokens = arguments.get("max_tokens", 4096)
-            dry_run = arguments.get("dry_run", False)
-
-            if not plan_path or not step_id:
-                return [TextContent(type="text", text="Error: plan_path and step_id required")]
-
-            plan = load_plan(plan_path)
-            step = find_step_by_id(plan.get("steps", []), step_id)
-
-            if not step:
-                return [TextContent(type="text", text=f"Error: Step {step_id} not found")]
-
-            # Get agent and system prompt
-            agent_name = step.get("agent")
-            if not agent_name:
-                return [TextContent(type="text", text=f"Error: Step has no agent assigned")]
-
-            root = get_root_path()
-            agent_path = find_agent_file(agent_name, root)
-
-            if not agent_path:
-                return [TextContent(type="text", text=f"Error: Agent file not found: {agent_name}")]
-
-            system_prompt = get_agent_system_prompt(agent_path)
-
-            # Set model
-            if not model:
-                model = plan.get("batch_config", {}).get("model", "claude-sonnet-4-5-20250929")
-
-            if dry_run:
-                return [
-                    TextContent(
-                        type="text",
-                        text=json.dumps(
-                            {
-                                "dry_run": True,
-                                "step_id": step_id,
-                                "task": step.get("task", "")[:100],
-                                "agent": agent_name,
-                                "model": model,
-                                "max_tokens": max_tokens,
-                                "system_prompt_length": len(system_prompt),
-                            },
-                            indent=2,
-                        ),
-                    )
-                ]
-
-            # Validate API key
-            try:
-                get_anthropic_api_key()
-            except ValueError as e:
-                return [TextContent(type="text", text=f"Error: {str(e)}")]
-
-            # Execute
-            result = execute_step_with_api(step, system_prompt, model, max_tokens)
-
-            # Update plan
-            plan = update_plan_step(plan, step_id, result)
-
-            # Save updated plan
-            plan_path_obj = Path(plan_path)
-            plan_path_obj.write_text(json.dumps(plan, indent=2), encoding="utf-8")
-
-            return [TextContent(type="text", text=json.dumps(asdict(result), indent=2, default=str))]
-
-        elif name == "execute_wave":
-            plan_path = arguments.get("plan_path")
-            parallel_group = arguments.get("parallel_group")
-            wave_number = arguments.get("wave_number")
-            model = arguments.get("model")
-            dry_run = arguments.get("dry_run", False)
-
-            if not plan_path:
-                return [TextContent(type="text", text="Error: plan_path required")]
-
-            plan = load_plan(plan_path)
-            waves = resolve_dependencies(plan.get("steps", []))
-
-            target_wave = None
-            if wave_number is not None and 0 <= wave_number < len(waves):
-                target_wave = waves[wave_number]
-            elif parallel_group:
-                for wave in waves:
-                    if any(s.get("parallel_group") == parallel_group for s in wave):
-                        target_wave = wave
-                        break
-            else:
-                target_wave = waves[0] if waves else []
-
-            if dry_run:
-                return [
-                    TextContent(
-                        type="text",
-                        text=json.dumps(
-                            {
-                                "dry_run": True,
-                                "steps": len(target_wave) if target_wave else 0,
-                                "steps_ids": [s.get("id") for s in (target_wave or [])],
-                            },
-                            indent=2,
-                        ),
-                    )
-                ]
-
-            return [TextContent(type="text", text="Wave execution not yet implemented")]
-
-        elif name == "get_execution_schedule":
-            plan_path = arguments.get("plan_path")
-            include_context = arguments.get("include_context", False)
-            include_completed = arguments.get("include_completed", False)
-
-            if not plan_path:
-                return [TextContent(type="text", text="Error: plan_path required")]
-
-            plan = load_plan(plan_path)
-            waves = resolve_dependencies(plan.get("steps", []))
-
-            output = {"waves": []}
-            for wave_num, wave in enumerate(waves):
-                wave_data = {
-                    "wave_number": wave_num,
-                    "steps": []
-                }
-                for step in wave:
-                    step_data = {
-                        "id": step.get("id"),
-                        "task": step.get("task", "")[:100],
-                        "agent": step.get("agent"),
-                        "status": step.get("status", "pending"),
-                        "priority": step.get("priority", "normal"),
-                        "parallel_group": step.get("parallel_group"),
-                        "dependencies": step.get("dependencies", []),
-                        "estimated_tokens": step.get("estimated_tokens", 0),
-                    }
-                    if include_context and "context_needed" in step:
-                        step_data["context_needed"] = step["context_needed"]
-                    wave_data["steps"].append(step_data)
-                output["waves"].append(wave_data)
-
-            return [TextContent(type="text", text=json.dumps(output, indent=2))]
-
-        elif name == "get_execution_status":
-            plan_path = arguments.get("plan_path")
-
-            if not plan_path:
-                return [TextContent(type="text", text="Error: plan_path required")]
-
-            plan = load_plan(plan_path)
-            flat_steps = flatten_steps(plan.get("steps", []))
-
-            completed = [s.get("id") for s in flat_steps if s.get("status") == "completed"]
-            pending = [s.get("id") for s in flat_steps if s.get("status") in ("pending", None)]
-            blocked = {}
-
-            for step in flat_steps:
-                deps = step.get("dependencies", [])
-                unmet = [d for d in deps if d not in completed]
-                if unmet and step.get("status") != "completed":
-                    blocked[step.get("id")] = unmet
-
-            # Get next executable steps
-            waves = resolve_dependencies(plan.get("steps", []))
-            next_executable = []
-            if waves:
-                next_executable = [s.get("id") for s in waves[0]]
-
-            progress = len(completed) / len(flat_steps) * 100 if flat_steps else 0
-
-            status = ExecutionStatus(
-                overall_status=plan.get("overall_status", "active"),
-                progress_percentage=progress,
-                completed_steps=completed,
-                pending_steps=pending,
-                blocked_steps=blocked,
-                token_budget=plan.get("token_budget", {}),
-                next_executable_steps=next_executable,
-                critical_path_status="not_computed",
-            )
-
-            return [TextContent(type="text", text=json.dumps(asdict(status), indent=2, default=str))]
-
-        elif name == "resume_execution":
-            return [TextContent(type="text", text="Resume execution not yet implemented")]
-
-        elif name == "validate_plan_for_execution":
-            plan_path = arguments.get("plan_path")
-
-            if not plan_path:
-                return [TextContent(type="text", text="Error: plan_path required")]
-
-            try:
-                plan = load_plan(plan_path)
-            except Exception as e:
-                return [
-                    TextContent(
-                        type="text",
-                        text=json.dumps(
-                            {
-                                "valid": False,
-                                "errors": [f"Failed to load plan: {str(e)}"],
-                                "warnings": [],
-                                "agents_found": [],
-                                "estimated_cost": 0,
-                            },
-                            indent=2,
-                        ),
-                    )
-                ]
-
-            errors = []
-            warnings = []
-            agents_found = []
-            total_tokens = 0
-
-            # Check schema version
-            if plan.get("schema_version") != "2.0":
-                errors.append(f"Schema version must be 2.0, got {plan.get('schema_version')}")
-
-            # Check required fields
-            required = ["plan_id", "stack", "description", "steps"]
-            for field in required:
-                if field not in plan:
-                    errors.append(f"Missing required field: {field}")
-
-            # Validate steps and find agents
-            root = get_root_path()
-            flat_steps = flatten_steps(plan.get("steps", []))
-
-            for step in flat_steps:
-                agent_name = step.get("agent")
-                if agent_name:
-                    agent_path = find_agent_file(agent_name, root)
-                    if agent_path:
-                        agents_found.append(agent_name)
-                    else:
-                        warnings.append(f"Agent not found: {agent_name}")
-
-                total_tokens += step.get("estimated_tokens", 0) or 0
-
-            valid = len(errors) == 0
-
-            result = ValidationResult(
-                valid=valid,
-                errors=errors,
-                warnings=warnings,
-                agents_found=list(set(agents_found)),
-                estimated_cost=total_tokens,
-            )
-
-            return [TextContent(type="text", text=json.dumps(asdict(result), indent=2))]
-
-        else:
-            return [TextContent(type="text", text=f"Unknown tool: {name}")]
-
-    except Exception as e:
-        return [TextContent(type="text", text=f"Error: {str(e)}")]
-
-
-async def main():
-    """Run the MCP server with stdio transport."""
-    async with stdio_server() as (read_stream, write_stream):
-        await server.run(
-            read_stream,
-            write_stream,
-            InitializationOptions(
-                server_name="plan-execution",
-                server_version="1.0.0",
-            ),
+            indent=2,
         )
+
+    get_anthropic_api_key()
+
+    result = execute_step_with_api(step, system_prompt, model, max_tokens)
+
+    plan = update_plan_step(plan, step_id, result)
+
+    plan_path_obj = Path(plan_path)
+    plan_path_obj.write_text(json.dumps(plan, indent=2), encoding="utf-8")
+
+    return json.dumps(asdict(result), indent=2, default=str)
+
+
+@mcp.tool()
+def execute_wave(
+    plan_path: str,
+    parallel_group: str = None,
+    wave_number: int = None,
+    model: str = None,
+    dry_run: bool = False,
+) -> str:
+    """Execute a parallel group of steps via Batch API.
+
+    Returns wave result with all step results and batch ID.
+
+    Args:
+        plan_path: Path to plan JSON
+        parallel_group: Execute specific parallel group
+        wave_number: Execute specific wave number
+        model: Model override
+        dry_run: Show batch request without submitting
+    """
+    plan = load_plan(plan_path)
+    waves = resolve_dependencies(plan.get("steps", []))
+
+    target_wave = None
+    if wave_number is not None and 0 <= wave_number < len(waves):
+        target_wave = waves[wave_number]
+    elif parallel_group:
+        for wave in waves:
+            if any(s.get("parallel_group") == parallel_group for s in wave):
+                target_wave = wave
+                break
+    else:
+        target_wave = waves[0] if waves else []
+
+    if dry_run:
+        return json.dumps(
+            {
+                "dry_run": True,
+                "steps": len(target_wave) if target_wave else 0,
+                "steps_ids": [s.get("id") for s in (target_wave or [])],
+            },
+            indent=2,
+        )
+
+    return "Wave execution not yet implemented"
+
+
+@mcp.tool()
+def get_execution_schedule(
+    plan_path: str,
+    include_context: bool = False,
+    include_completed: bool = False,
+) -> str:
+    """Show the planned execution order without running anything.
+
+    Returns waves with step metadata and dependencies.
+
+    Args:
+        plan_path: Path to plan JSON file
+        include_context: Include resolved context info
+        include_completed: Include already-completed steps
+    """
+    plan = load_plan(plan_path)
+    waves = resolve_dependencies(plan.get("steps", []))
+
+    output = {"waves": []}
+    for wave_num, wave in enumerate(waves):
+        wave_data = {"wave_number": wave_num, "steps": []}
+        for step in wave:
+            step_data = {
+                "id": step.get("id"),
+                "task": step.get("task", "")[:100],
+                "agent": step.get("agent"),
+                "status": step.get("status", "pending"),
+                "priority": step.get("priority", "normal"),
+                "parallel_group": step.get("parallel_group"),
+                "dependencies": step.get("dependencies", []),
+                "estimated_tokens": step.get("estimated_tokens", 0),
+            }
+            if include_context and "context_needed" in step:
+                step_data["context_needed"] = step["context_needed"]
+            wave_data["steps"].append(step_data)
+        output["waves"].append(wave_data)
+
+    return json.dumps(output, indent=2)
+
+
+@mcp.tool()
+def get_execution_status(plan_path: str) -> str:
+    """Get current execution progress for a plan.
+
+    Returns status, progress percentage, completed/pending/blocked steps,
+    and next executable steps.
+
+    Args:
+        plan_path: Path to plan JSON file
+    """
+    plan = load_plan(plan_path)
+    flat = flatten_steps(plan.get("steps", []))
+
+    completed = [s.get("id") for s in flat if s.get("status") == "completed"]
+    pending = [s.get("id") for s in flat if s.get("status") in ("pending", None)]
+    blocked = {}
+
+    for step in flat:
+        deps = step.get("dependencies", [])
+        unmet = [d for d in deps if d not in completed]
+        if unmet and step.get("status") != "completed":
+            blocked[step.get("id")] = unmet
+
+    waves = resolve_dependencies(plan.get("steps", []))
+    next_executable = [s.get("id") for s in waves[0]] if waves else []
+
+    progress = len(completed) / len(flat) * 100 if flat else 0
+
+    status = ExecutionStatus(
+        overall_status=plan.get("overall_status", "active"),
+        progress_percentage=progress,
+        completed_steps=completed,
+        pending_steps=pending,
+        blocked_steps=blocked,
+        token_budget=plan.get("token_budget", {}),
+        next_executable_steps=next_executable,
+        critical_path_status="not_computed",
+    )
+
+    return json.dumps(asdict(status), indent=2, default=str)
+
+
+@mcp.tool()
+def resume_execution(
+    plan_path: str,
+    mode: str = "sequential",
+    auto_approve: bool = False,
+) -> str:
+    """Resume plan execution from where it left off.
+
+    Args:
+        plan_path: Path to plan JSON file
+        mode: Execution mode — 'sequential' or 'batch' (default: sequential)
+        auto_approve: Skip approval for all steps
+    """
+    return "Resume execution not yet implemented"
+
+
+@mcp.tool()
+def validate_plan_for_execution(plan_path: str) -> str:
+    """Check if a plan is ready for execution.
+
+    Validates plan structure, finds agents, and estimates cost.
+
+    Args:
+        plan_path: Path to plan JSON file
+    """
+    try:
+        plan = load_plan(plan_path)
+    except Exception as e:
+        return json.dumps(
+            {
+                "valid": False,
+                "errors": [f"Failed to load plan: {str(e)}"],
+                "warnings": [],
+                "agents_found": [],
+                "estimated_cost": 0,
+            },
+            indent=2,
+        )
+
+    errors = []
+    warnings = []
+    agents_found = []
+    total_tokens = 0
+
+    if plan.get("schema_version") != "2.0":
+        errors.append(f"Schema version must be 2.0, got {plan.get('schema_version')}")
+
+    required = ["plan_id", "stack", "description", "steps"]
+    for field in required:
+        if field not in plan:
+            errors.append(f"Missing required field: {field}")
+
+    root = get_root_path()
+    flat = flatten_steps(plan.get("steps", []))
+
+    for step in flat:
+        agent_name = step.get("agent")
+        if agent_name:
+            agent_path = find_agent_file(agent_name, root)
+            if agent_path:
+                agents_found.append(agent_name)
+            else:
+                warnings.append(f"Agent not found: {agent_name}")
+
+        total_tokens += step.get("estimated_tokens", 0) or 0
+
+    result = ValidationResult(
+        valid=len(errors) == 0,
+        errors=errors,
+        warnings=warnings,
+        agents_found=list(set(agents_found)),
+        estimated_cost=total_tokens,
+    )
+
+    return json.dumps(asdict(result), indent=2)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    mcp.run(transport="stdio")
