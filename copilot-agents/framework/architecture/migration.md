@@ -1,8 +1,8 @@
 # Migration to Stack-Local Agent Architecture
 
-## Status: In Progress
+## Status: Complete ✅
 
-This file tracks the migration to the **stack-local agent discovery** model.
+This file documents the migration to the **stack-local agent discovery** model. All migration phases are complete as of v2.0 (March 2026).
 
 ## Current Standard (target)
 
@@ -46,8 +46,13 @@ If a stack still has an `agents/` folder (legacy), migrate/delete it after verif
 
 If you still have one-off legacy notes or old agent versions, move them under `docs/` or `.archive/` and ensure all docs refer to the stack-local `.github/agents` model.
 
-## Next Steps
+## Completion Notes
 
-1. Sweep stacks for `stacks/*/agents/` and remove once migrated
-2. Sweep workspaces for `~` / `${userHome}` / `${env:...}` in `folders[].path` and convert to relative + `monorepo/`
-3. Keep repo-level `.github/agents/` only as optional shared library
+All migration steps have been completed:
+
+- All stacks use `stacks/STACKNAME/.github/agents/` as the primary agent location
+- Legacy `stacks/*/agents/` directories have been migrated
+- Workspaces use relative paths only (no `~`, `${userHome}`, or `${env:...}`)
+- Repo-level `.github/agents/` is retained as an optional shared library
+- Framework now includes 3 MCP servers (agent-registry, knowledge-search, plan-execution), 12 scripts, and 27 agents across 2 stacks
+- Plan schema v2.0 with parallel execution, knowledge management, and autonomous execution via Anthropic API

@@ -150,17 +150,21 @@ All 5 steps completed successfully.
 You can now create a new plan.
 ```
 
-## Hierarchical Planning (v1.1)
+## Hierarchical Planning (v2.0)
 
 ### Overview
 
-Schema v1.1 introduces hierarchical plans with automatic knowledge capture. Key features:
+Schema v2.0 provides hierarchical plans with automatic knowledge capture, parallel execution groups, and autonomous API-driven execution. Key features:
 
 - **Hierarchical steps**: Break complex steps into sub-tasks (max 2 levels)
+- **Parallel execution groups**: Steps in the same group run concurrently
+- **Priority-based scheduling**: critical/high/normal/low with human approval gates
 - **Automatic knowledge extraction**: Decisions, learnings, blockers captured from agent responses
 - **Context-aware progress**: Navigate between main/sub-plan contexts
 - **Artifact verification**: Auto-check file existence
-- **Schema migration**: v1.0 plans auto-upgrade to v1.1
+- **Token budgeting**: Estimated token usage per step with budget tracking
+- **Context resolution**: Steps declare needed context (file, knowledge, plan_output, mcp_query)
+- **Schema migration**: v1.0 → v1.1 → v2.0 plans auto-upgrade
 
 ### Example 1: Creating Hierarchical Plan with Sub-Steps
 
@@ -621,14 +625,15 @@ Main Level (40% complete):
 
 **Coordinator auto-migrates:**
 ```
-🔄 Migrating plan from v1.0 → v1.1...
+🔄 Migrating plan from v1.0 → v2.0...
 
 Migrations applied:
 - ✅ Converted numeric step IDs to strings (1 → "1")
 - ✅ Upgraded artifacts to object format with verification
 - ✅ Added empty knowledge objects
 - ✅ Added active_context: "main"
-- ✅ Updated schema_version to "1.1"
+- ✅ Added parallel_group, priority, estimated_tokens, context_needed fields
+- ✅ Updated schema_version to "2.0"
 
 Plan loaded successfully.
 
@@ -643,6 +648,54 @@ Artifacts:
 ```
 
 **Migrated plan saved automatically** - original backed up as `*.v1.0.backup.json`
+
+## Autonomous Execution
+
+### Overview
+
+Plans can be executed autonomously via the `plan-execution` MCP server or the `plan-executor.py` script. This uses the Anthropic Messages API (sequential) or Batch API (parallel waves).
+
+### Via Coordinator Commands
+
+```
+@coordinator execute-step 1              # Execute single step via Messages API
+@coordinator execute-plan                # Execute all steps sequentially
+@coordinator execute-plan --batch        # Execute parallel waves via Batch API
+@coordinator execution-status            # Check execution progress
+```
+
+### Via Plan Executor Script
+
+```bash
+# Dry-run: show execution schedule without calling APIs
+python framework/scripts/plan-executor.py plan.json --mode dry-run
+
+# Sequential: one step at a time via Messages API
+python framework/scripts/plan-executor.py plan.json --mode sequential
+
+# Batch: parallel waves via Batch API
+python framework/scripts/plan-executor.py plan.json --mode batch
+
+# Skip approval prompts for CI/headless use
+python framework/scripts/plan-executor.py plan.json --mode sequential --auto-approve
+
+# Resume from where you left off
+python framework/scripts/plan-executor.py plan.json --mode sequential --resume
+```
+
+### Via MCP Tools
+
+```
+plan-execution.execute_step(plan_path="plan.json", step_id="1")
+plan-execution.execute_wave(plan_path="plan.json", wave_number=1)
+plan-execution.get_execution_status(plan_path="plan.json")
+plan-execution.resume_execution(plan_path="plan.json")
+plan-execution.validate_plan_for_execution(plan_path="plan.json")
+```
+
+### Human Approval Gates
+
+Steps with `priority: "critical"` or `"high"` pause for human approval by default. Options: approve (`y`), skip (`s`), or abort (`a`). Use `--auto-approve` to bypass for CI.
 
 ## Advanced Examples
 
@@ -831,7 +884,17 @@ stacks/systemtests-python/
 | `@coordinator step <N> completed` | Mark step as completed |
 | `@coordinator step <N> blocked: <reason>` | Mark step as blocked |
 | `@coordinator step <N> in progress` | Mark step as in-progress |
+| `@coordinator step <N> skipped: <reason>` | Skip a step |
+| `@coordinator expand-step <N>` | Decompose step into sub-steps |
+| `@coordinator focus-on <N>` | Navigate to sub-plan context |
+| `@coordinator focus-main` | Return to main plan context |
 | `@coordinator archive-plan` | Archive active plan (manual only) |
+| `@coordinator execute-step <N>` | Execute single step via Messages API |
+| `@coordinator execute-plan` | Execute all steps sequentially |
+| `@coordinator execute-plan --batch` | Execute parallel waves via Batch API |
+| `@coordinator execution-status` | Check execution progress |
+| `@coordinator search-knowledge <query>` | Search captured knowledge |
+| `@coordinator export-knowledge` | Export knowledge to markdown |
 
 ## Best Practices
 
@@ -923,6 +986,8 @@ This creates full traceability from plan → implementation → commit → MR �
 
 ## See Also
 
-- [framework/core/common-agents/coordinator.agent.md](../framework/core/common-agents/coordinator.agent.md) - Full coordinator agent specification
-- [architecture/structure.md](../architecture/structure.md) - Multi-stack repository structure
-- Stack-specific READMEs for agent listings
+- [framework/core/common-agents/coordinator.agent.md](../framework/core/common-agents/coordinator.agent.md) — Full coordinator agent specification
+- [docs/usage-guide.md](usage-guide.md) — Day-to-day workflows
+- [framework/schemas/plan-v2.schema.json](../framework/schemas/plan-v2.schema.json) — Plan schema v2.0
+- [framework/architecture/structure.md](../framework/architecture/structure.md) — Repository structure
+- [GETTING_STARTED.md](../GETTING_STARTED.md) — Setup walkthrough

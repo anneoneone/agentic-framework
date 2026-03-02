@@ -7,7 +7,7 @@ A production-quality MCP (Model Context Protocol) server for programmatic agent 
 **Status**: ✓ Complete and ready for integration
 **Language**: Python 3.10+
 **Dependencies**: `mcp>=1.0.0` (no YAML library required)
-**Location**: `/sessions/serene-happy-dijkstra/mnt/agentic-framework/copilot-agents/framework/mcp-servers/agent-registry/`
+**Location**: `framework/mcp-servers/agent-registry/`
 
 ## Architecture
 
