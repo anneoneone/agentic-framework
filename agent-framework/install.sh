@@ -229,16 +229,39 @@ echo -e "${BOLD}╚════════════════════�
 echo ""
 
 if ! $NO_VENV && ! $DRY_RUN; then
-    echo -e "  Activate the venv:  ${BLUE}source ${VENV_DIR}/bin/activate${NC}"
-fi
-
-echo -e "  List agents:        ${BLUE}python framework/scripts/agent-cli.py list${NC}"
-echo -e "  Run a task:         ${BLUE}python framework/scripts/agent-cli.py task \"your task\" --stack STACK${NC}"
-echo -e "  Invoke an agent:    ${BLUE}python framework/scripts/agent-cli.py invoke AGENT \"task\"${NC}"
-echo -e "  Execute a plan:     ${BLUE}python framework/scripts/agent-cli.py plan PLAN.json --mode batch${NC}"
-echo ""
-
-if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
-    echo -e "  ${YELLOW}Remember to set ANTHROPIC_API_KEY before running agents.${NC}"
+    echo -e "  ${BOLD}1. Activate the virtual environment:${NC}"
+    echo -e "     ${BLUE}source ${VENV_DIR}/bin/activate${NC}"
     echo ""
 fi
+
+if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
+    echo -e "  ${BOLD}${!NO_VENV:+1}${NO_VENV:+1}. Set your API key:${NC}"
+    echo -e "     ${BLUE}export ANTHROPIC_API_KEY='sk-ant-...'${NC}"
+    echo ""
+fi
+
+echo -e "  ${BOLD}Quick start examples:${NC}"
+echo ""
+echo -e "  ${GREEN}# See all available agents across stacks${NC}"
+echo -e "  ${BLUE}python framework/scripts/agent-cli.py list${NC}"
+echo ""
+echo -e "  ${GREEN}# List agents for a specific stack${NC}"
+echo -e "  ${BLUE}python framework/scripts/agent-cli.py list --stack live-moafunk${NC}"
+echo ""
+echo -e "  ${GREEN}# Describe a task — the framework auto-selects the best agent${NC}"
+echo -e "  ${BLUE}python framework/scripts/agent-cli.py task \"Add rate limiting to the upload API\" --stack live-moafunk${NC}"
+echo ""
+echo -e "  ${GREEN}# Invoke a specific agent by name${NC}"
+echo -e "  ${BLUE}python framework/scripts/agent-cli.py invoke axum-backend \"Add a /health endpoint that returns 200\"${NC}"
+echo ""
+echo -e "  ${GREEN}# Execute a plan in dry-run mode (no API calls)${NC}"
+echo -e "  ${BLUE}python framework/scripts/agent-cli.py plan stacks/live-moafunk/.copilot-agents/plans/my-plan.json --mode dry-run${NC}"
+echo ""
+echo -e "  ${GREEN}# Execute a plan with parallel batching via Anthropic Batch API${NC}"
+echo -e "  ${BLUE}python framework/scripts/agent-cli.py plan stacks/live-moafunk/.copilot-agents/plans/my-plan.json --mode batch${NC}"
+echo ""
+echo -e "  ${GREEN}# Validate all agent files${NC}"
+echo -e "  ${BLUE}python framework/scripts/validate-agent.py --all${NC}"
+echo ""
+echo -e "  For full documentation: ${BLUE}cat GETTING_STARTED.md${NC}"
+echo ""

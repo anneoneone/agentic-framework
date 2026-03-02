@@ -40,88 +40,148 @@ Optionally configure `framework/config.json`:
 
 ## 2. Create Your First Stack
 
+A stack represents one project (or monorepo) and contains its own domain-specialist agents, plans, and knowledge.
+
 ### Step 1: Analyze your project
 
-Use the analyzer agent to scan your codebase:
+Point the analyzer at your project root. It scans the codebase for languages, frameworks, and domain patterns, then recommends which agents to generate:
 
 ```bash
-agent-cli task analyzer /path/to/your/project
-```
+# Example: analyze a Rust + Vue.js live-streaming platform
+python framework/scripts/agent-cli.py task "Analyze the codebase and recommend agents" \
+  --stack live-moafunk
 
-The analyzer detects patterns (languages, frameworks, domain concepts) and recommends agents.
+# Example: analyze a Raspberry Pi robotics project
+python framework/scripts/agent-cli.py task "Analyze the codebase and recommend agents" \
+  --stack gartenroboter3000
+```
 
 ### Step 2: Generate the stack
 
-Based on the analyzer output, create the stack:
+Based on the analyzer output, create the stack and its agents:
 
 ```bash
-agent-cli invoke writer create-stack stacks/my-stack from /path/to/project
+python framework/scripts/agent-cli.py invoke writer \
+  "Create stack live-moafunk with agents: axum-backend, vue-frontend, ffmpeg-pipeline, nginx-config"
 ```
 
 This creates the full directory structure:
-- `stacks/my-stack/agents/` — domain specialists
-- `stacks/my-stack/plans/` — JSON plans
-- `stacks/my-stack/docs/` — documentation
+
+```
+stacks/live-moafunk/
+├── agents/
+│   ├── axum-backend.agent.md       # Rust/Axum API specialist
+│   ├── vue-frontend.agent.md       # Vue 3 + Vite frontend
+│   ├── ffmpeg-pipeline.agent.md    # Media transcoding pipeline
+│   ├── nginx-config.agent.md       # Reverse proxy / TLS
+│   ├── coordinator.agent.md        # → symlink to framework/core/
+│   └── planner.agent.md            # → symlink to framework/core/
+├── plans/                          # JSON execution plans
+└── docs/                           # JSONL knowledge entries
+```
 
 ### Step 3: Set up monorepo symlink
 
+Link the stack to the actual project source code:
+
 ```bash
-ln -snf /path/to/your/project stacks/my-stack/monorepo
+ln -snf ~/projects/live-moafunk stacks/live-moafunk/monorepo
 ```
 
 ### Step 4: Validate
 
 ```bash
-python framework/scripts/validate-agent.py --stack my-stack
+python framework/scripts/validate-agent.py --stack live-moafunk
 ```
 
-Expects 0 errors. Warnings about optional fields are fine.
+Expects 0 errors. Warnings about optional fields (like `knowledge_sources`) are fine.
 
-### Step 5: Verify agents
+### Step 5: List and verify agents
 
 ```bash
-agent-cli invoke analyzer stacks/my-stack/agents
+# List all agents in the stack
+python framework/scripts/agent-cli.py list --stack live-moafunk
+
+# Output:
+#   live-moafunk (6 agents):
+#     axum-backend        Rust/Axum backend API specialist
+#     vue-frontend        Vue 3 + Vite frontend specialist
+#     ffmpeg-pipeline     FFmpeg media transcoding pipeline
+#     nginx-config        Nginx reverse proxy configuration
+#     coordinator         Cross-agent coordination and routing
+#     planner             Task decomposition and plan generation
 ```
 
 Your stack agents are now ready.
 
 ## 3. Plan and Execute Tasks
 
-The framework provides structured task planning and execution.
+The framework decomposes tasks into multi-step plans, assigns agents, and executes them sequentially or in parallel via the Anthropic Batch API.
 
-### Create a plan
+### Describe a task — the framework auto-selects the best agent
 
 ```bash
-agent-cli invoke coordinator plan "Add WebSocket handler for live updates"
+# The framework scores all available agents and picks the best match
+python framework/scripts/agent-cli.py task \
+  "Add rate limiting to the upload API — max 10 requests per minute per user" \
+  --stack live-moafunk
+
+# → Selects: axum-backend (score: 0.92)
+# → Executes the task with the axum-backend agent's system prompt
 ```
 
-This delegates to the planner, which creates a JSON plan with steps, agents, dependencies, and parallel groups.
-
-### View the plan
+### Invoke a specific agent directly
 
 ```bash
-agent-cli task coordinator show-plan stacks/my-stack/plans/latest.json
+# Ask the Axum backend specialist to add a health endpoint
+python framework/scripts/agent-cli.py invoke axum-backend \
+  "Add a /health endpoint that returns 200 with JSON body {\"status\": \"ok\"}" \
+  --stack live-moafunk
+
+# Ask the Vue frontend specialist to fix a component
+python framework/scripts/agent-cli.py invoke vue-frontend \
+  "Fix the stream player component to handle HLS reconnection on network drop" \
+  --stack live-moafunk
 ```
 
-### Execute steps
+### Create a multi-step plan
 
-**Manual** (step by step):
+For complex tasks that span multiple agents, create a plan:
 
 ```bash
-agent-cli invoke coordinator step 1 completed --summary "Implemented handler"
+python framework/scripts/agent-cli.py invoke coordinator \
+  "Plan: Add WebSocket-based live chat to the streaming platform" \
+  --stack live-moafunk
 ```
 
-**Autonomous** (via CLI):
+The planner decomposes this into steps with agents, dependencies, and parallel groups:
+
+```json
+{
+  "steps": [
+    {"id": 1, "agent": "axum-backend",  "task": "Add WebSocket upgrade handler at /ws/chat",  "group": "A"},
+    {"id": 2, "agent": "axum-backend",  "task": "Implement chat room state and message fan-out", "group": "A"},
+    {"id": 3, "agent": "vue-frontend",  "task": "Create ChatPanel.vue with message list and input", "group": "A"},
+    {"id": 4, "agent": "nginx-config",  "task": "Add WebSocket proxy_pass for /ws/ location",  "group": "B", "depends_on": [1]},
+    {"id": 5, "agent": "vue-frontend",  "task": "Integrate ChatPanel into stream viewer layout",  "group": "B", "depends_on": [3]}
+  ]
+}
+```
+
+### Execute the plan
 
 ```bash
-# Dry-run first
-agent-cli plan stacks/my-stack/plans/my-plan.json --dry-run
+# Dry-run first — shows what would happen without making API calls
+python framework/scripts/agent-cli.py plan \
+  stacks/live-moafunk/plans/add-live-chat.json --mode dry-run
 
-# Execute sequentially
-agent-cli plan stacks/my-stack/plans/my-plan.json --mode sequential
+# Execute steps sequentially (one at a time)
+python framework/scripts/agent-cli.py plan \
+  stacks/live-moafunk/plans/add-live-chat.json --mode sequential
 
-# Or parallel via Batch API
-agent-cli plan stacks/my-stack/plans/my-plan.json --mode batch
+# Execute in parallel waves via Anthropic Batch API (steps in same group run together)
+python framework/scripts/agent-cli.py plan \
+  stacks/live-moafunk/plans/add-live-chat.json --mode batch
 ```
 
 Steps with `priority: "critical"` or `"high"` pause for human approval unless `--auto-approve` is set.
@@ -129,8 +189,8 @@ Steps with `priority: "critical"` or `"high"` pause for human approval unless `-
 ### Review and replan
 
 ```bash
-agent-cli invoke coordinator review-plan stacks/my-stack/plans/my-plan.json
-agent-cli invoke coordinator replan stacks/my-stack/plans/my-plan.json
+python framework/scripts/agent-cli.py invoke coordinator \
+  "Review plan stacks/live-moafunk/plans/add-live-chat.json" --stack live-moafunk
 ```
 
 ## 4. MCP Server Setup (Optional)
@@ -173,13 +233,20 @@ Knowledge is automatically captured from plan execution and stored as atomic JSO
 ### Search knowledge
 
 ```bash
-agent-cli invoke coordinator search-knowledge "database migration patterns" --stack my-stack
+# Find entries about WebSocket patterns across the live-moafunk stack
+python framework/scripts/agent-cli.py invoke coordinator \
+  "Search knowledge: WebSocket connection handling patterns" \
+  --stack live-moafunk
+
+# Search across all stacks for database migration strategies
+python framework/scripts/agent-cli.py invoke coordinator \
+  "Search knowledge: database migration patterns"
 ```
 
-Or use the MCP server:
+Or use the MCP server directly from an MCP client:
 
 ```python
-knowledge-search.search_knowledge(query="...", stack="my-stack")
+knowledge-search.search_knowledge(query="HLS stream reconnection", stack="live-moafunk")
 ```
 
 ### Build the cross-stack index
@@ -188,40 +255,58 @@ knowledge-search.search_knowledge(query="...", stack="my-stack")
 python framework/scripts/build-knowledge-index.py
 ```
 
-Creates a unified index at `framework/knowledge/cross-stack-index.jsonl`.
+Creates a unified index at `framework/knowledge/cross-stack-index.jsonl`, merging entries from all stacks (live-moafunk, gartenroboter3000, etc.).
 
 ### Compress old knowledge
 
 ```bash
-python framework/scripts/compress-knowledge.py my-stack --report
-python framework/scripts/compress-knowledge.py my-stack          # Actually compress
+# Preview what would be compressed
+python framework/scripts/compress-knowledge.py live-moafunk --report
+
+# Actually compress — groups related entries into topic-level summaries
+python framework/scripts/compress-knowledge.py live-moafunk
 ```
 
-Groups related entries and creates topic-level summaries to reduce token costs.
+Reduces token costs by consolidating repetitive entries (e.g., 12 entries about "Axum error handling" → 1 summary).
 
 ## 6. Monitoring and Optimization
 
 ### Token telemetry
 
 ```bash
-python framework/scripts/token-telemetry.py collect my-stack
+# Collect usage data from the last plan execution
+python framework/scripts/token-telemetry.py collect live-moafunk
+
+# Show a dashboard with cost breakdown per agent and per step
 python framework/scripts/token-telemetry.py dashboard
+
+# Per-agent stats: avg tokens, cache hit rate, cost per invocation
 python framework/scripts/token-telemetry.py agent-stats
 ```
 
 ### Agent performance scoring
 
 ```bash
+# Global leaderboard — which agents produce the best results?
 python framework/scripts/agent-scoring.py leaderboard
-python framework/scripts/agent-scoring.py profile analyzer
-python framework/scripts/agent-scoring.py recommend my-stack
+
+# Detailed profile for a specific agent
+python framework/scripts/agent-scoring.py profile axum-backend
+
+# Get recommendations for improving a stack's agents
+python framework/scripts/agent-scoring.py recommend live-moafunk
 ```
 
 ### Cache tuning
 
 ```bash
+# Analyze current cache efficiency across agents
 python framework/scripts/adaptive-cache.py analyze
+
+# Get recommendations for cache breakpoint adjustments
 python framework/scripts/adaptive-cache.py recommend
+
+# Apply the recommended cache settings
 python framework/scripts/adaptive-cache.py apply
 ```
 
@@ -229,34 +314,38 @@ python framework/scripts/adaptive-cache.py apply
 
 ```
                     ┌──────────────┐
-                    │  analyzer    │  Scans codebase
+                    │  analyzer    │  Scans your project (Rust, Vue, Python, …)
                     └──────┬───────┘
                            ↓
                     ┌──────────────┐
-                    │   writer     │  Generates stack
+                    │   writer     │  Generates stack + domain agents
                     └──────┬───────┘
                            ↓
-    ┌──────────────────────────────────────────┐
-    │              Stack                        │
-    │  stacks/my-stack/agents/ → specialists   │
-    │  stacks/my-stack/plans/ → JSON plans     │
-    │  stacks/my-stack/docs/ → JSONL entries   │
-    └──────────────┬───────────────────────────┘
+    ┌─────────────────────────────────────────────────┐
+    │  Stack (e.g. live-moafunk)                       │
+    │  stacks/live-moafunk/agents/                     │
+    │    ├── axum-backend.agent.md                     │
+    │    ├── vue-frontend.agent.md                     │
+    │    ├── ffmpeg-pipeline.agent.md                  │
+    │    └── coordinator.agent.md (→ symlink)          │
+    │  stacks/live-moafunk/plans/  → JSON plans        │
+    │  stacks/live-moafunk/docs/   → JSONL knowledge   │
+    └──────────────┬──────────────────────────────────┘
                    ↓
-    ┌──────────────────────────────────────────┐
-    │          Planning & Execution             │
-    │  planner → creates JSON plans            │
-    │  coordinator → routes & tracks           │
-    │  agent-cli plan → autonomous execution   │
-    └──────────────┬───────────────────────────┘
+    ┌─────────────────────────────────────────────────┐
+    │  Planning & Execution                            │
+    │  agent-cli task  → auto-select best agent        │
+    │  agent-cli plan  → sequential or batch execution │
+    │  Batch API       → parallel waves of steps       │
+    └──────────────┬──────────────────────────────────┘
                    ↓
-    ┌──────────────────────────────────────────┐
-    │          Knowledge & Optimization         │
-    │  post-step-hook → auto-extract           │
-    │  knowledge-search MCP → semantic queries │
-    │  token-telemetry → usage tracking        │
-    │  agent-scoring → performance metrics     │
-    └──────────────────────────────────────────┘
+    ┌─────────────────────────────────────────────────┐
+    │  Knowledge & Optimization                        │
+    │  post-step-hook    → auto-extract learnings      │
+    │  knowledge-search  → semantic queries (MCP)      │
+    │  token-telemetry   → cost tracking per agent     │
+    │  agent-scoring     → performance leaderboard     │
+    └─────────────────────────────────────────────────┘
 ```
 
 ## See Also
