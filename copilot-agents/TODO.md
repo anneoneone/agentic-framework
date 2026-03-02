@@ -21,10 +21,39 @@ TODO:
 - [x] Agent validation script (`framework/scripts/validate-agent.py`)
 - [x] Specialist agent template v2.0 with validation pipeline and strict rules
 
+## Completed in Phase 2
+
+- [x] Integrate MCP servers into agent definitions → `mcp_servers` field added to all 21 agents
+- [x] JSON Plan v2.0 schema with `parallel_group`, `priority`, `estimated_tokens` → `plan-v2.schema.json`
+- [x] Agent Registry MCP server (5 tools: list_agents, get_agent, find_agents_for_task, validate_agent, get_capability_map)
+- [x] Knowledge extraction pipeline (`extract-knowledge.py`) — 598 items from 31 plans
+- [x] Plan executor scaffold with dependency resolver and batch request generation
+- [x] Migrated all 31 plans from schema v1.1 to v2.0
+
+## Completed in Phase 3
+
+- [x] Knowledge Search MCP server (6 tools: search_knowledge, get_knowledge_entry, list_knowledge_files, search_decisions, search_cross_stack, resolve_context)
+- [x] Cross-stack knowledge index aggregator (`build-knowledge-index.py`) — 2 stacks, 24 files, 674 entries
+- [x] Post-step hook for automated knowledge extraction (`post-step-hook.py`)
+- [x] Plan executor updated with context resolution for file, knowledge, plan_output, mcp_query
+- [x] `@planner` subcommands: `--review` (6-item checklist), `--replan` (8-step workflow)
+- [x] Knowledge auto-discovery: agents scan `docs/knowledge/` on startup with 24h TTL cache
+
+## Completed in Phase 4
+
+- [x] Plan Executor rewritten as full execution engine (sequential + batch + dry-run modes)
+- [x] Anthropic Messages API integration for sequential step execution
+- [x] Anthropic Batch API integration for parallel wave execution
+- [x] Human approval gates for critical/high priority steps
+- [x] Plan Execution MCP server (6 tools: execute_step, execute_wave, get_execution_schedule, get_execution_status, resume_execution, validate_plan_for_execution)
+- [x] Progress monitoring with real-time display
+- [x] Resume support for interrupted executions
+- [x] `@coordinator` updated with autonomous execution commands
+
 ## Future TODO
 
-- [ ] Integrate MCP servers into agent definitions (Phase 2)
-- [ ] Implement Anthropic Batch API for parallel plan execution (Phase 3)
-- [ ] Add `@planner` subcommands: `--review`, `--replan` (Phase 2)
-- [ ] JSON Plan v2.0 schema with `parallel_group`, `priority`, `estimated_tokens` (Phase 2)
-- [ ] Knowledge auto-discovery: agents scan `docs/knowledge/` on startup with 24h TTL cache (Phase 2)
+- [ ] Token telemetry: measure actual usage per agent, per step (Phase 5)
+- [ ] Knowledge compression: hierarchical summaries of old plans (Phase 5)
+- [ ] Agent performance scoring: track success rate per agent type (Phase 5)
+- [ ] Adaptive caching: adjust TTL based on change frequency (Phase 5)
+- [ ] Cross-stack plan orchestration: automated dependency resolution (Phase 5)

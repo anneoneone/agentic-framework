@@ -26,6 +26,7 @@ scope:
 mcp_servers:
   - agent-registry
   - knowledge-search
+  - plan-execution
 token_target: 2000
 ---
 

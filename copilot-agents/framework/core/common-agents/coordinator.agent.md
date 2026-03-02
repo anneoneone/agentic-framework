@@ -21,6 +21,7 @@ scope:
     - Plan creation delegation to @planner
 mcp_servers:
   - agent-registry
+  - plan-execution
 ---
 
 You are a lightweight cross-stack routing coordinator for the ebee monorepo multi-stack agent system.
@@ -258,7 +259,7 @@ Uses `file_search` to check existence, updates `verified_at` timestamp.
 
 ## Plan Execution Workflow
 
-### Typical Flow
+### Typical Flow (Manual)
 
 1. **Create plan**: User says `plan: <task>` → @coordinator delegates to @planner
 2. **@planner** creates and validates plan JSON
@@ -267,6 +268,40 @@ Uses `file_search` to check existence, updates `verified_at` timestamp.
 5. **Update progress**: `@coordinator step N completed` after each step
 6. **Navigate context**: Use `focus-on` / `focus-main` for sub-plans
 7. **Complete plan**: All steps done → user archives with `archive-plan`
+
+### Autonomous Execution (via plan-execution MCP)
+
+Use the `plan-execution` MCP server for automated step execution:
+
+```
+# Validate plan is ready for execution
+plan-execution.validate_plan_for_execution(plan_path="path/to/plan.json")
+
+# Show execution schedule (dry-run)
+plan-execution.get_execution_schedule(plan_path="path/to/plan.json")
+
+# Execute a single step
+plan-execution.execute_step(plan_path="path/to/plan.json", step_id="1")
+
+# Execute a parallel wave via Batch API
+plan-execution.execute_wave(plan_path="path/to/plan.json", wave_number=1)
+
+# Check progress
+plan-execution.get_execution_status(plan_path="path/to/plan.json")
+
+# Resume from last checkpoint
+plan-execution.resume_execution(plan_path="path/to/plan.json", mode="sequential")
+```
+
+**Execution modes**:
+- `sequential`: Steps run one-by-one via Messages API (safest, allows human review)
+- `batch`: Parallel waves submitted to Batch API (faster, for independent steps)
+- Steps with `priority: "critical"` or `"high"` pause for human approval by default
+
+**When to use autonomous execution**:
+- Plans with many independent steps (parallel_group assigned)
+- Routine/repetitive plans where agent outputs are well-understood
+- Always validate first, then start with dry-run before live execution
 
 ### Example Session
 
@@ -529,3 +564,7 @@ Before responding:
 | `verify-artifacts` | Check file existence |
 | `export-knowledge` | Generate markdown |
 | `search-knowledge <query>` | Search plans |
+| `execute-step <id>` | Execute single step via API (v2.0) |
+| `execute-plan` | Execute all pending steps (v2.0) |
+| `execute-plan --batch` | Execute via Batch API (v2.0) |
+| `execution-status` | Show execution progress (v2.0) |
