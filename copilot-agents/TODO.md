@@ -50,10 +50,14 @@ TODO:
 - [x] Resume support for interrupted executions
 - [x] `@coordinator` updated with autonomous execution commands
 
-## Future TODO
+## Completed in Phase 5
 
-- [ ] Token telemetry: measure actual usage per agent, per step (Phase 5)
-- [ ] Knowledge compression: hierarchical summaries of old plans (Phase 5)
-- [ ] Agent performance scoring: track success rate per agent type (Phase 5)
-- [ ] Adaptive caching: adjust TTL based on change frequency (Phase 5)
-- [ ] Cross-stack plan orchestration: automated dependency resolution (Phase 5)
+- [x] Token telemetry (`token-telemetry.py`): collect, report, dashboard, agent-stats, budget-accuracy commands
+- [x] Knowledge compression (`compress-knowledge.py`): TF-IDF clustering, hierarchical summaries, token savings reports
+- [x] Agent performance scoring (`agent-scoring.py`): composite scoring (success/efficiency/consistency/speed), leaderboard, recommendations
+- [x] Adaptive caching (`adaptive-cache.py`): change frequency analysis, TTL tuning, continuous monitoring
+- [x] Cross-stack plan orchestration (`cross-stack-orchestrator.py`): dependency discovery, unified scheduling, ASCII visualization, coordinated execution
+
+## All Phases Complete
+
+Phases 1-5 of the framework improvement roadmap are fully implemented.
