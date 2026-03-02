@@ -22,6 +22,7 @@ from typing import Any, Optional
 from dataclasses import dataclass, asdict
 
 from mcp.server import Server
+from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
 from mcp.server.models import InitializationOptions
 
@@ -763,9 +764,15 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
 
 async def main():
     """Run the MCP server with stdio transport."""
-    async with server:
-        # Server runs until stdin closes
-        await server.wait_for_shutdown()
+    async with stdio_server() as (read_stream, write_stream):
+        await server.run(
+            read_stream,
+            write_stream,
+            InitializationOptions(
+                server_name="agent-registry",
+                server_version="1.0.0",
+            ),
+        )
 
 
 if __name__ == "__main__":

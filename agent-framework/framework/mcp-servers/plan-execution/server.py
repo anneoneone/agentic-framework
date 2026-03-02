@@ -26,6 +26,8 @@ from typing import Any, Optional
 
 import anthropic
 from mcp.server import Server
+from mcp.server.stdio import stdio_server
+from mcp.server.models import InitializationOptions
 from mcp.types import TextContent, Tool
 
 
@@ -879,8 +881,15 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
 
 async def main():
     """Run the MCP server with stdio transport."""
-    async with server:
-        await server.wait_for_shutdown()
+    async with stdio_server() as (read_stream, write_stream):
+        await server.run(
+            read_stream,
+            write_stream,
+            InitializationOptions(
+                server_name="plan-execution",
+                server_version="1.0.0",
+            ),
+        )
 
 
 if __name__ == "__main__":

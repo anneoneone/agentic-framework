@@ -19,6 +19,7 @@ from urllib.parse import quote
 
 import mcp.server.models as mcp_types
 from mcp.server import Server
+from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
 
 
@@ -717,9 +718,16 @@ class KnowledgeSearchServer:
         return TextContent(type="text", text=json.dumps(resolved, indent=2))
 
     async def run(self) -> None:
-        """Run the MCP server"""
-        async with self.server:
-            pass
+        """Run the MCP server with stdio transport."""
+        async with stdio_server() as (read_stream, write_stream):
+            await self.server.run(
+                read_stream,
+                write_stream,
+                mcp_types.InitializationOptions(
+                    server_name="knowledge-search",
+                    server_version="1.0.0",
+                ),
+            )
 
 
 def main():
