@@ -1,1 +1,0 @@
-framework/core/common-agents/coordinator.agent.md
