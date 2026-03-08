@@ -13,7 +13,7 @@ framework/
   core/shared-agents/      → domain experts reusable across stacks
   core/guidelines/         → GENERAL_RULES.md, TOKEN_EFFICIENCY.md
   mcp-servers/             → agent-registry, knowledge-search, plan-execution, memento-knowledge
-  scripts/                 → task-executor.py, plan-executor.py, knowledge-sync.py, validate-agent.py, update-agents.py, token-telemetry.py, system-check.py
+  scripts/                 → task-executor.py, plan-executor.py, knowledge-sync.py, validate-agent.py, update-agents.py, token-telemetry.py, system-check.py, requirements-interview.py
   schemas/                 → agent-frontmatter.schema.json, plan-v2.schema.json
   templates/               → specialist-agent.template.md
   knowledge/               → cross-stack-index.jsonl
@@ -81,10 +81,11 @@ CLI alternatives:
 - `python framework/scripts/knowledge-sync.py PLAN_FILE [--dry-run|--import-stack STK]`
 - `python framework/scripts/token-telemetry.py collect|report|dashboard|agent-stats|budget-accuracy`
 - `python framework/scripts/update-agents.py [--stack STK|--all] [--fix] [--dry-run]`
+- `python framework/scripts/requirements-interview.py [--output FILE] [--create-stack] [--dry-run]`
 
 ## When creating stacks or agents
 
-- Use `/create-stack /path/to/project` or `/create-stack "project description"`
+- Use `/create-stack /path/to/project` or `/create-stack "project description"` or `/create-stack --interview`
 - Stack dirs: `stacks/STACKNAME/{agents,plans,docs/knowledge}`
 - Agent files go in `stacks/STACKNAME/agents/*.agent.md`
 - Symlink common agents: `ln -sf ../../../framework/core/common-agents/coordinator.agent.md stacks/STACKNAME/agents/`

@@ -1,0 +1,142 @@
+{
+  "schema_version": "2.0",
+  "plan_id": "2026-03-08_12-00-00_requirements-driven-stack-creation",
+  "stack": "agentic-framework-v2",
+  "description": "Add an interactive requirements-interview mode to the stack creation flow. When no project path exists, @analyzer asks structured questions to gather requirements and synthesizes them into agent recommendations — closing the gap identified in the previous task.",
+  "created_at": "2026-03-08T12:00:00Z",
+  "updated_at": "2026-03-08T18:26:00Z",
+  "overall_status": "active",
+  "active_context": "main",
+  "execution_mode": "sequential",
+  "token_budget": {
+    "estimated_total": 5300,
+    "actual_total": null
+  },
+  "steps": [
+    {
+      "id": "1",
+      "agent": "@schema-validator",
+      "task": "Design the requirements interview questionnaire. Define: (1) the ordered list of questions covering project domain, languages/frameworks, workstreams, testing strategy, scale/team size, and key integrations; (2) a JSON data model for capturing answers (`RequirementsProfile`); (3) a mapping from answer patterns to agent recommendations (e.g. 'uses FastAPI' → recommend @fastapi-backend). Output as a markdown design doc at `framework/docs/requirements-interview-design.md`.",
+      "status": "completed",
+      "priority": "critical",
+      "parallel_group": null,
+      "estimated_tokens": 1200,
+      "mcp_tools": ["filesystem-agent-framework"],
+      "context_needed": [
+        ".claude/agents/analyzer.agent.md",
+        "framework/templates/specialist-agent.template.md"
+      ],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "framework/docs/requirements-interview-design.md",
+          "verification": "exists"
+        }
+      ],
+      "output": {
+        "summary": "Created framework/docs/requirements-interview-design.md with 4-phase questionnaire, RequirementsProfile JSON schema, answer→agent mapping table, interview flow, and example session",
+        "files_created": ["framework/docs/requirements-interview-design.md"],
+        "files_modified": []
+      }
+    },
+    {
+      "id": "2",
+      "agent": "@python-backend",
+      "task": "Update `.claude/agents/analyzer.agent.md` to add an 'Interview Mode' section. This mode activates when the user provides no project path (or uses `--interview` flag). It should: (1) present questions from the design doc sequentially; (2) parse answers into a `RequirementsProfile`; (3) map profile to agent recommendations using the same output format as file-analysis mode; (4) make clear that this is the entry point for greenfield projects. Preserve all existing sections.",
+      "status": "completed",
+      "priority": "high",
+      "parallel_group": null,
+      "estimated_tokens": 900,
+      "dependencies": ["1"],
+      "mcp_tools": ["filesystem-agent-framework"],
+      "context_needed": [
+        "framework/docs/requirements-interview-design.md",
+        ".claude/agents/analyzer.agent.md"
+      ],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": ".claude/agents/analyzer.agent.md",
+          "verification": "exists"
+        }
+      ],
+      "output": null
+    },
+    {
+      "id": "3",
+      "agent": "@python-backend",
+      "task": "Update `.claude/commands/create-stack.md` slash command to support requirements-interview mode. Add: (1) detection logic — if no path argument or `--interview` flag, route to `@analyzer` interview mode instead of file-analysis mode; (2) document the full interview → analysis → write flow in the command doc; (3) add an example showing `'/create-stack --interview'` usage. Preserve existing path-based and description-based flows.",
+      "status": "completed",
+      "priority": "high",
+      "parallel_group": null,
+      "estimated_tokens": 700,
+      "dependencies": ["1"],
+      "mcp_tools": ["filesystem-agent-framework"],
+      "context_needed": [
+        ".claude/commands/create-stack.md",
+        "framework/docs/requirements-interview-design.md"
+      ],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": ".claude/commands/create-stack.md",
+          "verification": "exists"
+        }
+      ],
+      "output": null
+    },
+    {
+      "id": "4",
+      "agent": "@python-backend",
+      "task": "Create `framework/scripts/requirements-interview.py` — a CLI script that runs the requirements interview interactively in the terminal. It should: (1) present questions from `RequirementsProfile` schema one at a time with prompts; (2) accept free-text and multi-choice answers; (3) output a `requirements-profile.json` file; (4) optionally pipe output to `task-executor.py` to trigger `@analyzer` with the profile. Include `--dry-run` and `--output` flags. Add usage to CLAUDE.md scripts table.",
+      "status": "completed",
+      "priority": "normal",
+      "parallel_group": null,
+      "estimated_tokens": 1500,
+      "dependencies": ["1"],
+      "mcp_tools": ["filesystem-agent-framework", "git"],
+      "context_needed": [
+        "framework/docs/requirements-interview-design.md",
+        "framework/scripts/task-executor.py"
+      ],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "framework/scripts/requirements-interview.py",
+          "verification": "exists"
+        }
+      ],
+      "output": null
+    },
+    {
+      "id": "5",
+      "agent": "@schema-validator",
+      "task": "Validate all modified agent files against the agent schema: run `python framework/scripts/validate-agent.py --all` and fix any frontmatter issues in the updated `.claude/agents/analyzer.agent.md`. Also verify the new requirements-interview-design.md follows the framework's documentation conventions.",
+      "status": "completed",
+      "priority": "high",
+      "parallel_group": null,
+      "estimated_tokens": 500,
+      "dependencies": ["2", "3", "4"],
+      "mcp_tools": ["filesystem-agent-framework", "git"],
+      "context_needed": [
+        "framework/schemas/agent-frontmatter.schema.json"
+      ],
+      "artifacts": [],
+      "output": null
+    },
+    {
+      "id": "6",
+      "agent": "@gitlab",
+      "task": "Commit all changes with a conventional commit message: `feat(create-stack): add requirements-interview mode for greenfield stack creation`. Include in commit: framework/docs/requirements-interview-design.md, .claude/agents/analyzer.agent.md, .claude/commands/create-stack.md, framework/scripts/requirements-interview.py, and CLAUDE.md if updated.",
+      "status": "pending",
+      "priority": "normal",
+      "parallel_group": null,
+      "estimated_tokens": 400,
+      "dependencies": ["5"],
+      "mcp_tools": ["git"],
+      "context_needed": [],
+      "artifacts": [],
+      "output": null
+    }
+  ]
+}

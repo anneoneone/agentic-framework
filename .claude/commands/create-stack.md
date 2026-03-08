@@ -4,23 +4,35 @@ Create a new agent stack for a project. This orchestrates the analyzer and write
 
 ## Input
 
-The user provides either:
-- A path to an existing project: `$ARGUMENTS`
-- A description of a new project: `$ARGUMENTS`
+The user provides one of:
+- A path to an existing project: `/create-stack /path/to/project`
+- A one-shot description: `/create-stack "project description"`
+- Interview mode (greenfield): `/create-stack --interview` or `/create-stack` (no args)
 
 ## Workflow
 
-### Step 1: Analyze
+### Step 1: Determine mode
 
-If the argument is a file path that exists:
+**Path mode** — argument is a file path that exists:
 1. Read project files (package.json, Cargo.toml, pyproject.toml, go.mod, etc.)
 2. Scan directory structure to understand architecture
 3. Identify technologies, frameworks, patterns, and testing strategy
 4. Check for existing documentation (README.md, docs/)
 
-If the argument is a project description:
-1. Ask clarifying questions about: programming language(s), frameworks, project type, deployment target
-2. Determine the optimal tech stack based on requirements
+**Description mode** — argument is a non-path string:
+1. Interpret the description to infer tech stack and domain
+2. If key details are ambiguous, ask one focused clarifying question
+3. Proceed to Step 2
+
+**Interview mode** — `--interview` flag OR no arguments provided:
+1. Activate `@analyzer` interview mode (see `framework/docs/requirements-interview-design.md`)
+2. Ask questions in 4 phases: Identity → Tech Stack → Architecture → Team/Scale
+3. Build a `RequirementsProfile` from answers
+4. Apply the answer→agent mapping table to produce recommendations
+5. CLI alternative: `python framework/scripts/requirements-interview.py` then pass output here
+
+> Use interview mode for **greenfield projects** — when no code exists yet and you want
+> the framework to help you design the right agent set from requirements.
 
 ### Step 2: Recommend agents
 

@@ -41,6 +41,68 @@ You are an expert systems analyst who identifies what specialized agents a stack
 - ✅ Sample 3-5 representative files, not exhaustive (save 1000 tokens)
 - ✅ Reference docs/knowledge/stack-patterns.md for examples
 
+## Invocation Modes
+
+### Mode 1: File-Analysis (existing project)
+```
+@analyzer /path/to/project
+@analyzer "project description"    ← one-shot, no interaction
+```
+Reads actual files to justify recommendations. See "Discovery Phase" below.
+
+### Mode 2: Interview (greenfield project)
+```
+@analyzer --interview
+/create-stack --interview
+```
+Activates when **no project path exists** or `--interview` flag is passed.
+Asks structured questions to build a `RequirementsProfile`, then maps it to agent recommendations.
+
+#### Interview Flow
+
+Full question set and mapping rules: `{reference: framework/docs/requirements-interview-design.md}`
+
+1. **Greet** the user and explain the process (one sentence)
+2. **Phase 1 — Identity** (required): project name, description, domain
+3. **Phase 2 — Tech Stack** (required): languages, frameworks, storage, integrations
+4. **Phase 3 — Architecture** (recommended, skippable): architecture style, workstreams, testing
+5. **Phase 4 — Team & Scale** (optional, skippable): team size, existing shared agents
+6. **Synthesize**: build `RequirementsProfile`, apply mapping table, deduplicate to 3-5 agents
+7. **Present** using standard output format below
+8. **Confirm** before handing off to `@writer`
+
+#### Answer → Agent Mapping (summary)
+
+Apply rules from `framework/docs/requirements-interview-design.md#answer--agent-recommendation-mapping`:
+- Language-first: Rust → `@rust-expert`, Python → `@python-expert`, etc.
+- Framework-specific: Axum → `@axum-backend`, FastAPI → `@fastapi-backend`, etc.
+- Storage: PostgreSQL/MySQL → `@db-expert`, Neo4j → `@knowledge-engineer`
+- Domain fallback: if no specific framework match, use `@[lang]-[domain]` pattern
+- Always symlink `@coordinator` and `@gitlab`
+
+#### RequirementsProfile (compact reference)
+
+```json
+{
+  "project_name": "my-stack",        // required, slug
+  "description": "...",              // required
+  "domain": "backend",               // required
+  "languages": ["Rust"],             // required
+  "frameworks": ["Axum", "Tokio"],   // recommended
+  "storage": ["PostgreSQL"],         // optional
+  "integrations": "gRPC internal",   // optional
+  "architecture": "microservice",    // optional
+  "workstreams": ["API", "DB"],      // optional
+  "testing": ["unit", "integration"],// optional
+  "team_size": "small",              // optional
+  "shared_agents": ["@ocpp-protocol"]// optional
+}
+```
+
+CLI alternative: `python framework/scripts/requirements-interview.py --output requirements-profile.json`
+
+---
+
 ## How you work
 
 ### Discovery Phase
