@@ -1,0 +1,82 @@
+{
+  "mcpServers": {
+    "agent-registry": {
+      "command": "/opt/anaconda3/bin/python",
+      "args": [
+        "/Users/anton/git/0_anton/agentic-framework-v2/framework/mcp-servers/agent-registry/server.py"
+      ],
+      "cwd": "/Users/anton/git/0_anton/agentic-framework-v2",
+      "env": {
+        "FASTMCP_SHOW_SERVER_BANNER": "false",
+        "FASTMCP_LOG_LEVEL": "WARNING"
+      }
+    },
+    "knowledge-search": {
+      "command": "/opt/anaconda3/bin/python",
+      "args": [
+        "/Users/anton/git/0_anton/agentic-framework-v2/framework/mcp-servers/knowledge-search/server.py"
+      ],
+      "cwd": "/Users/anton/git/0_anton/agentic-framework-v2",
+      "env": {
+        "FASTMCP_SHOW_SERVER_BANNER": "false",
+        "FASTMCP_LOG_LEVEL": "WARNING"
+      }
+    },
+    "plan-execution": {
+      "command": "/opt/anaconda3/bin/python",
+      "args": [
+        "/Users/anton/git/0_anton/agentic-framework-v2/framework/mcp-servers/plan-execution/server.py"
+      ],
+      "cwd": "/Users/anton/git/0_anton/agentic-framework-v2",
+      "env": {
+        "ANTHROPIC_API_KEY": "",
+        "FASTMCP_SHOW_SERVER_BANNER": "false",
+        "FASTMCP_LOG_LEVEL": "WARNING"
+      }
+    },
+    "memento-knowledge": {
+      "command": "/opt/anaconda3/bin/python",
+      "args": [
+        "/Users/anton/git/0_anton/agentic-framework-v2/framework/mcp-servers/memento-knowledge/server.py"
+      ],
+      "cwd": "/Users/anton/git/0_anton/agentic-framework-v2",
+      "env": {
+        "NEO4J_URI": "bolt://localhost:7687",
+        "NEO4J_USER": "neo4j",
+        "NEO4J_PASSWORD": "password",
+        "FASTMCP_SHOW_SERVER_BANNER": "false",
+        "FASTMCP_LOG_LEVEL": "WARNING"
+      }
+    },
+    "filesystem-agent-framework": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/Users/anton/git/0_anton/agentic-framework-v2/stacks"
+      ]
+    },
+    "git": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-git",
+        "--repository",
+        "/Users/anton/git/0_anton/agentic-framework-v2"
+      ]
+    },
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp@latest"
+      ]
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
+    }
+  }
+}

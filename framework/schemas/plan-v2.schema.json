@@ -1,0 +1,346 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-framework.local/schemas/plan-v2.json",
+  "title": "Implementation Plan Schema v2.0",
+  "description": "Hierarchical plan with parallel execution, batch API support, token budgeting, and MCP tool declarations",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "plan_id",
+    "stack",
+    "description",
+    "created_at",
+    "updated_at",
+    "overall_status",
+    "active_context",
+    "steps"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "2.0"
+    },
+    "plan_id": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}_[a-z0-9-]+$",
+      "description": "Format: YYYY-MM-DD_HH-mm-ss_<task-slug>"
+    },
+    "stack": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "overall_status": {
+      "enum": ["active", "completed", "archived"]
+    },
+    "active_context": {
+      "type": "string",
+      "description": "Current working level: 'main' | 'step_N' | 'step_N.M'"
+    },
+    "related_plans": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9-]+:\\d{4}-\\d{2}-\\d{2}_"
+      },
+      "default": []
+    },
+    "execution_mode": {
+      "enum": ["sequential", "parallel", "batch"],
+      "default": "sequential",
+      "description": "sequential: steps run one-by-one. parallel: respect parallel_group. batch: use Anthropic Batch API."
+    },
+    "batch_config": {
+      "type": "object",
+      "description": "Configuration for Anthropic Batch API execution",
+      "properties": {
+        "model": {
+          "type": "string",
+          "default": "claude-sonnet-4-5-20250929"
+        },
+        "max_concurrent": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 5
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 3600,
+          "default": 300
+        },
+        "approval_required": {
+          "type": "boolean",
+          "default": true,
+          "description": "Require human approval before batch submission"
+        }
+      },
+      "additionalProperties": false
+    },
+    "context_sources": {
+      "type": "array",
+      "description": "Plan-level context: knowledge files, MCP queries loaded for all steps",
+      "items": {
+        "$ref": "#/$defs/ContextSource"
+      },
+      "default": []
+    },
+    "token_budget": {
+      "type": "object",
+      "description": "Token tracking for the entire plan",
+      "properties": {
+        "estimated_total": {
+          "type": "integer",
+          "description": "Estimated total tokens for all steps"
+        },
+        "actual_total": {
+          "type": "integer",
+          "description": "Actual tokens consumed (updated during execution)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/PlanStep"
+      },
+      "minItems": 1
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "ContextSource": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "enum": ["file", "knowledge", "mcp_query", "plan_output"]
+        },
+        "path": {
+          "type": "string",
+          "description": "File path (for type: file)"
+        },
+        "query": {
+          "type": "string",
+          "description": "Search query (for type: knowledge or mcp_query)"
+        },
+        "source": {
+          "type": "string",
+          "description": "Source identifier: 'stack', 'framework', MCP server name"
+        },
+        "step_id": {
+          "type": "string",
+          "description": "Reference to step output (for type: plan_output)"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Why this context is needed (for token budget justification)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Artifact": {
+      "type": "object",
+      "required": ["type", "path", "verification"],
+      "properties": {
+        "type": {
+          "enum": ["file", "test", "manual", "documentation"]
+        },
+        "path": {
+          "type": "string"
+        },
+        "verification": {
+          "enum": ["exists", "passes", "manual", "none"]
+        },
+        "verified_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "auto_verified": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "Blocker": {
+      "type": "object",
+      "required": ["issue"],
+      "properties": {
+        "issue": { "type": "string" },
+        "resolution": { "type": "string" },
+        "resolved_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Knowledge": {
+      "type": "object",
+      "properties": {
+        "decisions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "learnings": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "references": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "blockers_encountered": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Blocker" }
+        },
+        "notes": { "type": "string" },
+        "agent_interactions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "ignored_knowledge": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "StepOutput": {
+      "type": "object",
+      "description": "Captured results from step execution",
+      "properties": {
+        "summary": {
+          "type": "string",
+          "description": "One-line summary of what was accomplished"
+        },
+        "files_modified": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "files_created": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "tokens_used": {
+          "type": "integer",
+          "description": "Actual tokens consumed by this step"
+        },
+        "duration_seconds": {
+          "type": "number",
+          "description": "Wall-clock execution time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "PlanStep": {
+      "type": "object",
+      "required": ["id", "agent", "task", "dependencies", "status"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Step number: '1' for top-level, '1.1' for sub-step, '1.1.1' max depth"
+        },
+        "agent": {
+          "type": "string",
+          "pattern": "^@[a-z][a-z0-9-]*$"
+        },
+        "task": {
+          "type": "string",
+          "minLength": 10,
+          "description": "Atomic, single-responsibility task description"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "artifacts": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Artifact" },
+          "default": []
+        },
+        "status": {
+          "enum": ["pending", "in-progress", "completed", "blocked", "skipped"]
+        },
+        "parallel_group": {
+          "type": ["string", "null"],
+          "description": "Group ID for concurrent execution. Steps in same group run in parallel after their deps resolve.",
+          "default": null
+        },
+        "priority": {
+          "enum": ["critical", "high", "normal", "low"],
+          "default": "normal",
+          "description": "Critical path identification. 'critical' steps block plan completion."
+        },
+        "estimated_tokens": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "Estimated token cost for this step",
+          "default": null
+        },
+        "context_needed": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ContextSource" },
+          "description": "Step-specific context requirements (loaded just-in-time)",
+          "default": []
+        },
+        "mcp_tools": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "MCP servers required for this step (e.g., ['filesystem', 'git'])",
+          "default": []
+        },
+        "output": {
+          "$ref": "#/$defs/StepOutput",
+          "description": "Captured results after execution (null while pending)"
+        },
+        "sub_plan": {
+          "type": "object",
+          "description": "Hierarchical breakdown (max 2-level nesting)",
+          "properties": {
+            "description": { "type": "string" },
+            "steps": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/PlanStep" }
+            }
+          },
+          "required": ["description", "steps"],
+          "additionalProperties": false
+        },
+        "knowledge": {
+          "$ref": "#/$defs/Knowledge",
+          "default": {}
+        },
+        "cross_stack_dependencies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["plan", "step", "description"],
+            "properties": {
+              "plan": { "type": "string" },
+              "step": { "type": "string" },
+              "description": { "type": "string" }
+            },
+            "additionalProperties": false
+          },
+          "default": []
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "description": "Example MCP configuration for agent-registry server",
+  "note": "Add this to your VS Code settings or Claude configuration",
+
+  "vs_code_settings_json": {
+    "modelContextProtocol": {
+      "servers": {
+        "agent-registry": {
+          "command": "python",
+          "args": ["-m", "agent_registry.server"],
+          "description": "Agent discovery and routing for agent-framework framework",
+          "env": {
+            "PYTHONPATH": "/path/to/agent-framework/framework/mcp-servers/agent-registry"
+          }
+        }
+      }
+    }
+  },
+
+  "vs_code_claude_json": {
+    "mcpServers": {
+      "agent-registry": {
+        "command": "python",
+        "args": ["-m", "agent_registry.server"],
+        "description": "Agent discovery and routing"
+      }
+    }
+  },
+
+  "claude_desktop_config": {
+    "mcpServers": {
+      "agent-registry": {
+        "command": "/usr/local/bin/agent-registry",
+        "description": "Agent discovery and routing for agent-framework"
+      }
+    }
+  },
+
+  "environment_setup": {
+    "installation_steps": [
+      "1. Navigate to the agent-registry directory:",
+      "   cd /path/to/agent-framework/framework/mcp-servers/agent-registry",
+      "",
+      "2. Install in development mode:",
+      "   pip install -e .",
+      "",
+      "3. Verify installation:",
+      "   which agent-registry",
+      "   python -c 'from agent_registry.server import AgentRegistry; print(\"OK\")'",
+      "",
+      "4. Add to VS Code settings (see above)"
+    ],
+    "python_direct_usage": [
+      "from agent_registry.server import AgentRegistry",
+      "",
+      "registry = AgentRegistry()",
+      "agents = registry.list_agents()",
+      "print(agents)"
+    ]
+  },
+
+  "docker_example": {
+    "dockerfile": [
+      "FROM python:3.10-slim",
+      "",
+      "WORKDIR /app",
+      "COPY . .",
+      "RUN pip install -e .",
+      "",
+      "ENTRYPOINT [\"agent-registry\"]"
+    ],
+    "docker_compose": {
+      "version": "3.8",
+      "services": {
+        "agent-registry": {
+          "build": ".",
+          "stdin_open": true,
+          "tty": true,
+          "environment": [
+            "PYTHONUNBUFFERED=1"
+          ]
+        }
+      }
+    }
+  },
+
+  "testing": {
+    "unit_tests": "pytest tests/",
+    "specific_test": "pytest tests/test_registry.py::TestAgentRegistry::test_list_agents -v",
+    "coverage": "pytest --cov=agent_registry tests/"
+  },
+
+  "performance_notes": {
+    "first_call": "~100-500ms (scans all .agent.md files)",
+    "cached_calls": "~1-5ms",
+    "cache_ttl": "24 hours",
+    "optimization": "Consider caching at application level for <500ms response times"
+  }
+}
