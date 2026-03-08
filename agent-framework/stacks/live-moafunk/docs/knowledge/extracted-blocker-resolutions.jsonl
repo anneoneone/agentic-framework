@@ -1,2 +1,0 @@
-{"type": "blocker-resolution", "content": "vue-tsc not installed locally — used vite build for verification instead", "step_id": "9", "agent": "@vue-frontend", "plan_id": "2026-02-10_12-00-00_showwaves-video-generation-pipeline"}
-{"type": "blocker-resolution", "content": "Pre-existing test failures in recording.rs (unrelated add_marker signature change + missing tempfile dep) prevent cargo test from compiling", "step_id": "5", "agent": "@axum-backend", "plan_id": "2026-02-15_16-00-00_phase9-catch-all-message-handler"}

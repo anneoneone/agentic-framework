@@ -1,0 +1,16 @@
+{
+  "model": "claude-opus-4-6",
+  "max_tokens": 8192,
+  "agent_dirs": ["agents"],
+  "mcp_servers": {
+    "agent-registry": "framework/mcp-servers/agent-registry",
+    "knowledge-search": "framework/mcp-servers/knowledge-search",
+    "plan-execution": "framework/mcp-servers/plan-execution",
+    "memento-knowledge": "framework/mcp-servers/memento-knowledge"
+  },
+  "batch_api": {
+    "enabled": true,
+    "timeout_minutes": 60,
+    "poll_interval_seconds": 30
+  }
+}
