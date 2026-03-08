@@ -354,7 +354,7 @@ class GraphManager:
                 "ORDER BY score DESC LIMIT $limit"
             )
 
-            result = tx.run(cypher, **params)
+            result = tx.run(cypher, parameters=params)
             return [
                 {
                     "id": record["node"]["id"],
@@ -394,7 +394,7 @@ class GraphManager:
                 "ORDER BY score DESC LIMIT $limit"
             )
 
-            result = tx.run(cypher, **params)
+            result = tx.run(cypher, parameters=params)
             return [
                 {
                     "id": record["node"]["id"],
