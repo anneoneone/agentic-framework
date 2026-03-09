@@ -1,0 +1,384 @@
+{
+  "schema_version": "2.0",
+  "plan_id": "2026-03-08_20-10-00_build-portfolio-site",
+  "stack": "anton-kress",
+  "description": "Build the full anton-kress personal portfolio site: React + Vite SPA with artsy GLSL shader animations, Three.js/R3F canvas, GSAP scroll choreography, and EmailJS/Plausible/Vercel integrations.",
+  "created_at": "2026-03-08T20:10:00Z",
+  "updated_at": "2026-03-08T21:00:00Z",
+  "overall_status": "completed",
+  "active_context": "main",
+  "execution_mode": "sequential",
+  "token_budget": {
+    "estimated_total": 16300,
+    "actual_total": null
+  },
+  "context_sources": [
+    {
+      "type": "knowledge",
+      "query": "anton-kress portfolio architecture stack",
+      "source": "memento-knowledge",
+      "reason": "Load stack decisions made during creation"
+    },
+    {
+      "type": "file",
+      "path": "stacks/anton-kress/docs/knowledge/index.md",
+      "source": "stack",
+      "reason": "Architecture overview and section structure"
+    }
+  ],
+  "steps": [
+    {
+      "id": "1",
+      "agent": "@react-frontend",
+      "task": "Scaffold the Vite + React 18 + TypeScript project: run `npm create vite@latest`, install all dependencies (react-three-fiber, @react-three/drei, three, gsap, framer-motion, lenis, zustand, tailwindcss, @emailjs/browser, @types/three), and initialise Tailwind CSS with the base config.",
+      "dependencies": [],
+      "status": "completed",
+      "priority": "critical",
+      "estimated_tokens": 1500,
+      "mcp_tools": ["filesystem", "git"],
+      "artifacts": [
+        { "type": "file", "path": "package.json", "verification": "exists" },
+        { "type": "file", "path": "vite.config.ts", "verification": "exists" },
+        { "type": "file", "path": "tailwind.config.ts", "verification": "exists" },
+        { "type": "file", "path": "src/main.tsx", "verification": "exists" }
+      ],
+      "knowledge": {
+        "decisions": ["Placed project files at stack root (not subdirectory) since plan artifact paths have no parent prefix", "Used Tailwind v3 (config-based) per agent template patterns", "Used three-mesh-bvh peer dep — deprecated warning noted but harmless"],
+        "files_created": ["package.json", "vite.config.ts", "tsconfig.json", "tsconfig.app.json", "tsconfig.node.json", "tailwind.config.ts", "postcss.config.js", "index.html", "src/main.tsx", "src/App.tsx", "src/index.css", "src/vite-env.d.ts"]
+      }
+    },
+    {
+      "id": "2",
+      "agent": "@react-frontend",
+      "task": "Configure Vite (path aliases: @/, @canvas/, @sections/, @hooks/, @store/, @lib/, @animations/), Tailwind theme (CSS custom properties for colors, fonts — inter for text, a mono font for code references), and PostCSS.",
+      "dependencies": ["1"],
+      "status": "completed",
+      "priority": "high",
+      "parallel_group": "config",
+      "estimated_tokens": 800,
+      "mcp_tools": ["filesystem"],
+      "artifacts": [
+        { "type": "file", "path": "vite.config.ts", "verification": "exists" },
+        { "type": "file", "path": "tailwind.config.ts", "verification": "exists" },
+        { "type": "file", "path": "postcss.config.js", "verification": "exists" }
+      ],
+      "knowledge": {
+        "decisions": ["Used CSS custom properties (rgb vars) for Tailwind color tokens — enables shader-compatible theming", "Added @types/node to devDeps for vite.config.ts __dirname resolution"],
+        "files_modified": ["vite.config.ts", "tailwind.config.ts", "postcss.config.js", "src/index.css", "tsconfig.node.json"]
+      }
+    },
+    {
+      "id": "3",
+      "agent": "@react-frontend",
+      "task": "Create Zustand stores: useCanvasStore (activeSection, setActiveSection, canvasReady, setCanvasReady) and useUIStore (menuOpen, setMenuOpen, currentService, setCurrentService). Export types for all store slices.",
+      "dependencies": ["1"],
+      "status": "completed",
+      "priority": "high",
+      "parallel_group": "config",
+      "estimated_tokens": 600,
+      "mcp_tools": ["filesystem"],
+      "artifacts": [
+        { "type": "file", "path": "src/store/canvas.ts", "verification": "exists" },
+        { "type": "file", "path": "src/store/ui.ts", "verification": "exists" }
+      ],
+      "knowledge": {
+        "decisions": ["SectionName union type exported from canvas store for cross-component use", "ServiceType is null-able (null = none selected)"],
+        "files_created": ["src/store/canvas.ts", "src/store/ui.ts"]
+      }
+    },
+    {
+      "id": "4",
+      "agent": "@animation-expert",
+      "task": "Set up Lenis smooth scroll with GSAP ticker integration: create src/lib/lenis.ts that exports a singleton Lenis instance, wires it to gsap.ticker, disables lagSmoothing, and exports a useLenis() hook for React components. Also call ScrollTrigger.refresh() on Lenis scroll.",
+      "dependencies": ["1"],
+      "status": "completed",
+      "priority": "high",
+      "parallel_group": "config",
+      "estimated_tokens": 500,
+      "mcp_tools": ["filesystem"],
+      "artifacts": [
+        { "type": "file", "path": "src/lib/lenis.ts", "verification": "exists" },
+        { "type": "file", "path": "src/hooks/useLenis.ts", "verification": "exists" }
+      ],
+      "knowledge": {
+        "decisions": ["Singleton Lenis instance via module-level ref — safe because only one scroll container exists", "lagSmoothing(0) critical for accurate ScrollTrigger sync with Lenis RAF loop", "ScrollTrigger.update (not .refresh) on scroll event — refresh is expensive, update is lightweight"],
+        "files_created": ["src/lib/lenis.ts", "src/hooks/useLenis.ts"]
+      }
+    },
+    {
+      "id": "5",
+      "agent": "@react-frontend",
+      "task": "Build the App shell: create src/App.tsx that composes all section placeholders (Hero, About, ServiceSelector, WebDev, ToolDev, AIDev, Contact), wraps them in a ScrollContainer div, mounts the fixed R3F Canvas behind the UI, and initialises Lenis. Create empty section stub components in src/sections/ for each section.",
+      "dependencies": ["2", "3", "4"],
+      "status": "completed",
+      "priority": "critical",
+      "estimated_tokens": 1200,
+      "mcp_tools": ["filesystem"],
+      "artifacts": [
+        { "type": "file", "path": "src/App.tsx", "verification": "exists" },
+        { "type": "file", "path": "src/sections/Hero.tsx", "verification": "exists" },
+        { "type": "file", "path": "src/sections/About.tsx", "verification": "exists" },
+        { "type": "file", "path": "src/sections/ServiceSelector.tsx", "verification": "exists" },
+        { "type": "file", "path": "src/sections/WebDev.tsx", "verification": "exists" },
+        { "type": "file", "path": "src/sections/ToolDev.tsx", "verification": "exists" },
+        { "type": "file", "path": "src/sections/AIDev.tsx", "verification": "exists" },
+        { "type": "file", "path": "src/sections/Contact.tsx", "verification": "exists" }
+      ],
+      "knowledge": {
+        "decisions": ["SceneRoot lazy-loaded via React.lazy so R3F doesn't block initial paint", "Canvas z-0 (fixed), UI layer z-10 (relative) — standard pattern for WebGL-behind-HTML", "All sections use named exports for tree-shaking compatibility"],
+        "files_modified": ["src/App.tsx"],
+        "files_created": ["src/sections/Hero.tsx", "src/sections/About.tsx", "src/sections/ServiceSelector.tsx", "src/sections/WebDev.tsx", "src/sections/ToolDev.tsx", "src/sections/AIDev.tsx", "src/sections/Contact.tsx"]
+      }
+    },
+    {
+      "id": "6",
+      "agent": "@webgl-shader-expert",
+      "task": "Set up the R3F Canvas: create src/canvas/SceneRoot.tsx with a fixed-position fullscreen Canvas (frameloop='demand', dpr=[1,2]), add OrthographicCamera from drei, create a useShaderUniforms hook that exposes uTime and uProgress refs to be driven externally by the animation layer.",
+      "dependencies": ["5"],
+      "status": "completed",
+      "priority": "critical",
+      "estimated_tokens": 1000,
+      "mcp_tools": ["filesystem"],
+      "artifacts": [
+        { "type": "file", "path": "src/canvas/SceneRoot.tsx", "verification": "exists" },
+        { "type": "file", "path": "src/hooks/useShaderUniforms.ts", "verification": "exists" }
+      ],
+      "knowledge": {
+        "decisions": ["useShaderUniforms returns MutableRefObject<number> for uTime/uProgress — refs avoid re-renders, animation layer writes directly", "Canvas frameloop=demand: only renders when invalidate() called, critical for perf on static sections", "canvas pointerEvents=none at container level, re-enabled per mesh via raycast handlers"],
+        "files_created": ["src/canvas/SceneRoot.tsx", "src/hooks/useShaderUniforms.ts"]
+      }
+    },
+    {
+      "id": "7",
+      "agent": "@webgl-shader-expert",
+      "task": "Build the Hero shader scene: create src/canvas/scenes/HeroScene.tsx with a fullscreen plane mesh, write GLSL vertex and fragment shaders (src/canvas/shaders/hero.vert + hero.frag) featuring organic Perlin noise distortion, flowing colour gradients (dark palette with accent hues), and time-driven animation via uTime uniform.",
+      "dependencies": ["6"],
+      "status": "completed",
+      "priority": "critical",
+      "parallel_group": "shaders",
+      "estimated_tokens": 1800,
+      "mcp_tools": ["filesystem"],
+      "artifacts": [
+        { "type": "file", "path": "src/canvas/scenes/HeroScene.tsx", "verification": "exists" },
+        { "type": "file", "path": "src/canvas/shaders/hero.vert", "verification": "exists" },
+        { "type": "file", "path": "src/canvas/shaders/hero.frag", "verification": "exists" }
+      ],
+      "knowledge": {
+        "decisions": ["Full simplex noise (snoise) in vertex shader for organic displacement — more organic than value noise", "uProgress controls noise displacement amplitude so hero 'wakes up' on scroll", "Colors match CSS custom vars: surface=#0c0c12, accent=rgb(120,100,220)"],
+        "files_created": ["src/canvas/scenes/HeroScene.tsx", "src/canvas/shaders/hero.vert", "src/canvas/shaders/hero.frag"]
+      }
+    },
+    {
+      "id": "8",
+      "agent": "@webgl-shader-expert",
+      "task": "Build the interactive Service Selector 3D element: create src/canvas/scenes/ServiceSelectorScene.tsx with three glowing orb/shape geometries representing Web Dev, Tool Dev, and AI Dev. Each orb uses a custom ShaderMaterial with hover and selection states driven by raycasting. Selected orb expands with a smooth shader transition driven by uProgress.",
+      "dependencies": ["6"],
+      "status": "completed",
+      "priority": "high",
+      "parallel_group": "shaders",
+      "estimated_tokens": 1800,
+      "mcp_tools": ["filesystem"],
+      "artifacts": [
+        { "type": "file", "path": "src/canvas/scenes/ServiceSelectorScene.tsx", "verification": "exists" },
+        { "type": "file", "path": "src/canvas/shaders/orb.vert", "verification": "exists" },
+        { "type": "file", "path": "src/canvas/shaders/orb.frag", "verification": "exists" }
+      ],
+      "knowledge": {
+        "decisions": ["Orb hover/selection lerped in useFrame (0.08/0.06 factor) for smooth transitions without GSAP overhead", "THREE.MathUtils.lerp on uniform values avoids jumpiness from direct assignment", "depthWrite=false + transparent on orb material prevents z-fighting with hero plane"],
+        "files_created": ["src/canvas/scenes/ServiceSelectorScene.tsx", "src/canvas/shaders/orb.vert", "src/canvas/shaders/orb.frag"]
+      }
+    },
+    {
+      "id": "9",
+      "agent": "@webgl-shader-expert",
+      "task": "Build section transition shaders: create src/canvas/scenes/TransitionScene.tsx with a fullscreen plane that renders a wipe/dissolve shader (transition.vert + transition.frag) driven by uProgress (0→1). This shader sits between sections and is triggered during scroll-driven section changes.",
+      "dependencies": ["6"],
+      "status": "completed",
+      "priority": "normal",
+      "parallel_group": "shaders",
+      "estimated_tokens": 1000,
+      "mcp_tools": ["filesystem"],
+      "artifacts": [
+        { "type": "file", "path": "src/canvas/scenes/TransitionScene.tsx", "verification": "exists" },
+        { "type": "file", "path": "src/canvas/shaders/transition.vert", "verification": "exists" },
+        { "type": "file", "path": "src/canvas/shaders/transition.frag", "verification": "exists" }
+      ],
+      "knowledge": {
+        "decisions": ["Diagonal dissolve (x*0.6 + y*0.4) + noise edge for organic wipe — avoids mechanical left-to-right feel", "TransitionScene at z=0.5 (above hero plane at z=0) ensures it renders on top during transitions", "Alpha fades out as uProgress→1 so the wipe disappears cleanly at end of transition"]
+      }
+    },
+    {
+      "id": "10",
+      "agent": "@animation-expert",
+      "task": "Build the GSAP ScrollTrigger layer: create src/hooks/useScrollProgress.ts (returns normalised scroll progress per section), create src/animations/sectionReveals.ts with ScrollTrigger reveal timelines for all sections (opacity + translateY, stagger on child elements), and wire them to section refs passed from App.tsx.",
+      "dependencies": ["5", "4"],
+      "status": "completed",
+      "priority": "high",
+      "estimated_tokens": 1000,
+      "mcp_tools": ["filesystem"],
+      "artifacts": [
+        { "type": "file", "path": "src/hooks/useScrollProgress.ts", "verification": "exists" },
+        { "type": "file", "path": "src/animations/sectionReveals.ts", "verification": "exists" }
+      ],
+      "knowledge": {
+        "decisions": ["useScrollProgress wraps ScrollTrigger in gsap.context for safe cleanup on unmount", "sectionReveals uses [data-reveal] attribute selector for staggered children", "gsap.context bound to sectionEl so all triggers are scoped and reverted together"]
+      }
+    },
+    {
+      "id": "11",
+      "agent": "@animation-expert",
+      "task": "Drive shader uniforms from scroll: create src/animations/shaderScroll.ts that sets up ScrollTrigger callbacks updating uTime (continuous via requestAnimationFrame) and uProgress (per-section scroll position 0→1) on the shader uniform refs from useShaderUniforms. Also create the Hero entrance Framer Motion animation (initial load fade-in + text reveal).",
+      "dependencies": ["7", "8", "10"],
+      "status": "completed",
+      "priority": "high",
+      "estimated_tokens": 900,
+      "mcp_tools": ["filesystem"],
+      "artifacts": [
+        { "type": "file", "path": "src/animations/shaderScroll.ts", "verification": "exists" },
+        { "type": "file", "path": "src/animations/heroEntrance.ts", "verification": "exists" }
+      ],
+      "knowledge": {
+        "decisions": ["uTime driven by rAF not GSAP ticker to avoid double-tick with R3F useFrame", "uProgress written directly to MutableRefObject via ScrollTrigger onUpdate — no re-render", "Hero entrance uses cubic-bezier [0.22,1,0.36,1] (easeOutQuint) for premium feel"]
+      }
+    },
+    {
+      "id": "12",
+      "agent": "@animation-expert",
+      "task": "Choreograph the Service Selector interaction: create src/animations/serviceSelector.ts with timelines for: (a) scroll-based reveal of the selector, (b) click-to-expand orb animation (scale + shader uProgress 0->1 over 0.8s ease), (c) section exit animation when navigating back. Sync with Zustand currentService state.",
+      "dependencies": ["8", "10", "11"],
+      "status": "completed",
+      "priority": "high",
+      "estimated_tokens": 800,
+      "mcp_tools": ["filesystem"],
+      "artifacts": [
+        { "type": "file", "path": "src/animations/serviceSelector.ts", "verification": "exists" }
+      ],
+      "knowledge": {
+        "decisions": ["animateOrbSelect tweens uProgressRef.current directly — library can tween object properties", "Deselect is faster (0.5s) than select (0.8s) for snappy back-navigation feel", "sectionExit animates y:-30 + opacity:0 so section slides up and fades"]
+      }
+    },
+    {
+      "id": "13",
+      "agent": "@react-frontend",
+      "task": "Build the Hero and About section content: Hero.tsx gets a centred title ('Anton Kress'), subtitle, and a scroll indicator; About.tsx gets a two-column layout (short bio left, a decorative element right). Both use Framer Motion variants for entrance. Style with Tailwind, ensure pointer-events don't block the canvas below.",
+      "dependencies": ["5", "11"],
+      "status": "pending",
+      "priority": "high",
+      "parallel_group": "content",
+      "estimated_tokens": 900,
+      "mcp_tools": ["filesystem"],
+      "artifacts": [
+        { "type": "file", "path": "src/sections/Hero.tsx", "verification": "exists" },
+        { "type": "file", "path": "src/sections/About.tsx", "verification": "exists" }
+      ],
+      "knowledge": {
+        "decisions": ["Hero uses pointer-events-none so canvas raycasting works through it", "heroItemVariants use cubic-bezier [0.22,1,0.36,1] (easeOutQuint)", "About decorative rings use pure CSS animation to avoid JS overhead"]
+      }
+    },
+    {
+      "id": "14",
+      "agent": "@react-frontend",
+      "task": "Build the ServiceSelector UI overlay: ServiceSelector.tsx renders three labelled buttons/cards ('Web Development', 'Tool Development', 'AI Development') overlaid on the canvas orbs. Clicking a card sets Zustand currentService and triggers the GSAP orb animation. Add a back/return navigation element.",
+      "dependencies": ["5", "12"],
+      "status": "completed",
+      "priority": "high",
+      "parallel_group": "content",
+      "estimated_tokens": 800,
+      "mcp_tools": ["filesystem"],
+      "artifacts": [
+        { "type": "file", "path": "src/sections/ServiceSelector.tsx", "verification": "exists" }
+      ],
+      "knowledge": {
+        "decisions": ["Service cards have pointer-events-auto to override hero pointer-events-none", "Cards directly drive Zustand currentService — orb raycasting in ServiceSelectorScene reads same store"]
+      }
+    },
+    {
+      "id": "15",
+      "agent": "@react-frontend",
+      "task": "Build the three service content sections: WebDev.tsx (web projects, technologies, case studies), ToolDev.tsx (scripts, CLI tools, automation apps), AIDev.tsx (agentic framework, custom agents, MCP servers). Each section uses a consistent card layout with project title, description, tech stack tags, and links. Style with Tailwind.",
+      "dependencies": ["5", "13"],
+      "status": "completed",
+      "priority": "normal",
+      "parallel_group": "content",
+      "estimated_tokens": 1200,
+      "mcp_tools": ["filesystem"],
+      "artifacts": [
+        { "type": "file", "path": "src/sections/WebDev.tsx", "verification": "exists" },
+        { "type": "file", "path": "src/sections/ToolDev.tsx", "verification": "exists" },
+        { "type": "file", "path": "src/sections/AIDev.tsx", "verification": "exists" },
+        { "type": "file", "path": "src/data/projects.ts", "verification": "exists" }
+      ],
+      "knowledge": {
+        "decisions": ["ProjectCard component extracted to src/components/ for reuse across all three service sections", "highlight flag adds accent border/bg for featured projects", "[data-reveal] on ProjectCard for GSAP stagger compatibility"]
+      }
+    },
+    {
+      "id": "16",
+      "agent": "@react-frontend",
+      "task": "Build the Contact section UI: Contact.tsx with a minimal form (name, email, message fields, submit button), form state via React Hook Form or controlled inputs, loading/success/error states. Style artistically with Tailwind — form floats over a shader background.",
+      "dependencies": ["5", "13"],
+      "status": "completed",
+      "priority": "normal",
+      "parallel_group": "content",
+      "estimated_tokens": 700,
+      "mcp_tools": ["filesystem"],
+      "artifacts": [
+        { "type": "file", "path": "src/sections/Contact.tsx", "verification": "exists" }
+      ],
+      "knowledge": {
+        "decisions": ["Used controlled inputs (not React Hook Form) to avoid extra dependency", "EmailJS import is dynamic (import()) so it's lazy-loaded — not in initial bundle", "pointer-events-auto on form so it captures clicks through canvas layer"]
+      }
+    },
+    {
+      "id": "17",
+      "agent": "@deployment-integrations",
+      "task": "Integrate EmailJS into the Contact form: create src/lib/emailjs.ts with sendContactForm() wrapper reading VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_TEMPLATE_ID, VITE_EMAILJS_PUBLIC_KEY env vars. Create .env.example with all required var names. Wire sendContactForm into Contact.tsx's submit handler.",
+      "dependencies": ["16"],
+      "status": "completed",
+      "priority": "normal",
+      "estimated_tokens": 600,
+      "mcp_tools": ["filesystem"],
+      "artifacts": [
+        { "type": "file", "path": "src/lib/emailjs.ts", "verification": "exists" },
+        { "type": "file", "path": ".env.example", "verification": "exists" }
+      ],
+      "knowledge": {
+        "decisions": ["Spread {..data} used instead of cast to satisfy EmailJS SDK types", "EmailJS dynamically imported in Contact.tsx so excluded from initial bundle", "VITE_ prefix required for all client-side env vars"]
+      }
+    },
+    {
+      "id": "18",
+      "agent": "@deployment-integrations",
+      "task": "Set up Plausible analytics and Vercel deployment: create src/lib/analytics.ts with trackEvent() helper, add Plausible script to index.html (gated to production), create vercel.json with security headers (X-Frame-Options, X-Content-Type-Options, CSP) and SPA redirect rule, add vite.config.ts manual chunks for three/gsap bundles.",
+      "dependencies": ["5"],
+      "status": "completed",
+      "priority": "normal",
+      "estimated_tokens": 600,
+      "mcp_tools": ["filesystem"],
+      "artifacts": [
+        { "type": "file", "path": "src/lib/analytics.ts", "verification": "exists" },
+        { "type": "file", "path": "vercel.json", "verification": "exists" },
+        { "type": "file", "path": "index.html", "verification": "exists" }
+      ],
+      "knowledge": {
+        "decisions": ["Plausible injected via inline JS gated to non-localhost — no build-time env needed", "manualChunks: three=961KB, gsap=70KB, motion=119KB all split from 77KB main bundle", "vercel.json uses rewrites not redirects for SPA routing"]
+      }
+    },
+    {
+      "id": "19",
+      "agent": "@deployment-integrations",
+      "task": "Run Lighthouse and fix performance issues: ensure Three.js and GSAP are in separate chunks (no main bundle bloat), verify Canvas is lazy-loaded, check LCP < 2.5s, add font preloads to index.html, verify .env.example covers all secrets, and confirm no secret keys are committed. Final check: `npm run build` passes without warnings.",
+      "dependencies": ["17", "18"],
+      "status": "completed",
+      "priority": "high",
+      "estimated_tokens": 800,
+      "mcp_tools": ["filesystem", "git"],
+      "artifacts": [
+        { "type": "manual", "path": "npm run build", "verification": "manual" }
+      ],
+      "knowledge": {
+        "decisions": ["Build passes with 0 TS errors after adding paths to tsconfig.app.json", "Fixed TS2307 by adding baseUrl+paths to tsconfig.app.json matching vite.config.ts aliases", "three chunk 961KB expected — unavoidable, split from main bundle, lazy-loaded with SceneRoot"]
+      }
+    }
+  ]
+}

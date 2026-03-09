@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Anton Kress — web development, tool development, and AI systems." />
+
+    <title>Anton Kress</title>
+
+    <!-- Font preloads -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@300;400&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Plausible Analytics — injected only outside localhost -->
+    <script>
+      if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        var s = document.createElement('script');
+        s.defer = true;
+        s.setAttribute('data-domain', '%VITE_PLAUSIBLE_DOMAIN%');
+        s.src = 'https://plausible.io/js/script.js';
+        document.head.appendChild(s);
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
