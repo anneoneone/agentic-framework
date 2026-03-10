@@ -35,6 +35,7 @@ dev = [
 
 [project.scripts]
 spec-to-test = "spec_to_test.cli:main"
+spec-ask     = "spec_to_test.knowledge.qa_engine:ask_cli"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src"]

@@ -194,3 +194,39 @@ class RawToIRMapper:
             spec_version=self._adapter.spec_version,
             total_chunks_processed=total_chunks,
         )
+
+
+# ------------------------------------------------------------------ #
+# Knowledge step — runs AFTER extraction, BEFORE code generation      #
+# ------------------------------------------------------------------ #
+
+def save_knowledge(
+    chunks: list[SectionChunk],
+    knowledge_dir: str,
+    stack: str = "spec-to-test",
+    pdf_path: str = "",
+) -> None:
+    """
+    Build the local vector index and write spec learnings to the Memento graph.
+
+    This is the 'save-knowledge' pipeline step, inserted between IR mapping
+    and code generation. It is idempotent — re-running only indexes new chunks.
+
+    Args:
+        chunks:        All SectionChunks from PdfExtractionPipeline.extract().
+        knowledge_dir: Directory to persist the vector index.
+        stack:         Memento stack name for Learning nodes.
+        pdf_path:      Source PDF path (stored in index metadata only).
+    """
+    from spec_to_test.knowledge.indexer import SpecKnowledgeIndex
+    from spec_to_test.knowledge.memento_bridge import MementoBridge
+
+    # 1. Local vector index (always runs — no external dependency)
+    index = SpecKnowledgeIndex(knowledge_dir)
+    index.build(chunks, pdf_path=pdf_path)
+
+    # 2. Memento graph (gracefully skipped when MCP server is unavailable)
+    bridge = MementoBridge(stack=stack)
+    written = bridge.index_chunks(chunks)
+    if written:
+        logger.info("Memento: %d Learning nodes written to graph", written)

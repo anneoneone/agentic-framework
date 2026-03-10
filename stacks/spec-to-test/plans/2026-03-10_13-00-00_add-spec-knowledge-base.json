@@ -1,0 +1,172 @@
+{
+  "schema_version": "2.0",
+  "plan_id": "2026-03-10_13-00-00_add-spec-knowledge-base",
+  "stack": "spec-to-test",
+  "description": "Add a persistent spec knowledge base to the pipeline: a local vector index (sentence-transformers) for semantic Q&A plus Memento graph integration (Neo4j via MCP) to store spec learnings as structured nodes. Inserts a 'save-knowledge' step between IR mapping and code generation, and exposes a spec-ask CLI entry point.",
+  "created_at": "2026-03-10T13:00:00Z",
+  "updated_at": "2026-03-10T13:23:54Z",
+  "overall_status": "completed",
+  "active_context": "main",
+  "execution_mode": "sequential",
+  "token_budget": {
+    "estimated_total": 7200,
+    "actual_total": 5800
+  },
+  "steps": [
+    {
+      "id": "S1",
+      "title": "Create src/knowledge/ module \u2014 SpecKnowledgeIndex (vector index)",
+      "description": "Create stacks/spec-to-test/src/knowledge/__init__.py and src/knowledge/indexer.py. Implement SpecKnowledgeIndex: embed SectionChunks with sentence-transformers (all-MiniLM-L6-v2), persist to knowledge_dir as chunks.json + embeddings.npy + meta.json. Include incremental build (skip already-indexed chunks via SHA-256 hash). Expose search(query, top_k) returning (chunk, score) tuples sorted by cosine similarity. The Write tool has been intermittently failing \u2014 write one file at a time and verify each with Read before moving on.",
+      "agent": "@pdf-extractor",
+      "status": "completed",
+      "priority": "critical",
+      "dependencies": [],
+      "estimated_tokens": 1200,
+      "mcp_tools": [
+        "filesystem-agent-framework.write_file",
+        "filesystem-agent-framework.read_file"
+      ],
+      "context_needed": [
+        "stacks/spec-to-test/src/extractors/base.py",
+        "stacks/spec-to-test/src/llm/extraction_cache.py"
+      ],
+      "artifacts": [
+        "stacks/spec-to-test/src/knowledge/__init__.py",
+        "stacks/spec-to-test/src/knowledge/indexer.py"
+      ],
+      "output": {
+        "files_created": [
+          "stacks/spec-to-test/src/knowledge/__init__.py",
+          "stacks/spec-to-test/src/knowledge/indexer.py"
+        ],
+        "summary": "Create src/knowledge/ module \u2014 SpecKnowledgeIndex (vector index) \u2014 completed"
+      }
+    },
+    {
+      "id": "S2",
+      "title": "Create src/knowledge/qa_engine.py \u2014 SpecQAEngine (semantic retrieval + Claude answer)",
+      "description": "Implement SpecQAEngine(knowledge_dir, claude_model). Method ask(question) -> AnswerResult: (1) load index if not loaded, (2) search top-5 chunks, (3) build context block from chunk markdown, (4) call Claude claude-sonnet-4-6 with prompt-cached system prompt asking it to answer ONLY from provided context, (5) return AnswerResult(answer, sources, confidence). Use prompt caching on system prompt (cache_control: ephemeral). Return NO_ANSWER sentinel when no chunk scores above 0.40. Make model configurable, default claude-sonnet-4-6.",
+      "agent": "@ir-modeler",
+      "status": "completed",
+      "priority": "critical",
+      "dependencies": [
+        "S1"
+      ],
+      "estimated_tokens": 1400,
+      "mcp_tools": [
+        "filesystem-agent-framework.write_file",
+        "filesystem-agent-framework.read_file"
+      ],
+      "context_needed": [
+        "stacks/spec-to-test/src/knowledge/indexer.py",
+        "stacks/spec-to-test/src/llm/extractor.py"
+      ],
+      "artifacts": [
+        "stacks/spec-to-test/src/knowledge/qa_engine.py"
+      ],
+      "output": {
+        "files_created": [
+          "stacks/spec-to-test/src/knowledge/qa_engine.py"
+        ],
+        "summary": "Create src/knowledge/qa_engine.py \u2014 SpecQAEngine (semantic retrieval + Claude answer) \u2014 completed"
+      }
+    },
+    {
+      "id": "S3",
+      "title": "Create src/knowledge/memento_bridge.py \u2014 persist spec learnings to Memento graph",
+      "description": "Implement MementoBridge(stack). Method index_chunks(chunks, plan_id) iterates over SectionChunks and calls memento-knowledge.add_learning() for each testcase/reusable_state chunk, storing: title, section_type, page range, and a 1-sentence summary derived from the first 200 chars of markdown. Use add_learning not add_decision (these are facts extracted from the spec, not architectural choices). Rate-limit to 5 concurrent Neo4j writes via asyncio.Semaphore. Skip chunks already indexed (query search_knowledge_graph for title before writing). Only import the memento MCP client if the memento server is reachable; fail gracefully with a warning if not.",
+      "agent": "@ir-modeler",
+      "status": "completed",
+      "priority": "high",
+      "dependencies": [
+        "S1"
+      ],
+      "estimated_tokens": 1100,
+      "mcp_tools": [
+        "filesystem-agent-framework.write_file",
+        "memento-knowledge.add_learning",
+        "memento-knowledge.search_knowledge_graph"
+      ],
+      "context_needed": [
+        "stacks/spec-to-test/src/knowledge/indexer.py",
+        "stacks/spec-to-test/src/extractors/base.py"
+      ],
+      "artifacts": [
+        "stacks/spec-to-test/src/knowledge/memento_bridge.py"
+      ],
+      "output": {
+        "files_created": [
+          "stacks/spec-to-test/src/knowledge/memento_bridge.py"
+        ],
+        "summary": "Create src/knowledge/memento_bridge.py \u2014 persist spec learnings to Memento graph \u2014 completed"
+      }
+    },
+    {
+      "id": "S4",
+      "title": "Wire knowledge step into pipeline (ir/mapper.py) and CLI (cli.py + pyproject.toml)",
+      "description": "Four sub-tasks: (1) Add save_knowledge(chunks, knowledge_dir) helper in ir/mapper.py that calls SpecKnowledgeIndex.build() + MementoBridge.index_chunks() after map()/map_async() completes \u2014 this inserts the knowledge step between IR extraction and code gen. (2) Add --save-knowledge DIR option to cli.py main command. (3) Add spec-ask console script to pyproject.toml pointing at a new spec_to_test.knowledge.qa_engine:ask_cli Click command. (4) Implement ask_cli() Click command in qa_engine.py: takes QUESTION arg + --knowledge DIR + --top-k INT + --model STR, prints answer + source chunk IDs.",
+      "agent": "@pdf-extractor",
+      "status": "completed",
+      "priority": "critical",
+      "dependencies": [
+        "S2",
+        "S3"
+      ],
+      "estimated_tokens": 1300,
+      "mcp_tools": [
+        "filesystem-agent-framework.read_file",
+        "filesystem-agent-framework.edit_file",
+        "filesystem-agent-framework.write_file"
+      ],
+      "context_needed": [
+        "stacks/spec-to-test/src/cli.py",
+        "stacks/spec-to-test/src/ir/mapper.py",
+        "stacks/spec-to-test/pyproject.toml"
+      ],
+      "artifacts": [
+        "stacks/spec-to-test/src/cli.py",
+        "stacks/spec-to-test/src/ir/mapper.py",
+        "stacks/spec-to-test/pyproject.toml"
+      ],
+      "output": {
+        "files_created": [
+          "stacks/spec-to-test/src/cli.py",
+          "stacks/spec-to-test/src/ir/mapper.py",
+          "stacks/spec-to-test/pyproject.toml"
+        ],
+        "summary": "Wire knowledge step into pipeline (ir/mapper.py) and CLI (cli.py + pyproject.toml) \u2014 completed"
+      }
+    },
+    {
+      "id": "S5",
+      "title": "Write tests for the knowledge module",
+      "description": "Create stacks/spec-to-test/tests/test_knowledge.py with 10+ tests: (1) SpecKnowledgeIndex.build() from synthetic chunks, assert chunks.json + embeddings.npy written; (2) incremental build skips unchanged chunks (mock embed, verify call count); (3) search() returns top-k sorted by score; (4) load() restores state; (5) load() raises FileNotFoundError on missing index; (6) SpecQAEngine.ask() with mocked Anthropic client returns AnswerResult; (7) ask() returns NO_ANSWER when all scores < 0.40; (8) MementoBridge.index_chunks() calls add_learning for each chunk; (9) MementoBridge skips chunks already in graph. Use pytest tmp_path for all file I/O, mock sentence_transformers.SentenceTransformer to avoid downloading the model.",
+      "agent": "@pytest-generator",
+      "status": "completed",
+      "priority": "high",
+      "dependencies": [
+        "S4"
+      ],
+      "estimated_tokens": 1200,
+      "mcp_tools": [
+        "filesystem-agent-framework.write_file"
+      ],
+      "context_needed": [
+        "stacks/spec-to-test/tests/test_ir.py",
+        "stacks/spec-to-test/tests/fixtures/sample_chunks.json",
+        "stacks/spec-to-test/src/knowledge/indexer.py",
+        "stacks/spec-to-test/src/knowledge/qa_engine.py",
+        "stacks/spec-to-test/src/knowledge/memento_bridge.py"
+      ],
+      "artifacts": [
+        "stacks/spec-to-test/tests/test_knowledge.py"
+      ],
+      "output": {
+        "files_created": [
+          "stacks/spec-to-test/tests/test_knowledge.py"
+        ],
+        "summary": "Write tests for the knowledge module \u2014 completed"
+      }
+    }
+  ]
+}

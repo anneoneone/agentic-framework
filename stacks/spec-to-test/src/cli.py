@@ -47,6 +47,8 @@ logger = logging.getLogger(__name__)
               help="Path to write/read SpecDocument JSON (skip re-extraction if exists).")
 @click.option("--extraction-cache", default=None, type=click.Path(),
               help="Directory for chunk-level extraction cache (skip individual LLM calls).")
+@click.option("--save-knowledge", default=None, type=click.Path(),
+              help="Directory to build/update the spec knowledge index (vector + Memento graph).")
 def main(
     pdf_path: str | None,
     adapter: str,
@@ -60,6 +62,7 @@ def main(
     verbose: bool,
     cache_ir: str | None,
     extraction_cache: str | None,
+    save_knowledge: str | None,
 ) -> None:
     """
     Generate pytest test files from a PDF test-specification document.
@@ -215,6 +218,17 @@ def main(
                 spec_doc.model_dump_json(indent=2), encoding="utf-8"
             )
             click.echo(f"  → IR cached to {cache_ir}")
+
+    # Knowledge step — runs after extraction, before code gen
+    if save_knowledge and chunks:
+        click.echo(f"Building spec knowledge index at {save_knowledge} …")
+        from spec_to_test.ir.mapper import save_knowledge as _save_knowledge
+        _save_knowledge(
+            chunks,
+            knowledge_dir=save_knowledge,
+            pdf_path=pdf_path or "",
+        )
+        click.echo(f"  → Knowledge index updated ({len(chunks)} chunks)")
 
     if dry_run:
         click.echo("\n--dry-run: skipping code generation.")
