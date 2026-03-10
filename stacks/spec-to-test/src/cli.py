@@ -7,6 +7,7 @@ Usage:
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import sys
@@ -25,6 +26,8 @@ logger = logging.getLogger(__name__)
               help="Output directory for generated pytest files.")
 @click.option("--llm-model", default="claude-sonnet-4-6", show_default=True,
               help="Anthropic model ID for LLM extraction.")
+@click.option("--parallel/--no-parallel", default=True, show_default=True,
+              help="Use async parallel extraction (recommended for large specs).")
 @click.option("--dry-run", is_flag=True,
               help="Extract and model only — skip code generation. Prints SpecDocument summary.")
 @click.option("--verbose", "-v", is_flag=True,
@@ -36,6 +39,7 @@ def main(
     adapter: str,
     out: str,
     llm_model: str,
+    parallel: bool,
     dry_run: bool,
     verbose: bool,
     cache_ir: str | None,
@@ -70,7 +74,7 @@ def main(
 
     click.echo(
         f"spec-to-test | adapter={spec_adapter.spec_id} {spec_adapter.spec_version} "
-        f"| model={llm_model}"
+        f"| model={llm_model} | parallel={'on' if parallel else 'off'}"
     )
 
     # 2. Try loading cached IR
@@ -87,9 +91,12 @@ def main(
         chunks = extractor.extract(pdf_path, spec_adapter)
         click.echo(f"  → {len(chunks)} sections detected")
 
-        # 4. Map to IR via LLM
-        click.echo("Mapping to IR via LLM …")
-        anth_client = anthropic.Anthropic()
+        # 4. Map to IR via LLM (parallel async or sequential sync)
+        click.echo(f"Mapping to IR via LLM {'(parallel)' if parallel else '(sequential)'} …")
+        if parallel:
+            anth_client = anthropic.AsyncAnthropic()
+        else:
+            anth_client = anthropic.Anthropic()
         llm_extractor = LLMExtractor(client=anth_client, model=llm_model)
         retriever = SchemaRetriever(adapter=spec_adapter)
         mapper = RawToIRMapper(
@@ -97,7 +104,10 @@ def main(
             extractor=llm_extractor,
             retriever=retriever,
         )
-        spec_doc = mapper.map(chunks)
+        if parallel:
+            spec_doc = asyncio.run(mapper.map_async(chunks))
+        else:
+            spec_doc = mapper.map(chunks)
         spec_doc.source_pdf = pdf_path
         click.echo(f"  → {spec_doc.summary()}")
 

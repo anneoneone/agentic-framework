@@ -1,16 +1,22 @@
 """
 RawToIRMapper — orchestrates extraction from SectionChunks to SpecDocument.
 
+Two execution modes:
+  map()       — synchronous, sequential (simple, for small specs or testing)
+  map_async() — async, parallel (recommended for 400+ test case specs)
+
 For each chunk:
   1. SchemaRetriever.get_for_chunk() → mobilityhouse schema (RAG context)
-  2. LLMExtractor.extract() → TestCase or ReusableState
+  2. LLMExtractor.extract() → TestCase  (LLM, one call per TC)
+     LLMExtractor rule-based → ReusableState (no LLM)
   3. Assemble into SpecDocument
 
 Failures on individual chunks are caught, logged, and recorded in
-SpecDocument.failed_chunk_ids — they do not abort the full extraction.
+SpecDocument.failed_chunk_ids — they never abort the full extraction.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -23,6 +29,10 @@ from spec_to_test.models.state import ReusableState, StateCondition
 from spec_to_test.models.testcase import TestCase
 
 logger = logging.getLogger(__name__)
+
+# Max concurrent LLM calls. Anthropic rate limit is 2000 RPM for Sonnet;
+# 50 concurrent is safe and ~50x faster than sequential.
+_MAX_CONCURRENCY = 50
 
 
 class RawToIRMapper:
@@ -45,39 +55,86 @@ class RawToIRMapper:
         self._extractor = extractor
         self._retriever = retriever
 
+    # ------------------------------------------------------------------ #
+    # Sync map (sequential) — kept for backward compat + small specs      #
+    # ------------------------------------------------------------------ #
+
     def map(self, chunks: list[SectionChunk]) -> SpecDocument:
         """
-        Process *chunks* and return a fully populated SpecDocument.
+        Process *chunks* sequentially and return a SpecDocument.
 
-        Test-case chunks are processed via LLMExtractor.
-        Reusable-state chunks use lightweight rule-based extraction.
+        For 400+ test cases, prefer map_async() which is ~50x faster.
         """
-        doc = SpecDocument(
-            spec_id=f"{self._adapter.spec_id}-{self._adapter.spec_version}-part6",
-            spec_version=self._adapter.spec_version,
-            total_chunks_processed=len(chunks),
-        )
-
+        doc = self._empty_doc(len(chunks))
         for chunk in chunks:
-            try:
-                if chunk["section_type"] == "testcase":
-                    tc = self._extract_test_case(chunk)
-                    doc.test_cases.append(tc)
-                    if tc.low_confidence:
-                        doc.low_confidence_count += 1
-
-                elif chunk["section_type"] == "reusable_state":
-                    rs = self._extract_reusable_state(chunk)
-                    doc.reusable_states.append(rs)
-
-            except Exception as exc:
-                logger.error(
-                    "Failed to extract chunk '%s': %s", chunk["id"], exc
-                )
-                doc.failed_chunk_ids.append(chunk["id"])
-
+            self._process_chunk_into(chunk, doc)
         logger.info(doc.summary())
         return doc
+
+    # ------------------------------------------------------------------ #
+    # Async map (parallel) — recommended for production use               #
+    # ------------------------------------------------------------------ #
+
+    async def map_async(self, chunks: list[SectionChunk]) -> SpecDocument:
+        """
+        Process *chunks* in parallel using asyncio.gather().
+
+        Requires an AsyncAnthropic client in LLMExtractor.
+        Respects _MAX_CONCURRENCY to stay within API rate limits.
+
+        Usage from sync code:
+            doc = asyncio.run(mapper.map_async(chunks))
+        """
+        doc = self._empty_doc(len(chunks))
+        semaphore = asyncio.Semaphore(_MAX_CONCURRENCY)
+
+        async def bounded(chunk: SectionChunk) -> None:
+            async with semaphore:
+                await self._process_chunk_into_async(chunk, doc)
+
+        await asyncio.gather(*[bounded(c) for c in chunks])
+        logger.info(doc.summary())
+        return doc
+
+    # ------------------------------------------------------------------ #
+    # Chunk processing — sync                                             #
+    # ------------------------------------------------------------------ #
+
+    def _process_chunk_into(self, chunk: SectionChunk, doc: SpecDocument) -> None:
+        try:
+            if chunk["section_type"] == "testcase":
+                tc = self._extract_test_case(chunk)
+                doc.test_cases.append(tc)
+                if tc.low_confidence:
+                    doc.low_confidence_count += 1
+            elif chunk["section_type"] == "reusable_state":
+                rs = self._extract_reusable_state(chunk)
+                doc.reusable_states.append(rs)
+        except Exception as exc:
+            logger.error("Failed to extract chunk '%s': %s", chunk["id"], exc)
+            doc.failed_chunk_ids.append(chunk["id"])
+
+    # ------------------------------------------------------------------ #
+    # Chunk processing — async                                            #
+    # ------------------------------------------------------------------ #
+
+    async def _process_chunk_into_async(
+        self, chunk: SectionChunk, doc: SpecDocument
+    ) -> None:
+        try:
+            if chunk["section_type"] == "testcase":
+                schema = self._retriever.get_for_chunk(chunk["markdown"])
+                tc = await self._extractor.extract_async(chunk, schema)
+                # Thread-safety: list.append is GIL-safe in CPython
+                doc.test_cases.append(tc)
+                if tc.low_confidence:
+                    doc.low_confidence_count += 1
+            elif chunk["section_type"] == "reusable_state":
+                rs = self._extract_reusable_state(chunk)
+                doc.reusable_states.append(rs)
+        except Exception as exc:
+            logger.error("Failed async extract '%s': %s", chunk["id"], exc)
+            doc.failed_chunk_ids.append(chunk["id"])
 
     # ------------------------------------------------------------------ #
     # Test case extraction (LLM-powered)                                  #
@@ -92,11 +149,6 @@ class RawToIRMapper:
     # ------------------------------------------------------------------ #
 
     def _extract_reusable_state(self, chunk: SectionChunk) -> ReusableState:
-        """
-        Extract a ReusableState from a chunk using simple table parsing.
-
-        No LLM call needed — reusable states have a consistent table structure.
-        """
         conditions = self._parse_conditions_table(chunk["markdown"])
         return ReusableState(
             id=chunk["id"],
@@ -108,29 +160,21 @@ class RawToIRMapper:
         )
 
     def _parse_conditions_table(self, markdown: str) -> list[StateCondition]:
-        """Parse a Markdown table into StateCondition objects."""
         conditions: list[StateCondition] = []
-        lines = markdown.splitlines()
-        in_table = False
         header_seen = False
 
-        for line in lines:
+        for line in markdown.splitlines():
             stripped = line.strip()
             if not stripped.startswith("|"):
-                in_table = False
                 header_seen = False
                 continue
-
-            in_table = True
-            # Skip separator row (| --- | --- |)
-            if set(stripped.replace("|", "").replace("-", "").replace(" ", "")) == set():
+            # Skip separator row
+            if not stripped.replace("|", "").replace("-", "").replace(" ", ""):
                 header_seen = True
                 continue
-
             if not header_seen:
-                header_seen = True  # This is the header row — skip it
+                header_seen = True
                 continue
-
             cells = [c.strip() for c in stripped.strip("|").split("|")]
             if len(cells) >= 2 and cells[0]:
                 conditions.append(StateCondition(
@@ -139,3 +183,14 @@ class RawToIRMapper:
                 ))
 
         return conditions
+
+    # ------------------------------------------------------------------ #
+    # Helpers                                                             #
+    # ------------------------------------------------------------------ #
+
+    def _empty_doc(self, total_chunks: int) -> SpecDocument:
+        return SpecDocument(
+            spec_id=f"{self._adapter.spec_id}-{self._adapter.spec_version}-part6",
+            spec_version=self._adapter.spec_version,
+            total_chunks_processed=total_chunks,
+        )

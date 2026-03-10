@@ -100,12 +100,11 @@ VALID_TEST_CASE_PAYLOAD = {
 
 
 def test_llm_extractor_happy_path():
+    # Single merged call — no separate classify step anymore
     mock_client = MagicMock()
-    # Step 1 (classify): text response
-    mock_client.messages.create.side_effect = [
-        SimpleNamespace(content=[SimpleNamespace(text="message_sequence")]),
-        _make_tool_use_response(VALID_TEST_CASE_PAYLOAD),
-    ]
+    mock_client.messages.create.return_value = _make_tool_use_response(
+        VALID_TEST_CASE_PAYLOAD
+    )
 
     extractor = LLMExtractor(client=mock_client, model="claude-test")
     chunk: SectionChunk = {
@@ -122,28 +121,29 @@ def test_llm_extractor_happy_path():
     assert result.test_type == TestType.MESSAGE_SEQUENCE
     assert len(result.steps) == 1
     assert len(result.steps[0].assertions) == 1
+    # Exactly 1 API call — merged classify+extract
+    assert mock_client.messages.create.call_count == 1
 
 
 def test_llm_extractor_retry_on_validation_error():
     """
-    Mock returns invalid JSON on first 2 calls, valid on 3rd.
-    Extractor should succeed on attempt 3.
+    Mock returns incomplete tool_use on first 2 calls, valid on 3rd.
+    Extractor should succeed on attempt 3 with low_confidence=True.
     """
     mock_client = MagicMock()
 
     bad_block = SimpleNamespace(
         type="tool_use",
         name="extract_test_case",
-        input={"id": "TC_B01"},  # missing required 'title' and 'steps'
+        input={"id": "TC_B01"},  # missing required 'title', 'test_type', 'steps'
     )
     bad_response = SimpleNamespace(content=[bad_block])
     good_response = _make_tool_use_response(VALID_TEST_CASE_PAYLOAD)
 
     mock_client.messages.create.side_effect = [
-        SimpleNamespace(content=[SimpleNamespace(text="message_sequence")]),  # Step 1
-        bad_response,   # Step 2, attempt 1
-        bad_response,   # Step 2, attempt 2
-        good_response,  # Step 2, attempt 3
+        bad_response,   # attempt 1
+        bad_response,   # attempt 2
+        good_response,  # attempt 3
     ]
 
     extractor = LLMExtractor(client=mock_client, model="claude-test")
@@ -157,7 +157,8 @@ def test_llm_extractor_retry_on_validation_error():
     }
     result = extractor.extract(chunk, schema_context={})
     assert result.id == "TC_B01"
-    assert result.low_confidence is True  # flagged after retries
+    assert result.low_confidence is True
+    assert mock_client.messages.create.call_count == 3
 
 
 def test_llm_extractor_exhausts_retries_raises():
@@ -167,18 +168,9 @@ def test_llm_extractor_exhausts_retries_raises():
         name="extract_test_case",
         input={"id": "TC_B01"},  # always missing required fields
     )
-    mock_client.messages.create.return_value = SimpleNamespace(
-        content=[SimpleNamespace(text="message_sequence")]
-    )
+    mock_client.messages.create.return_value = SimpleNamespace(content=[bad_block])
 
     extractor = LLMExtractor(client=mock_client, model="claude-test")
-
-    # Override step 2 to always fail
-    classify_resp = SimpleNamespace(content=[SimpleNamespace(text="message_sequence")])
-    bad_resp = SimpleNamespace(content=[bad_block])
-    mock_client.messages.create.side_effect = [
-        classify_resp, bad_resp, bad_resp, bad_resp
-    ]
 
     with pytest.raises(RuntimeError, match="after 3 attempts"):
         extractor.extract(
