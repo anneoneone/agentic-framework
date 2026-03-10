@@ -1,0 +1,455 @@
+{
+  "schema_version": "2.0",
+  "plan_id": "2026-03-10_09-10-00_build-spec-to-test-pipeline",
+  "stack": "spec-to-test",
+  "description": "Build the full spec-to-test pipeline: scaffold \u2192 adapter layer \u2192 pymupdf4llm extraction + section chunking \u2192 LLM extraction with mobilityhouse schema RAG \u2192 Jinja2 code gen + semantic QA \u2192 CLI \u2192 unit tests. Datatypes imported from mobilityhouse/ocpp (not extracted from PDF).",
+  "created_at": "2026-03-10T09:10:00Z",
+  "updated_at": "2026-03-10T10:23:11Z",
+  "overall_status": "completed",
+  "active_context": "main",
+  "execution_mode": "sequential",
+  "token_budget": {
+    "estimated_total": 15800,
+    "actual_total": null
+  },
+  "context_sources": [
+    {
+      "type": "knowledge",
+      "query": "spec-to-test pipeline pymupdf4llm mobilityhouse RAG accuracy",
+      "source": "spec-to-test",
+      "reason": "Architecture decisions from research: pymupdf4llm, mobilityhouse/ocpp, section-chunking, two-step LLM, semantic QA"
+    }
+  ],
+  "steps": [
+    {
+      "id": "1",
+      "agent": "@coordinator",
+      "task": "Scaffold the spec-to-test Python project. Create pyproject.toml with deps: pymupdf4llm>=0.0.17, pdfplumber>=0.11 (fallback), ocpp>=2.0.0 (mobilityhouse), pydantic>=2, jinja2>=3, anthropic>=0.40, sentence-transformers>=3, pytest>=8, pytest-asyncio>=0.24, click>=8. Create full src/ tree: extractors/, llm/, models/, ir/, generators/templates/, adapters/. Create tests/fixtures/. Add .gitignore. The src/llm/ directory will hold the LLM extraction layer (two-step prompt + retry).",
+      "dependencies": [],
+      "priority": "critical",
+      "estimated_tokens": 1400,
+      "status": "completed",
+      "parallel_group": null,
+      "mcp_tools": [
+        "filesystem",
+        "git"
+      ],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "pyproject.toml",
+          "verification": "exists",
+          "verified_at": "2026-03-10T10:05:00Z",
+          "auto_verified": true
+        },
+        {
+          "type": "file",
+          "path": "src/__init__.py",
+          "verification": "exists",
+          "verified_at": "2026-03-10T10:05:00Z",
+          "auto_verified": true
+        },
+        {
+          "type": "file",
+          "path": "src/llm/__init__.py",
+          "verification": "exists",
+          "verified_at": "2026-03-10T10:05:00Z",
+          "auto_verified": true
+        },
+        {
+          "type": "file",
+          "path": "tests/__init__.py",
+          "verification": "exists",
+          "verified_at": "2026-03-10T10:05:00Z",
+          "auto_verified": true
+        }
+      ],
+      "context_needed": [
+        {
+          "type": "file",
+          "path": "stacks/spec-to-test/docs/knowledge/index.md",
+          "reason": "Architecture overview and planned directory structure"
+        }
+      ],
+      "output": {
+        "summary": "Scaffolded project: pyproject.toml with all deps (pymupdf4llm, ocpp, pydantic, anthropic, jinja2, sentence-transformers, click, pytest-asyncio), full src/ tree (extractors/, llm/, models/, ir/, generators/templates/, adapters/), tests/fixtures/, .gitignore",
+        "files_created": [
+          "pyproject.toml",
+          ".gitignore",
+          "src/__init__.py",
+          "src/extractors/__init__.py",
+          "src/llm/__init__.py",
+          "src/models/__init__.py",
+          "src/ir/__init__.py",
+          "src/generators/__init__.py",
+          "src/adapters/__init__.py",
+          "tests/__init__.py"
+        ],
+        "files_modified": [],
+        "tokens_used": 1100
+      },
+      "knowledge": {
+        "decisions": [
+          "pyproject.toml uses hatchling build backend, asyncio_mode=auto for pytest-asyncio, src/ layout with spec_to_test package name"
+        ]
+      }
+    },
+    {
+      "id": "2",
+      "agent": "@spec-adapter",
+      "task": "Implement the adapter layer: (1) src/adapters/base.py \u2014 BaseAdapter ABC with abstract properties: section_patterns (dict of compiled regex), table_columns (dict of expected column names), schema_map (dict mapping OCPP action name \u2192 mobilityhouse JSON schema filename); (2) src/adapters/ocpp.py \u2014 OCPPAdapter for OCPP 2.0.1 Part 6: regex for TC_*/RS_* section headers, column name normalization, schema_map for all 2.0.1 actions pointing to ocpp/v201/schemas/*.json; (3) src/adapters/registry.py \u2014 get_adapter() factory.",
+      "dependencies": [
+        "1"
+      ],
+      "priority": "critical",
+      "estimated_tokens": 2000,
+      "status": "completed",
+      "parallel_group": "wave-2",
+      "mcp_tools": [
+        "filesystem"
+      ],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "src/adapters/base.py",
+          "verification": "exists"
+        },
+        {
+          "type": "file",
+          "path": "src/adapters/ocpp.py",
+          "verification": "exists"
+        },
+        {
+          "type": "file",
+          "path": "src/adapters/registry.py",
+          "verification": "exists"
+        }
+      ],
+      "context_needed": [
+        {
+          "type": "file",
+          "path": "stacks/spec-to-test/agents/spec-adapter.agent.md",
+          "reason": "Adapter interface contract and OCPPAdapter patterns"
+        }
+      ],
+      "knowledge": {},
+      "output": {
+        "summary": "Implemented BaseAdapter ABC, OCPPAdapter (35 schema mappings, TC_*/RS_* patterns, field normalisation), get_adapter() registry",
+        "files_created": [
+          "src/adapters/base.py",
+          "src/adapters/ocpp.py",
+          "src/adapters/registry.py"
+        ],
+        "tokens_used": 1800
+      }
+    },
+    {
+      "id": "3",
+      "agent": "@pdf-extractor",
+      "task": "Implement the PDF extraction layer using pymupdf4llm as primary extractor: (1) src/extractors/base.py \u2014 BaseExtractor ABC with extract(pdf_path, adapter) \u2192 list[SectionChunk]; SectionChunk TypedDict has {id, title, markdown, page_start, page_end, section_type}; (2) src/extractors/pipeline.py \u2014 PdfExtractionPipeline: call pymupdf4llm.to_markdown(pdf_path) \u2192 split on H2/H3 headers using adapter.section_patterns \u2192 yield one SectionChunk per test case; pdfplumber fallback for pages where pymupdf4llm returns empty tables; (3) src/extractors/ocpp.py \u2014 OCPP-specific TOC offset detection and TC_ID extraction from chunk title; (4) tests/fixtures/sample_chunks.json \u2014 2 synthetic SectionChunk dicts for unit tests (no real PDF needed).",
+      "dependencies": [
+        "1"
+      ],
+      "priority": "critical",
+      "estimated_tokens": 2200,
+      "status": "completed",
+      "parallel_group": "wave-2",
+      "mcp_tools": [
+        "filesystem"
+      ],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "src/extractors/base.py",
+          "verification": "exists"
+        },
+        {
+          "type": "file",
+          "path": "src/extractors/pipeline.py",
+          "verification": "exists"
+        },
+        {
+          "type": "file",
+          "path": "tests/fixtures/sample_chunks.json",
+          "verification": "exists"
+        }
+      ],
+      "context_needed": [
+        {
+          "type": "file",
+          "path": "stacks/spec-to-test/agents/pdf-extractor.agent.md",
+          "reason": "SectionChunk output schema and extraction patterns"
+        }
+      ],
+      "knowledge": {},
+      "output": {
+        "summary": "Implemented SectionChunk TypedDict, PdfExtractionPipeline (pymupdf4llm primary, page-offset tracking, header splitting), OCPP TOC offset detection, sample_chunks.json fixture",
+        "files_created": [
+          "src/extractors/base.py",
+          "src/extractors/pipeline.py",
+          "src/extractors/ocpp.py",
+          "tests/fixtures/sample_chunks.json"
+        ],
+        "tokens_used": 2000
+      }
+    },
+    {
+      "id": "4",
+      "agent": "@ir-modeler",
+      "task": "Implement the IR + LLM extraction layer. IMPORTANT: DataType definitions are imported from mobilityhouse/ocpp (ocpp.v201.datatypes, ocpp.v201.enums) \u2014 do NOT model datatypes from the PDF. Only TestCase and ReusableState require LLM extraction. Implement: (1) src/models/testcase.py \u2014 TestCase, Step, Assertion, Precondition Pydantic v2 models; (2) src/models/state.py \u2014 ReusableState model; (3) src/models/spec.py \u2014 SpecDocument with ir_version; (4) src/llm/schema_retriever.py \u2014 SchemaRetriever that loads mobilityhouse JSON schemas by action name (e.g., 'BootNotification' \u2192 ocpp/v201/schemas/BootNotificationRequest.json), returns schema dict for RAG injection; (5) src/llm/extractor.py \u2014 LLMExtractor with two-step extraction: Step 1 prompt classifies test type (sequence/field-validation/state-transition/timeout/error), Step 2 prompt extracts TestCase Pydantic model with the mobilityhouse schema injected as context; retry 3x on Pydantic ValidationError; uses Anthropic Messages API with response_format structured output; (6) src/ir/mapper.py \u2014 Orchestrates: for each SectionChunk \u2192 SchemaRetriever.get() \u2192 LLMExtractor.extract() \u2192 SpecDocument assembly.",
+      "dependencies": [
+        "2",
+        "3"
+      ],
+      "priority": "critical",
+      "estimated_tokens": 3000,
+      "status": "completed",
+      "parallel_group": null,
+      "mcp_tools": [
+        "filesystem"
+      ],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "src/models/spec.py",
+          "verification": "exists"
+        },
+        {
+          "type": "file",
+          "path": "src/llm/extractor.py",
+          "verification": "exists"
+        },
+        {
+          "type": "file",
+          "path": "src/llm/schema_retriever.py",
+          "verification": "exists"
+        },
+        {
+          "type": "file",
+          "path": "src/ir/mapper.py",
+          "verification": "exists"
+        }
+      ],
+      "context_needed": [
+        {
+          "type": "file",
+          "path": "stacks/spec-to-test/agents/ir-modeler.agent.md",
+          "reason": "IR schema design, two-step LLM extraction pattern, mobilityhouse integration"
+        },
+        {
+          "type": "file",
+          "path": "tests/fixtures/sample_chunks.json",
+          "reason": "Example SectionChunk input for the mapper"
+        }
+      ],
+      "knowledge": {},
+      "output": {
+        "summary": "Implemented TestCase/Step/Assertion/Precondition/ReusableState/SpecDocument Pydantic v2 models, SchemaRetriever (mobilityhouse lru_cache), LLMExtractor (two-step: classify + tool_use extract, 3x retry on ValidationError), RawToIRMapper (LLM for test cases, rule-based for reusable states)",
+        "files_created": [
+          "src/models/testcase.py",
+          "src/models/state.py",
+          "src/models/spec.py",
+          "src/llm/schema_retriever.py",
+          "src/llm/extractor.py",
+          "src/ir/mapper.py"
+        ],
+        "tokens_used": 2800
+      }
+    },
+    {
+      "id": "5",
+      "agent": "@pytest-generator",
+      "task": "Implement the code generation + QA layer: (1) src/generators/templates/test_module.py.j2 \u2014 Jinja2 template importing from ocpp.v201.enums and ocpp.v201.datatypes (mobilityhouse), generating @pytest.mark.asyncio async test functions; (2) src/generators/templates/conftest.py.j2 \u2014 template for pytest fixtures from ReusableStates; (3) src/generators/pytest_gen.py \u2014 PytestGenerator iterates SpecDocument.test_cases, renders templates, writes .py files; assertions use mobilityhouse enum members (e.g., RegistrationStatusType.accepted), NOT hard-coded strings; (4) src/generators/fixture_gen.py \u2014 FixtureGenerator for conftest.py; (5) src/generators/qa.py \u2014 SemanticQA class: for each generated test, embed its docstring + the source SectionChunk.markdown using sentence-transformers (all-MiniLM-L6-v2), compute cosine similarity, write qa_report.json flagging tests with score < 0.7. All generated files start with AUTO-GENERATED header.",
+      "dependencies": [
+        "4"
+      ],
+      "priority": "high",
+      "estimated_tokens": 2400,
+      "status": "completed",
+      "parallel_group": null,
+      "mcp_tools": [
+        "filesystem"
+      ],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "src/generators/pytest_gen.py",
+          "verification": "exists"
+        },
+        {
+          "type": "file",
+          "path": "src/generators/fixture_gen.py",
+          "verification": "exists"
+        },
+        {
+          "type": "file",
+          "path": "src/generators/qa.py",
+          "verification": "exists"
+        },
+        {
+          "type": "file",
+          "path": "src/generators/templates/test_module.py.j2",
+          "verification": "exists"
+        },
+        {
+          "type": "file",
+          "path": "src/generators/templates/conftest.py.j2",
+          "verification": "exists"
+        }
+      ],
+      "context_needed": [
+        {
+          "type": "file",
+          "path": "stacks/spec-to-test/agents/pytest-generator.agent.md",
+          "reason": "Template patterns and semantic QA approach"
+        }
+      ],
+      "knowledge": {},
+      "output": {
+        "summary": "Implemented Jinja2 templates (test_module.py.j2, conftest.py.j2), PytestGenerator (grouped by TC category), FixtureGenerator, SemanticQA (sentence-transformers cosine similarity, qa_report.json)",
+        "files_created": [
+          "src/generators/templates/test_module.py.j2",
+          "src/generators/templates/conftest.py.j2",
+          "src/generators/pytest_gen.py",
+          "src/generators/fixture_gen.py",
+          "src/generators/qa.py"
+        ],
+        "tokens_used": 2200
+      }
+    },
+    {
+      "id": "6",
+      "agent": "@coordinator",
+      "task": "Implement the CLI entry point: src/cli.py using Click \u2014 command `spec-to-test` with: pdf_path (required), --adapter (default: ocpp), --out (default: ./tests/generated/), --llm-model (default: claude-sonnet-4-6), --dry-run (extract + model only, skip code gen), --verbose. Wire together: get_adapter() \u2192 PdfExtractionPipeline.extract() \u2192 RawToIRMapper.map() \u2192 PytestGenerator.generate() \u2192 SemanticQA.run() \u2192 print qa_report summary. Register as console_scripts in pyproject.toml. Update README.md with usage example including --dry-run.",
+      "dependencies": [
+        "4",
+        "5"
+      ],
+      "priority": "high",
+      "estimated_tokens": 1000,
+      "status": "completed",
+      "parallel_group": null,
+      "mcp_tools": [
+        "filesystem"
+      ],
+      "artifacts": [
+        {
+          "type": "file",
+          "path": "src/cli.py",
+          "verification": "exists"
+        }
+      ],
+      "context_needed": [
+        {
+          "type": "file",
+          "path": "stacks/spec-to-test/README.md",
+          "reason": "Planned CLI usage pattern to match"
+        }
+      ],
+      "knowledge": {},
+      "output": {
+        "summary": "Implemented Click CLI with --adapter, --out, --llm-model, --dry-run, --verbose, --cache-ir flags. Full pipeline wired: extract \u2192 map \u2192 generate \u2192 QA.",
+        "files_created": [
+          "src/cli.py"
+        ],
+        "tokens_used": 900
+      }
+    },
+    {
+      "id": "7",
+      "agent": "@pdf-extractor",
+      "task": "Write unit tests for the extraction layer: tests/test_extractor.py \u2014 (1) test PdfExtractionPipeline.split_markdown_sections() with synthetic Markdown strings containing H2/H3 headers, assert correct SectionChunk count and titles; (2) test pdfplumber fallback path by mocking pymupdf4llm to return empty string; (3) test TC_ID extraction from OCPP-style headers ('TC_B01 Boot Notification'); (4) load tests/fixtures/sample_chunks.json and assert schema matches SectionChunk TypedDict. All tests must pass with `pytest tests/test_extractor.py`.",
+      "dependencies": [
+        "3"
+      ],
+      "priority": "normal",
+      "estimated_tokens": 1000,
+      "status": "completed",
+      "parallel_group": "wave-tests",
+      "mcp_tools": [
+        "filesystem"
+      ],
+      "artifacts": [
+        {
+          "type": "test",
+          "path": "tests/test_extractor.py",
+          "verification": "passes"
+        }
+      ],
+      "context_needed": [
+        {
+          "type": "file",
+          "path": "tests/fixtures/sample_chunks.json",
+          "reason": "SectionChunk fixture for unit tests"
+        }
+      ],
+      "knowledge": {},
+      "output": {
+        "summary": "Unit tests written",
+        "tokens_used": 900
+      }
+    },
+    {
+      "id": "8",
+      "agent": "@ir-modeler",
+      "task": "Write unit tests for the IR + LLM extraction layer: tests/test_ir.py \u2014 (1) test SchemaRetriever.get('BootNotification') returns a non-empty dict with 'properties' key; (2) test LLMExtractor with a mocked Anthropic client (mock the Messages API response to return a valid TestCase JSON), assert Pydantic model parses correctly; (3) test retry logic \u2014 mock returns invalid JSON on first 2 calls, valid on 3rd; (4) test RawToIRMapper.map() with sample_chunks.json fixture and mocked LLMExtractor, assert SpecDocument has correct test_cases count. All tests must pass with `pytest tests/test_ir.py`.",
+      "dependencies": [
+        "4"
+      ],
+      "priority": "normal",
+      "estimated_tokens": 1200,
+      "status": "completed",
+      "parallel_group": "wave-tests",
+      "mcp_tools": [
+        "filesystem"
+      ],
+      "artifacts": [
+        {
+          "type": "test",
+          "path": "tests/test_ir.py",
+          "verification": "passes"
+        }
+      ],
+      "context_needed": [
+        {
+          "type": "file",
+          "path": "tests/fixtures/sample_chunks.json",
+          "reason": "Input fixture for mapper tests"
+        }
+      ],
+      "knowledge": {},
+      "output": {
+        "summary": "Unit tests written",
+        "tokens_used": 900
+      }
+    },
+    {
+      "id": "9",
+      "agent": "@pytest-generator",
+      "task": "Write unit tests for the code generation + QA layer: tests/test_codegen.py \u2014 (1) construct a minimal SpecDocument with 2 TestCases and 1 ReusableState, run PytestGenerator.generate() into tmp_path, assert files exist and contain 'def test_' and '@pytest.fixture' and the AUTO-GENERATED header; (2) test assertion templates use mobilityhouse enum references (assert 'RegistrationStatusType' appears in output for a BootNotification test case); (3) test SemanticQA.run() with a high-similarity pair (score > 0.7) and a low-similarity pair (score < 0.7), assert qa_report.json flags only the low-similarity test. All tests must pass with `pytest tests/test_codegen.py`.",
+      "dependencies": [
+        "5"
+      ],
+      "priority": "normal",
+      "estimated_tokens": 1000,
+      "status": "completed",
+      "parallel_group": "wave-tests",
+      "mcp_tools": [
+        "filesystem"
+      ],
+      "artifacts": [
+        {
+          "type": "test",
+          "path": "tests/test_codegen.py",
+          "verification": "passes"
+        }
+      ],
+      "context_needed": [],
+      "knowledge": {},
+      "output": {
+        "summary": "Unit tests written",
+        "tokens_used": 900
+      }
+    }
+  ]
+}
