@@ -786,6 +786,87 @@ class GraphManager:
                 self.create_relationship(agent_id, stack_id, "BELONGS_TO")
 
     # =========================================================================
+    # Stack Initialization
+    # =========================================================================
+
+    def init_stack_graph(self, stack: str, metadata: dict, agents: list[dict]) -> dict:
+        """Initialize a stack's knowledge graph presence.
+
+        Creates/updates Stack node with metadata, creates Agent nodes for all
+        agents, and builds BELONGS_TO relationships. Idempotent.
+
+        Args:
+            stack: Stack name (e.g., 'next-generation')
+            metadata: Dict with optional keys: description, type, repo_path,
+                      domain, languages, frameworks, created_at, initialized_at
+            agents: List of dicts with keys: name, description (opt), source_file (opt)
+
+        Returns:
+            Stats dict with stack_created, stack_updated, agents_created, agents_existing
+        """
+        stats = {
+            "stack_created": False,
+            "stack_updated": False,
+            "agents_created": 0,
+            "agents_existing": 0,
+        }
+
+        # Create or update Stack node
+        stack_id = f"stack_{stack}"
+        existing = self.get_node(stack_id)
+
+        now = datetime.now(timezone.utc).isoformat()
+        stack_props = {
+            "id": stack_id,
+            "name": stack,
+            "active": True,
+            "initialized_at": now,
+        }
+        # Merge metadata into stack properties
+        for key in ("description", "type", "repo_path", "domain",
+                     "languages", "frameworks", "created_at"):
+            if key in metadata and metadata[key]:
+                val = metadata[key]
+                # Store lists as comma-separated strings for Neo4j compatibility
+                if isinstance(val, list):
+                    val = ", ".join(str(v) for v in val)
+                stack_props[key] = val
+
+        if existing:
+            self.update_node(stack_id, stack_props)
+            stats["stack_updated"] = True
+        else:
+            self.create_node("Stack", stack_props)
+            stats["stack_created"] = True
+
+        # Create Agent nodes
+        for agent_info in agents:
+            agent_name = agent_info["name"].lstrip("@")
+            agent_id = f"agent_{stack}_{agent_name}"
+
+            if self.get_node(agent_id):
+                stats["agents_existing"] += 1
+                continue
+
+            agent_props = {
+                "id": agent_id,
+                "name": agent_name,
+                "stack": stack,
+                "created_at": now,
+            }
+            if agent_info.get("description"):
+                agent_props["description"] = agent_info["description"]
+            if agent_info.get("source_file"):
+                agent_props["source_file"] = agent_info["source_file"]
+
+            node = self.create_node("Agent", agent_props)
+            if node:
+                self.create_relationship(agent_id, stack_id, "BELONGS_TO")
+                stats["agents_created"] += 1
+
+        return stats
+
+    # =========================================================================
     # Export
     # =========================================================================
 

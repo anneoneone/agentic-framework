@@ -33,6 +33,7 @@ FILE_LABEL_MAP = {
     "deployment-urls": "Endpoint",
     "versions": "EnvVar",
     "external-apis": "Endpoint",
+    "protobuf-definitions": "Learning",
 }
 
 

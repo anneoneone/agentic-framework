@@ -50,6 +50,12 @@ PHASES = [
                 "required": True,
             },
             {
+                "key": "repo_path",
+                "prompt": "Existing repo path to link (leave blank for embedded/greenfield)",
+                "type": "string",
+                "required": False,
+            },
+            {
                 "key": "domain",
                 "prompt": "Primary domain",
                 "type": "choice",
@@ -240,6 +246,12 @@ def run_interview(dry_run: bool = False, verbose: bool = False) -> dict:
                 profile[q["key"]] = value
 
         print()
+
+    # Derive stack_type from repo_path answer
+    if profile.get("repo_path"):
+        profile["stack_type"] = "linked"
+    else:
+        profile["stack_type"] = "embedded"
 
     return profile
 

@@ -37,7 +37,15 @@
 			"editorIndentGuide.activeBackground1": "#FF8800",
 			"activityBar.background": "#2E2A46",
 			"titleBar.activeBackground": "#403B62",
-			"titleBar.activeForeground": "#FBFBFC"
+			"titleBar.activeForeground": "#FBFBFC",
+			"titleBar.inactiveBackground": "#2E2A46",
+			"titleBar.inactiveForeground": "#FBFBFC",
+			"statusBar.background": "#2E2A46",
+			"statusBar.foreground": "#FBFBFC",
+			"statusBar.debuggingBackground": "#2E2A46",
+			"statusBar.debuggingForeground": "#FBFBFC",
+			"statusBar.noFolderBackground": "#2E2A46",
+			"statusBar.noFolderForeground": "#FBFBFC"
 		}
 	}
 }

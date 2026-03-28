@@ -21,6 +21,8 @@ stacks/
   STACKNAME/agents/        → agent .md files (stack-specific + symlinks to common)
   STACKNAME/plans/         → JSON execution plans (v2.0 schema)
   STACKNAME/docs/knowledge/ → JSONL knowledge entries
+  STACKNAME/.stack.json    → (linked stacks only) repo link config
+  STACKNAME/project/       → (linked stacks only) gitignored symlink → external repo
 ```
 
 ## Slash commands
@@ -82,12 +84,43 @@ CLI alternatives:
 - `python framework/scripts/token-telemetry.py collect|report|dashboard|agent-stats|budget-accuracy`
 - `python framework/scripts/update-agents.py [--stack STK|--all] [--fix] [--dry-run]`
 - `python framework/scripts/requirements-interview.py [--output FILE] [--create-stack] [--dry-run]`
+- `python framework/scripts/init-stack-neo4j.py --stack STK [--profile FILE] | --all | --check`
 
 ## When creating stacks or agents
 
 - Use `/create-stack /path/to/project` or `/create-stack "project description"` or `/create-stack --interview`
+- For projects in external repos: `/create-stack --link /path/to/repo [--name stack-name]`
 - Stack dirs: `stacks/STACKNAME/{agents,plans,docs/knowledge}`
 - Agent files go in `stacks/STACKNAME/agents/*.agent.md`
 - Symlink common agents: `ln -sf ../../../framework/core/common-agents/coordinator.agent.md stacks/STACKNAME/agents/`
 - Follow the template: `framework/templates/specialist-agent.template.md`
 - Validate after creation: `python framework/scripts/validate-agent.py --stack STACKNAME`
+
+## Linked Stacks
+
+Stacks should usually relate to a separate repository. Two stack types:
+
+- **Embedded** (legacy): project source lives inside `stacks/STACKNAME/` — no `.stack.json` needed
+- **Linked**: project source lives in an external repo — stack contains only agents/plans/knowledge
+
+For linked stacks, `stacks/STACKNAME/.stack.json` stores the repo location:
+```json
+{
+  "stack": "my-project",
+  "type": "linked",
+  "repo_path": "/absolute/path/to/repo",
+  "repo_url": "git@github.com:you/repo.git"
+}
+```
+
+A gitignored `project/` symlink is created from this config. Agents reference external source as `project/src/...`.
+
+On a new machine, restore all symlinks with:
+```
+python framework/scripts/link-stack.py --all
+```
+
+Check symlink health:
+```
+python framework/scripts/link-stack.py --check
+```

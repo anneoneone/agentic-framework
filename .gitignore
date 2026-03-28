@@ -126,6 +126,13 @@ $RECYCLE.BIN/
 # stacks/*/monorepo symlinks point to different locations per user
 **/monorepo
 
+# Per-developer repo symlinks for linked stacks (created from .stack.json)
+# Run: python framework/scripts/link-stack.py --all  to restore on a new machine
+**/project
+
+# Neo4j init pending markers (local state)
+**/.neo4j-init-pending
+
 # =============================================================================
 # Archives and Backups
 # =============================================================================

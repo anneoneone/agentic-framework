@@ -485,6 +485,75 @@ def import_stack_knowledge(stack: str) -> str:
 
 
 @mcp.tool()
+def init_stack(stack: str) -> str:
+    """Initialize a stack's Neo4j knowledge graph presence.
+
+    Creates the Stack node, Agent nodes for all agents in the stack's agents/
+    directory, and imports existing knowledge files.
+    Idempotent — safe to call multiple times.
+
+    For fresh stacks with a RequirementsProfile, use the CLI script instead:
+    python framework/scripts/init-stack-neo4j.py --stack NAME --profile PATH
+
+    Args:
+        stack: Stack name (e.g., 'next-generation')
+    """
+    try:
+        graph = get_graph()
+        root = get_root_path()
+        stack_dir = root / "stacks" / stack
+
+        if not stack_dir.is_dir():
+            return json.dumps({"error": f"Stack directory not found: stacks/{stack}"})
+
+        # Load stack metadata
+        from datetime import datetime, timezone
+        metadata = {"initialized_at": datetime.now(timezone.utc).isoformat()}
+        config_path = stack_dir / ".stack.json"
+        if config_path.exists():
+            try:
+                config = json.loads(config_path.read_text())
+                for key in ("description", "type", "repo_path", "created_at"):
+                    if config.get(key):
+                        metadata[key] = config[key]
+            except (json.JSONDecodeError, OSError):
+                pass
+
+        # Parse agents from directory
+        agents = []
+        agents_dir = stack_dir / "agents"
+        if agents_dir.exists():
+            for f in sorted(agents_dir.glob("*.agent.md")):
+                agent_name = f.stem.replace(".agent", "")
+                description = ""
+                try:
+                    content = f.read_text()
+                    if content.startswith("---"):
+                        end = content.index("---", 3)
+                        frontmatter = content[3:end]
+                        for line in frontmatter.split("\n"):
+                            if line.strip().startswith("description:"):
+                                description = line.split(":", 1)[1].strip().strip("\"'")
+                                break
+                except Exception:
+                    pass
+                agents.append({"name": agent_name, "description": description, "source_file": f.name})
+
+        # Initialize graph
+        stats = graph.init_stack_graph(stack, metadata, agents)
+
+        # Import existing knowledge files
+        knowledge_dir = stack_dir / "docs" / "knowledge"
+        if knowledge_dir.exists():
+            import_stats = import_stack(graph, root, stack)
+            stats["import"] = import_stats
+
+        return json.dumps(stats, indent=2, default=str)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+@mcp.tool()
 def export_stack_knowledge(stack: str, format: str = "jsonl") -> str:
     """Export all knowledge for a stack from the graph.
 

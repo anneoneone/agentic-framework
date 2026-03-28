@@ -208,6 +208,52 @@ def check_agent_files() -> int:
     return 0
 
 
+def check_linked_stacks() -> int:
+    """Check that linked stacks have their project/ symlink set up."""
+    import json as _json
+    stacks_dir = ROOT / "stacks"
+    if not stacks_dir.exists():
+        return 0
+
+    errors = 0
+    found_any = False
+    for stack_dir in sorted(stacks_dir.iterdir()):
+        if not stack_dir.is_dir():
+            continue
+        config_path = stack_dir / ".stack.json"
+        if not config_path.exists():
+            continue
+        try:
+            config = _json.loads(config_path.read_text(encoding="utf-8"))
+        except Exception:
+            warn(f"  {stack_dir.name}/.stack.json: invalid JSON")
+            errors += 1
+            continue
+        if config.get("type") != "linked":
+            continue
+
+        found_any = True
+        repo_path = Path(config.get("repo_path", "")).expanduser()
+        symlink = stack_dir / "project"
+
+        if not repo_path or not repo_path.exists():
+            warn(f"  {stack_dir.name}: repo_path '{repo_path}' not found")
+            errors += 1
+        elif not symlink.is_symlink():
+            warn(
+                f"  {stack_dir.name}: project/ missing — run: "
+                f"python framework/scripts/link-stack.py --stack {stack_dir.name}"
+            )
+            errors += 1
+        else:
+            ok(f"  {stack_dir.name}: project/ → {repo_path}")
+
+    if not found_any:
+        ok("No linked stacks configured")
+
+    return errors
+
+
 def check_slash_commands() -> int:
     """Check slash commands exist."""
     commands_dir = ROOT / ".claude" / "commands"
@@ -238,7 +284,7 @@ def check_scripts() -> int:
     expected = [
         "task-executor.py", "plan-executor.py", "knowledge-sync.py",
         "validate-agent.py", "update-agents.py", "token-telemetry.py",
-        "system-check.py",
+        "system-check.py", "link-stack.py", "init-stack-neo4j.py",
     ]
 
     errors = 0
@@ -254,6 +300,31 @@ def check_scripts() -> int:
     return errors
 
 
+def check_neo4j_stack_init() -> int:
+    """Check that all stacks have been initialized in Neo4j (via marker files)."""
+    errors = 0
+    stacks_dir = ROOT / "stacks"
+    if not stacks_dir.exists():
+        return 0
+
+    for stack_dir in sorted(stacks_dir.iterdir()):
+        if not stack_dir.is_dir() or stack_dir.name.startswith("."):
+            continue
+        pending = stack_dir / ".neo4j-init-pending"
+        if pending.exists():
+            warn(
+                f"  {stack_dir.name}: Neo4j init pending — run: "
+                f"python framework/scripts/init-stack-neo4j.py "
+                f"--stack {stack_dir.name}"
+            )
+            errors += 1
+
+    if errors == 0:
+        ok("No pending Neo4j initializations")
+
+    return errors
+
+
 def main():
     print("\033[1m")
     print("╔══════════════════════════════════════════╗")
@@ -263,33 +334,39 @@ def main():
 
     total_errors = 0
 
-    step("1/8  System Dependencies")
+    step("1/10  System Dependencies")
     check_command("python3", ["--version"])
     check_command("npx", ["--version"])
     check_command("docker", ["--version"])
     check_command("git", ["--version"])
 
-    step("2/8  Python Packages")
+    step("2/10  Python Packages")
     check_python_package("anthropic")
     check_python_package("fastmcp")
 
-    step("3/8  Directory Structure")
+    step("3/10  Directory Structure")
     total_errors += check_directory_structure()
 
-    step("4/8  MCP Server Configuration")
+    step("4/10  MCP Server Configuration")
     total_errors += check_mcp_config()
 
-    step("5/8  Services")
+    step("5/10  Services")
     check_neo4j()
     total_errors += check_api_keys()
 
-    step("6/8  Agent Files")
+    step("6/10  Agent Files")
     total_errors += check_agent_files()
 
-    step("7/8  Slash Commands")
+    step("7/10  Linked Stacks")
+    total_errors += check_linked_stacks()
+
+    step("8/10  Neo4j Stack Init")
+    total_errors += check_neo4j_stack_init()
+
+    step("9/10  Slash Commands")
     total_errors += check_slash_commands()
 
-    step("8/8  Framework Scripts")
+    step("10/10  Framework Scripts")
     total_errors += check_scripts()
 
     print()

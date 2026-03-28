@@ -47,11 +47,14 @@ You are the [DOMAIN] specialist for [STACK/PROJECT].
 
 # Key Files
 
+> Path convention:
+> - **Linked stack** (external repo): prefix all project paths with `project/` (e.g. `project/src/main.py`)
+> - **Embedded stack** (source inside `stacks/STACKNAME/`): paths relative to the stack root
+
 | File | Purpose |
 |------|---------|
-| `path/to/primary/module` | Description |
-| `path/to/related/file` | Description |
-| `path/to/config` | Description |
+| `project/src/primary/module` | Description (linked) or `src/primary/module` (embedded) |
+| `project/path/to/config` | Description |
 
 # Patterns
 
