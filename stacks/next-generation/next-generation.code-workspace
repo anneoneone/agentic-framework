@@ -1,0 +1,34 @@
+{
+  "folders": [
+    {
+      "name": "next-generation (project)",
+      "path": "/Users/anton/Seafile/Work/next-generation/git-project/next-generation"
+    },
+    {
+      "name": "agentic-framework (agents & plans)",
+      "path": "/Users/anton/git/0_anton/agentic-framework-v2"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/.git": true,
+      "**/.next": true
+    },
+    "workbench.colorCustomizations": {
+      "editor.background": "#1B1D1F",
+      "editorIndentGuide.activeBackground1": "#FF8800",
+      "activityBar.background": "#580F33",
+      "titleBar.activeBackground": "#7C1648",
+      "titleBar.activeForeground": "#FEFCFD",
+      "titleBar.inactiveBackground": "#580F33",
+      "titleBar.inactiveForeground": "#FEFCFD",
+      "statusBar.background": "#580F33",
+      "statusBar.foreground": "#FEFCFD",
+      "statusBar.debuggingBackground": "#580F33",
+      "statusBar.debuggingForeground": "#FEFCFD",
+      "statusBar.noFolderBackground": "#580F33",
+      "statusBar.noFolderForeground": "#FEFCFD"
+    }
+  }
+}

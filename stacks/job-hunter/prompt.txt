@@ -1,0 +1,19 @@
+/create-stack i want to create a stack to find a new job. the stack should help me with the following tasks:
+- take keywords which describe my job profile and which describe the characteristica of job offers
+- find new keywords which are familiar and match with my keywords or extend them
+- create a "profile" for myself and a "profile" of my dreamjob
+- add also requirements like location and "remote"
+Workflow A:
+- crawl internet for companies which could match
+- find job offers
+Workflow B:
+- register on job offer websites
+- create new searches regarding my profiles
+- crawl results
+Postprocesssing
+- rate results with a score to see how well a offer fits to my search
+- rate calculation should be parametrized by attributes like special keywords or 
+
+Result should be a small webpage where the user can login, create new searches, see results and other useful tools. It should be possible to connect a telegram bot with the queries, so new results could be pushed via telegram
+
+
